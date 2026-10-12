@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const materialMasterController_1 = require("../controllers/materialMasterController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.get('/', materialMasterController_1.getAllMaterialMasters);
+router.post('/sync', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER']), materialMasterController_1.syncMaterialMasters);
+router.get('/sync/status', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER']), materialMasterController_1.getMaterialMasterStatusEndpoint);
+exports.default = router;

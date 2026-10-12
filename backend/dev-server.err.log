@@ -1,0 +1,884 @@
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/services/notificationService.ts(30,14): error TS2741: Property 'BARCODE_MISSING' is missing in type '{ YARD_FULL: ("ADMIN" | "YARD_MANAGER")[]; SYNC_FAILED: "ADMIN"[]; GATE_REJECTED: ("YARD_MANAGER" | "SECURITY")[]; NEW_REGISTRATION: "ADMIN"[]; READY_TO_MOVE: "YARD_MANAGER"[]; SECURITY_REVIEW: "SECURITY"[]; PARKING_VERIFIED: "YARD_MANAGER"[]; PARKING_REJECTED: ("ADMIN" | "YARD_MANAGER")[]; SLOT_RELEASED: ("ADMIN" |...' but required in type 'Record<NotificationEventType, UserRole[]>'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2741 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/machineController.ts(402,26): error TS2304: Cannot find name 'isAdminOverride'.
+src/controllers/machineController.ts(470,22): error TS2304: Cannot find name 'isAdminOverride'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2304, 2304 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/machineController.ts(470,22): error TS2304: Cannot find name 'isAdminOverride'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2304 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/services/materialMasterService.ts(144,15): error TS2304: Cannot find name 'PENDING_MODEL_STATUS'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2304 ]
+}
+Error fetching production orders for 2026-09-25: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error fetching production orders for 2026-09-25: TypeError: fetch failed
+Error fetching production orders for 2026-09-26: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error fetching production orders for 2026-09-26: TypeError: fetch failed
+Error fetching production orders for 2026-09-27: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error fetching production orders for 2026-09-27: TypeError: fetch failed
+Error fetching production orders for 2026-09-28: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error fetching production orders for 2026-09-28: TypeError: fetch failed
+Error fetching production orders for 2026-09-29: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error fetching production orders for 2026-09-29: TypeError: fetch failed
+Error fetching production orders for 2026-09-30: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error fetching production orders for 2026-09-30: TypeError: fetch failed
+Error fetching production orders for 2026-10-01: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error fetching production orders for 2026-10-01: TypeError: fetch failed
+Error fetching production order 000013084302 for 2026-09-16: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013084302: TypeError: fetch failed
+Error fetching production order 000013100258 for 2026-09-19: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013100258: TypeError: fetch failed
+Error fetching production order 000013035955 for 2026-09-20: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013035955: TypeError: fetch failed
+Error fetching production order 000013035966 for 2026-09-21: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013035966: TypeError: fetch failed
+Error fetching production order 000013095516 for 2026-09-21: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013095516: TypeError: fetch failed
+Error fetching production order 000013095515 for 2026-09-22: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013095515: TypeError: fetch failed
+Error fetching production order 000013035972 for 2026-09-22: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013035972: TypeError: fetch failed
+Error fetching production order 000013103777 for 2026-09-22: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013103777: TypeError: fetch failed
+Error fetching production order 000013084518 for 2026-09-23: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013084518: TypeError: fetch failed
+Error fetching production order 000013067466 for 2026-09-23: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013067466: TypeError: fetch failed
+Error fetching production order 000013111067 for 2026-09-23: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013111067: TypeError: fetch failed
+Error fetching production order 000013036192 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013036192: TypeError: fetch failed
+Error fetching production order 000013111075 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013111075: TypeError: fetch failed
+Error fetching production order 000013122173 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013122173: TypeError: fetch failed
+Error fetching production order 000013067853 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013067853: TypeError: fetch failed
+Error fetching production order 000013068458 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013068458: TypeError: fetch failed
+Error fetching production order 000013068459 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013068459: TypeError: fetch failed
+Error fetching production order 000013111069 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013111069: TypeError: fetch failed
+Error fetching production order 000013111071 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013111071: TypeError: fetch failed
+Error fetching production order 000013035976 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013035976: TypeError: fetch failed
+Error fetching production order 000013111072 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013111072: TypeError: fetch failed
+Error fetching production order 000013111073 for 2026-09-24: [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: 192.168.1.103:80, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2377:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2343:35)
+      at processImmediate (node:internal/timers:504:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Error refreshing stuck order 000013111073: TypeError: fetch failed
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/yardController.ts(257,11): error TS7034: Variable 'missing' implicitly has type 'any[]' in some locations where its type cannot be determined.
+src/controllers/yardController.ts(266,64): error TS7005: Variable 'missing' implicitly has an 'any[]' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 7034, 7005 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/yardController.ts(262,11): error TS7034: Variable 'missing' implicitly has type 'any[]' in some locations where its type cannot be determined.
+src/controllers/yardController.ts(271,64): error TS7005: Variable 'missing' implicitly has an 'any[]' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 7034, 7005 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/yardController.ts(262,11): error TS7034: Variable 'missing' implicitly has type 'any[]' in some locations where its type cannot be determined.
+src/controllers/yardController.ts(271,64): error TS7005: Variable 'missing' implicitly has an 'any[]' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 7034, 7005 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/yardController.ts(262,11): error TS7034: Variable 'missing' implicitly has type 'any[]' in some locations where its type cannot be determined.
+src/controllers/yardController.ts(271,64): error TS7005: Variable 'missing' implicitly has an 'any[]' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 7034, 7005 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/yardController.ts(262,11): error TS7034: Variable 'missing' implicitly has type 'any[]' in some locations where its type cannot be determined.
+src/controllers/yardController.ts(271,64): error TS7005: Variable 'missing' implicitly has an 'any[]' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 7034, 7005 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/gateController.ts(91,71): error TS2339: Property 'biometricId' does not exist on type '{ id: string; name: string; createdAt: Date; updatedAt: Date; status: string; userId: string | null; employeeCode: string | null; phone: string | null; licenseNo: string | null; photoUrl: string | null; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2339 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/gateController.ts(91,71): error TS2339: Property 'biometricId' does not exist on type '{ id: string; name: string; createdAt: Date; updatedAt: Date; status: string; userId: string | null; employeeCode: string | null; phone: string | null; licenseNo: string | null; photoUrl: string | null; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2339 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/gateController.ts(91,71): error TS2339: Property 'biometricId' does not exist on type '{ id: string; name: string; createdAt: Date; updatedAt: Date; status: string; userId: string | null; employeeCode: string | null; phone: string | null; licenseNo: string | null; photoUrl: string | null; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2339 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/gateController.ts(91,71): error TS2339: Property 'biometricId' does not exist on type '{ id: string; name: string; createdAt: Date; updatedAt: Date; status: string; userId: string | null; employeeCode: string | null; phone: string | null; licenseNo: string | null; photoUrl: string | null; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2339 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/gateController.ts(91,71): error TS2339: Property 'biometricId' does not exist on type '{ id: string; name: string; createdAt: Date; updatedAt: Date; status: string; userId: string | null; employeeCode: string | null; phone: string | null; licenseNo: string | null; photoUrl: string | null; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2339 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/gateController.ts(91,71): error TS2339: Property 'biometricId' does not exist on type '{ id: string; name: string; createdAt: Date; updatedAt: Date; status: string; userId: string | null; employeeCode: string | null; phone: string | null; licenseNo: string | null; photoUrl: string | null; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2339 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/gateController.ts(91,71): error TS2339: Property 'biometricId' does not exist on type '{ id: string; name: string; createdAt: Date; updatedAt: Date; status: string; userId: string | null; employeeCode: string | null; phone: string | null; licenseNo: string | null; photoUrl: string | null; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2339 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(159,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+(node:6672) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 exit listeners added to [Bus]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/driverController.ts(156,31): error TS2559: Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' has no properties in common with type '{ file?: unknown; }'.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [ 2559 ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/lib/upload.ts(4,20): error TS7016: Could not find a declaration file for module 'multer'. 'D:/xampp/htdocs/fgmachinelocationfinder/yard-management-system/backend/node_modules/multer/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/multer` if it exists or add a new declaration (.d.ts) file containing `declare module 'multer';`
+src/lib/upload.ts(46,17): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(46,23): error TS7006: Parameter '_file' implicitly has an 'any' type.
+src/lib/upload.ts(46,30): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(49,14): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(49,20): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(49,26): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(57,16): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(57,22): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(57,28): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [
+    7016, 7006, 7006,
+    7006, 7006, 7006,
+    7006, 7006, 7006,
+    7006
+  ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/lib/upload.ts(4,20): error TS7016: Could not find a declaration file for module 'multer'. 'D:/xampp/htdocs/fgmachinelocationfinder/yard-management-system/backend/node_modules/multer/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/multer` if it exists or add a new declaration (.d.ts) file containing `declare module 'multer';`
+src/lib/upload.ts(46,17): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(46,23): error TS7006: Parameter '_file' implicitly has an 'any' type.
+src/lib/upload.ts(46,30): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(49,14): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(49,20): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(49,26): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(57,16): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(57,22): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(57,28): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [
+    7016, 7006, 7006,
+    7006, 7006, 7006,
+    7006, 7006, 7006,
+    7006
+  ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/lib/upload.ts(4,20): error TS7016: Could not find a declaration file for module 'multer'. 'D:/xampp/htdocs/fgmachinelocationfinder/yard-management-system/backend/node_modules/multer/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/multer` if it exists or add a new declaration (.d.ts) file containing `declare module 'multer';`
+src/lib/upload.ts(46,17): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(46,23): error TS7006: Parameter '_file' implicitly has an 'any' type.
+src/lib/upload.ts(46,30): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(49,14): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(49,20): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(49,26): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(57,16): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(57,22): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(57,28): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [
+    7016, 7006, 7006,
+    7006, 7006, 7006,
+    7006, 7006, 7006,
+    7006
+  ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/lib/upload.ts(4,20): error TS7016: Could not find a declaration file for module 'multer'. 'D:/xampp/htdocs/fgmachinelocationfinder/yard-management-system/backend/node_modules/multer/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/multer` if it exists or add a new declaration (.d.ts) file containing `declare module 'multer';`
+src/lib/upload.ts(46,17): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(46,23): error TS7006: Parameter '_file' implicitly has an 'any' type.
+src/lib/upload.ts(46,30): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(49,14): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(49,20): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(49,26): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(57,16): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(57,22): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(57,28): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [
+    7016, 7006, 7006,
+    7006, 7006, 7006,
+    7006, 7006, 7006,
+    7006
+  ]
+}
+D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/lib/upload.ts(4,20): error TS7016: Could not find a declaration file for module 'multer'. 'D:/xampp/htdocs/fgmachinelocationfinder/yard-management-system/backend/node_modules/multer/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/multer` if it exists or add a new declaration (.d.ts) file containing `declare module 'multer';`
+src/lib/upload.ts(46,17): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(46,23): error TS7006: Parameter '_file' implicitly has an 'any' type.
+src/lib/upload.ts(46,30): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(49,14): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(49,20): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(49,26): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+src/lib/upload.ts(57,16): error TS7006: Parameter '_req' implicitly has an 'any' type.
+src/lib/upload.ts(57,22): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/lib/upload.ts(57,28): error TS7006: Parameter 'cb' implicitly has an 'any' type.
+
+    at createTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2013:10
+    at Object.require.extensions.<computed> [as .ts] (D:\xampp\htdocs\fgmachinelocationfinder\yard-management-system\backend\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1596:32)
+    at Module._load (node:internal/modules/cjs/loader:1398:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  diagnosticCodes: [
+    7016, 7006, 7006,
+    7006, 7006, 7006,
+    7006, 7006, 7006,
+    7006
+  ]
+}

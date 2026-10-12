@@ -1,0 +1,56 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "seed": "node prisma/seed.js",
+    "seed:users": "node prisma/seed-users.js",
+    "demo:seed": "ts-node prisma/seed-demo.ts",
+    "demo:clear": "ts-node prisma/seed-demo.ts --clear",
+    "sync:snapshot": "ts-node prisma/snapshot-stuck-orders.ts",
+    "sync:clear": "ts-node prisma/clear-assembly-data.ts",
+    "sync:reinsert": "ts-node prisma/reinsert-stuck-orders.ts",
+    "kmat:backfill": "ts-node prisma/backfill-model-masters.ts",
+    "material:sync": "ts-node prisma/sync-material-master.ts",
+    "slots:backfill": "ts-node prisma/backfill-slot-reservations.ts",
+    "users:system": "ts-node prisma/seed-system-user.ts",
+    "verify:slots": "ts-node prisma/verify-slot-release.ts",
+    "reconcile:ready-move": "ts-node prisma/reconcile-ready-without-barcode.ts"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Yard Management System Backend",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
+    "node-cron": "^3.0.3",
+    "prisma": "^5.22.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.9.1",
+    "@types/node-cron": "^3.0.11",
+    "@types/ws": "^8.18.1",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}

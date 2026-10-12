@@ -1,0 +1,443 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  YARD_MANAGER
+  OPERATOR
+  SERVICE_TECHNICIAN
+  SECURITY
+  VIEW_ONLY
+  DRIVER
+}
+
+enum SlotStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+  DISPATCH_READY
+  BLOCKED
+  INSPECTION
+}
+
+enum MachineStatus {
+  AVAILABLE
+  SOLD
+  RESERVED
+  UNDER_INSPECTION
+  IN_REPAIR
+  DISPATCHED
+}
+
+enum MovementReason {
+  PRODUCTION
+  INSPECTION
+  REPAIR
+  DISPATCH
+  RELOCATION
+  MAINTENANCE
+  YARD_ENTRY
+}
+
+enum ParkStatus {
+  PLANNED
+  READY_TO_MOVE
+  IN_TRANSIT
+  AT_GATE
+  PARKED_PENDING
+  PARKED_REJECTED
+  PARKED_VERIFIED
+  EXITED
+}
+
+// Where a stage history row came from. Plant data arrives via the production API
+// sync; MANUAL rows are written by the admin stage-advance endpoint.
+enum StageHistorySource {
+  PLANT_SYNC
+  MANUAL
+}
+
+enum AuthMethod {
+  FINGERPRINT
+  FACE
+  BARCODE
+}
+
+enum GateResult {
+  AUTHORIZED
+  REJECTED
+}
+
+enum GateDirection {
+  IN
+  OUT
+}
+
+enum ExitRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(OPERATOR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+    movements             Movement[]
+    gateLogs              GateLog[]
+    securityVerifications SecurityVerification[]
+    notifications         Notification[]
+    settingsUpdated       SystemSetting[]
+    driverProfile         Driver?
+    requestedExits        MachineExitRequest[] @relation("RequestedBy")
+    approvedExits         MachineExitRequest[] @relation("ApprovedBy")
+  }
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Notification {
+  id        String               @id @default(uuid())
+  userId    String
+  type      String
+  severity  NotificationSeverity @default(INFO)
+  title     String
+  message   String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+model Yard {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  rows        Int      @default(10)
+  cols        Int      @default(10)
+  latitude    Float?
+  longitude   Float?
+  address     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  slots                    Slot[]
+  movements                Movement[]
+  preferredByFerts         FertCategory[]
+  preferredByVehicleModels VehicleModelMaster[]
+}
+
+model Slot {
+  id          String     @id @default(uuid())
+  yardId      String
+  row         Int
+  col         Int
+  zone        String?
+  status      SlotStatus @default(AVAILABLE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  // When the slot was promised to a machine that has not arrived yet. Distinct from
+  // updatedAt, which moves on any later slot edit and so cannot answer "how long has
+  // this been held?". Null whenever the slot is not RESERVED.
+  reservedAt  DateTime?
+
+  yard       Yard       @relation(fields: [yardId], references: [id], onDelete: Cascade)
+  machine    Machine?   @relation("CurrentSlot")
+  plannedFor Machine?   @relation("PlannedSlot")
+  movementsFrom Movement[] @relation("MovementFromSlot")
+  movementsTo   Movement[] @relation("MovementToSlot")
+  securityVerifications SecurityVerification[]
+
+  @@unique([yardId, row, col])
+  @@index([yardId])
+  @@index([status, reservedAt])
+  @@index([status])
+}
+
+model Machine {
+  id                String        @id @default(uuid())
+  serialNumber      String        @unique
+  barcode           String?       @unique
+  model             String
+  machineType       String?
+  modelType         String?
+  modelMasterId     String?
+  productionDate    DateTime
+  status            MachineStatus @default(AVAILABLE)
+  assemblyStage     Int           @default(1)
+  orderNo           String?       @unique
+  productionOrderId String?
+  itemCode          String?
+  itemDescription   String?
+  fertCategoryId    String?
+  fertCategory      String?
+  plannedSlotId     String?       @unique
+  driverId          String?
+  parkStatus        ParkStatus    @default(PLANNED)
+  currentSlotId     String?       @unique
+  qrCode            String?
+  lastSyncAt        DateTime?
+  // Start of this machine's wait for a slot. Stamped the first time a stage-13
+  // assignment finds no free slot and deliberately never overwritten, so the
+  // queue order reflects who has been waiting longest rather than who failed most
+  // recently. Null while the machine holds a slot.
+  slotWaitingSince  DateTime?
+  // Marks throwaway demo rows created by prisma/seed-demo.ts so they can be
+  // excluded from the assembly views and removed without touching real data.
+  isDemo            Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  currentSlot          Slot?     @relation("CurrentSlot", fields: [currentSlotId], references: [id])
+  plannedSlot          Slot?     @relation("PlannedSlot", fields: [plannedSlotId], references: [id])
+  fertCategoryRel      FertCategory? @relation(fields: [fertCategoryId], references: [id])
+  modelMaster          VehicleModelMaster? @relation(fields: [modelMasterId], references: [id])
+  driver               Driver?   @relation(fields: [driverId], references: [id])
+  movements            Movement[]
+  gateLogs             GateLog[]
+  securityVerifications SecurityVerification[]
+  stageHistory         MachineStageHistory[]
+  exitRequests         MachineExitRequest[]
+
+  @@index([serialNumber])
+  @@index([status])
+  @@index([currentSlotId])
+  @@index([assemblyStage])
+  @@index([orderNo])
+  @@index([isDemo])
+  @@index([slotWaitingSince])
+}
+
+// One row per assembly operation reported by the plant, per machine.
+// The production API returns the full operation list on every sync; this
+// preserves it instead of collapsing it into Machine.assemblyStage.
+model MachineStageHistory {
+  id              String             @id @default(uuid())
+  machineId       String
+  stage           Int
+  operationSeqNo  String
+  workCenter      String?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  completedQty    String?
+  isCompleted     Boolean            @default(false)
+  source          StageHistorySource @default(PLANT_SYNC)
+  syncedAt        DateTime           @default(now())
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  machine         Machine            @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  // Keyed on operation rather than timestamp so re-running the daily sync
+  // refreshes rows in place instead of duplicating history.
+  @@unique([machineId, operationSeqNo, source])
+  @@index([machineId, stage])
+}
+
+model FertCategory {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  name            String
+  priority        Int      @default(0)
+  preferredYardId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  preferredYard Yard?     @relation(fields: [preferredYardId], references: [id])
+  machines      Machine[]
+}
+
+model VehicleModelMaster {
+  id              String   @id @default(uuid())
+  kmat            String   @unique
+  model           String
+  type            String
+  modelType       String
+  // Review state only - it deliberately has no effect on yard routing or machine
+  // assignment. PENDING is the default because a row the material sync invented has
+  // nothing trustworthy in model/type; an administrator promotes it to ACTIVE once it
+  // has been checked out, or retires it to INACTIVE.
+  status          String   @default("PENDING")
+  preferredYardId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  preferredYard Yard?     @relation(fields: [preferredYardId], references: [id])
+  machines      Machine[]
+
+  @@index([preferredYardId])
+  @@index([type])
+  @@index([status])
+}
+
+model MaterialMaster {
+  id           String   @id @default(uuid())
+  material     String   @unique
+  plant        String
+  confMaterial String
+  syncedAt     DateTime @default(now())
+
+  @@index([confMaterial])
+  @@index([syncedAt])
+}
+
+model Driver {
+    id          String   @id @default(uuid())
+    name        String
+    phone       String?
+    licenseNo   String?
+    employeeCode String?  @unique
+    // URL path to an uploaded photo, e.g. "/uploads/drivers/<uuid>.jpg".
+    // Stored as a path rather than bytes so the drivers list stays small.
+    photoUrl     String?
+    status      String   @default("AVAILABLE")
+    // Optional link to a login. A driver only becomes a notification recipient
+    // (and can only confirm parking) once an account is linked here.
+    userId      String?  @unique
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+  
+    machines  Machine[]
+    gateLogs  GateLog[]
+    user      User?    @relation(fields: [userId], references: [id])
+  }
+
+model Movement {
+  id          String         @id @default(uuid())
+  machineId   String
+  yardId      String
+  fromSlotId  String?
+  toSlotId    String?
+  userId      String
+  reason      MovementReason
+  notes       String?
+  timestamp   DateTime       @default(now())
+
+  machine   Machine @relation(fields: [machineId], references: [id])
+  yard      Yard    @relation(fields: [yardId], references: [id])
+  fromSlot  Slot?   @relation("MovementFromSlot", fields: [fromSlotId], references: [id])
+  toSlot    Slot?   @relation("MovementToSlot", fields: [toSlotId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@index([machineId])
+  @@index([yardId])
+  @@index([timestamp])
+}
+
+model GateLog {
+  id              String        @id @default(uuid())
+  machineId       String
+  driverId        String
+  authMethod      AuthMethod
+  barcode         String
+  result          GateResult
+  direction       GateDirection @default(IN)
+  barrierOpenedAt DateTime?
+  barrierClosedAt DateTime?
+  userId          String
+  createdAt       DateTime      @default(now())
+
+  machine Machine @relation(fields: [machineId], references: [id])
+  driver  Driver  @relation(fields: [driverId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+}
+
+model SecurityVerification {
+  id             String   @id @default(uuid())
+  machineId      String
+  slotId         String
+  securityUserId String
+  status         String
+  comments       String?
+  verifiedAt     DateTime @default(now())
+
+  machine Machine @relation(fields: [machineId], references: [id])
+  slot    Slot    @relation(fields: [slotId], references: [id])
+  user    User    @relation(fields: [securityUserId], references: [id])
+}
+
+// Staff request to take a machine out of the yard (testing, inspection, repair,
+// dispatch, ...). The yard manager approves or rejects; approval releases the
+// parking slot and marks the machine AT_GATE so the gate can authorize the exit.
+// Security sees APPROVED requests as awareness of what may leave.
+model MachineExitRequest {
+  id            String            @id @default(uuid())
+  machineId     String
+  requestedById String
+  reason        String
+  notes         String?
+  status        ExitRequestStatus @default(PENDING)
+  approvedById  String?
+  approvedAt    DateTime?
+  rejectReason  String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  machine   Machine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  requestedBy User  @relation("RequestedBy", fields: [requestedById], references: [id])
+  approvedBy  User? @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  @@index([machineId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([createdAt])
+}
+
+// Singleton row: the admin-editable integration configuration for the two plant
+// upstreams. Ids are fixed so there can only ever be one settings row.
+model SystemSetting {
+  id          String   @id @default("singleton")
+  isActive    Boolean  @default(true)
+
+  // Production order upstream
+  productionApiUrl   String
+  productionSyncDays Int      @default(7)
+  productionCron     String   @default("30 6 * * *")
+  productionTimeoutMs Int    @default(30000)
+
+  // Material master upstream
+  materialApiUrl   String
+  materialUsername String
+  materialPassword String
+  materialPlant    String   @default("1500")
+  materialSyncDays Int      @default(7)
+  materialCron     String   @default("0 6 * * *")
+  materialTimeoutMs Int     @default(30000)
+
+  // Gate boom barrier - the controller sits on the gate tab's WiFi, so the
+  // backend only stores the endpoints (admin-configurable) and The tab fires
+  // them directly. Auto-close lets the barrier re-lock itself after N seconds.
+  barrierOpenUrl          String @default("")
+  barrierCloseUrl         String @default("")
+  barrierAutoCloseSeconds Int    @default(5)
+  barrierManualOpenEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy User?    @relation(fields: [updatedById], references: [id])
+  updatedById String?
+}

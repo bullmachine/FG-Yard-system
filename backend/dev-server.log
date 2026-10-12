@@ -1,0 +1,2086 @@
+
+> backend@1.0.0 dev
+> nodemon src/index.ts
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: ts,json[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+[32m[nodemon] restarting due to changes...[39m
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[32m[nodemon] restarting due to changes...[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+[32m[nodemon] restarting due to changes...[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[32m[nodemon] restarting due to changes...[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+[32m[nodemon] restarting due to changes...[39m
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[32m[nodemon] restarting due to changes...[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+
+> backend@1.0.0 dev
+> nodemon src/index.ts
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: ts,json[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[2026-10-01T11:10:20.918Z] Starting manual sync...
+Window 2026-09-25 -> 2026-10-01: 0 unique orders from 7 days (0 day(s) with no data)
+Sync completed: 0 created, 0 updated, 7 errors
+Refreshing 22 stuck pre-stage order(s) by order number
+Stuck order refresh: 0/22 refreshed (22 not found)
+[2026-10-01T11:15:28.588Z] Manual sync completed: {
+  totalOrders: 0,
+  created: 0,
+  updated: 0,
+  errors: [
+    'Error fetching production orders for 2026-09-25: TypeError: fetch failed',
+    'Error fetching production orders for 2026-09-26: TypeError: fetch failed',
+    'Error fetching production orders for 2026-09-27: TypeError: fetch failed',
+    'Error fetching production orders for 2026-09-28: TypeError: fetch failed',
+    'Error fetching production orders for 2026-09-29: TypeError: fetch failed',
+    'Error fetching production orders for 2026-09-30: TypeError: fetch failed',
+    'Error fetching production orders for 2026-10-01: TypeError: fetch failed'
+  ],
+  window: { from: '2026-09-25', to: '2026-10-01', days: 7 },
+  emptyDays: [],
+  stuckRefresh: {
+    checked: 22,
+    refreshed: 0,
+    advanced: 0,
+    notFound: [
+      'Error refreshing stuck order 000013084302: TypeError: fetch failed',
+      'Error refreshing stuck order 000013100258: TypeError: fetch failed',
+      'Error refreshing stuck order 000013035955: TypeError: fetch failed',
+      'Error refreshing stuck order 000013035966: TypeError: fetch failed',
+      'Error refreshing stuck order 000013095516: TypeError: fetch failed',
+      'Error refreshing stuck order 000013095515: TypeError: fetch failed',
+      'Error refreshing stuck order 000013035972: TypeError: fetch failed',
+      'Error refreshing stuck order 000013103777: TypeError: fetch failed',
+      'Error refreshing stuck order 000013084518: TypeError: fetch failed',
+      'Error refreshing stuck order 000013067466: TypeError: fetch failed',
+      'Error refreshing stuck order 000013111067: TypeError: fetch failed',
+      'Error refreshing stuck order 000013036192: TypeError: fetch failed',
+      'Error refreshing stuck order 000013111075: TypeError: fetch failed',
+      'Error refreshing stuck order 000013122173: TypeError: fetch failed',
+      'Error refreshing stuck order 000013067853: TypeError: fetch failed',
+      'Error refreshing stuck order 000013068458: TypeError: fetch failed',
+      'Error refreshing stuck order 000013068459: TypeError: fetch failed',
+      'Error refreshing stuck order 000013111069: TypeError: fetch failed',
+      'Error refreshing stuck order 000013111071: TypeError: fetch failed',
+      'Error refreshing stuck order 000013035976: TypeError: fetch failed',
+      'Error refreshing stuck order 000013111072: TypeError: fetch failed',
+      'Error refreshing stuck order 000013111073: TypeError: fetch failed'
+    ]
+  }
+}
+[2026-10-01T11:21:39.986Z] Starting manual sync...
+Window 2026-09-25 -> 2026-10-01: 153 unique orders from 7 days (0 day(s) with no data)
+Sync completed: 51 created, 102 updated, 0 errors
+Refreshing 7 stuck pre-stage order(s) by order number
+Stuck order refresh: 7/7 refreshed (0 not found)
+[2026-10-01T11:21:58.468Z] Manual sync completed: {
+  totalOrders: 153,
+  created: 51,
+  updated: 102,
+  errors: [],
+  window: { from: '2026-09-25', to: '2026-10-01', days: 7 },
+  emptyDays: [],
+  stuckRefresh: { checked: 7, refreshed: 7, advanced: 7, notFound: [] }
+}
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Production Yard A
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 07d582f6-3565-41c3-8c3b-0af091b8cea0
+Yard fetched successfully: __tmp_verify_1791261790017
+Fetching yard with ID: 07d582f6-3565-41c3-8c3b-0af091b8cea0
+Yard fetched successfully: __tmp_verify_1791261790017
+Fetching yard with ID: 07d582f6-3565-41c3-8c3b-0af091b8cea0
+Yard fetched successfully: __tmp_verify_1791261790017
+Fetching yard with ID: 07d582f6-3565-41c3-8c3b-0af091b8cea0
+Yard fetched successfully: __tmp_verify_1791261790017
+Fetching yard with ID: 07d582f6-3565-41c3-8c3b-0af091b8cea0
+Yard fetched successfully: __tmp_verify_1791261790017
+Fetching yard with ID: 07d582f6-3565-41c3-8c3b-0af091b8cea0
+Yard fetched successfully: __tmp_verify_1791261790017
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+Fetching yard with ID: 43caafae-cf97-4da3-af10-6bc7f4f5a7ac
+Yard fetched successfully: __tmp_verify_1791261816918
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: ee46917d-75ad-4c8c-abcc-bfa3c050b331
+Yard fetched successfully: __tmp_smoke_1791262147088
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Dispatch Yard B
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Dispatch Yard B
+Yard fetched successfully: Inspection Yard C
+Fetching yard with ID: 9f30d06d-7e2a-49c8-818d-777b9b324cd1
+Fetching yard with ID: 3dfb013e-aa31-4185-a888-01f929ef1bc6
+Fetching yard with ID: 139dedd8-3db7-4c10-b981-4464f339ba1a
+Yard fetched successfully: Production Yard A
+Yard fetched successfully: Inspection Yard C
+Yard fetched successfully: Dispatch Yard B
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Realtime WebSocket listening on /ws
+Server is running on http://localhost:5000
+System settings loaded (production sync every "30 6 * * *", material every "0 6 * * *")
+Production order sync scheduled with cron: 30 6 * * *
+Material master sync scheduled with cron: 0 6 * * *
+Scheduler started successfully

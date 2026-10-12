@@ -1,0 +1,26 @@
+{
+  "takenAt": "2026-09-29T04:21:24.817Z",
+  "staleAfterDays": 7,
+  "stageLimit": 18,
+  "count": 3,
+  "orders": [
+    {
+      "serialNumber": "HDSS7243",
+      "orderNo": "000012739824",
+      "productionDate": "2026-05-14",
+      "assemblyStage": 1
+    },
+    {
+      "serialNumber": "SSL1573",
+      "orderNo": "000012754928",
+      "productionDate": "2026-05-14",
+      "assemblyStage": 5
+    },
+    {
+      "serialNumber": "SSL1575",
+      "orderNo": "000012754932",
+      "productionDate": "2026-05-14",
+      "assemblyStage": 13
+    }
+  ]
+}
