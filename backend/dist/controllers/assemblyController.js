@@ -62,6 +62,17 @@ const advanceStage = async (req, res) => {
                 syncedAt: new Date()
             }
         });
+        // A manual jump to ready-to-move age with no barcode must alert the same way the
+        // sync path does, so the problem is visible even when the plant feed has
+        // not run yet.
+        if (stage >= 18 && (!updatedMachine.barcode || !updatedMachine.barcode.trim())) {
+            await (0, notificationService_1.alertIfMissingBarcode)({
+                serialNumber: updatedMachine.serialNumber,
+                model: updatedMachine.model,
+                assemblyStage: stage,
+                barcode: updatedMachine.barcode
+            });
+        }
         // If stage 13, auto-assign location
         if (stage >= 13 && !machine.plannedSlotId) {
             const assignmentResult = await (0, locationAssignmentService_1.assignLocationAtStage13)(machineId);
@@ -72,8 +83,11 @@ const advanceStage = async (req, res) => {
                 });
             }
         }
-        // If stage 18, set park status to READY_TO_MOVE
-        if (stage >= 18 && machine.parkStatus === 'PLANNED') {
+        // If stage 18 and the machine has a barcode, set park status to
+        // READY_TO_MOVE. Without a barcode the machine stays PLANNED: it must not be
+        // offered as ready-to-move at the gate until the barcode arrives.
+        const hasBarcode = !!updatedMachine.barcode && updatedMachine.barcode.trim() !== '';
+        if (stage >= 18 && machine.parkStatus === 'PLANNED' && hasBarcode) {
             await prisma_1.default.machine.update({
                 where: { id: machineId },
                 data: { parkStatus: 'READY_TO_MOVE' }
@@ -146,8 +160,12 @@ const assignDriver = async (req, res) => {
         // still at the pre-gate stage. Rewriting the parking state of a machine that
         // is already IN_TRANSIT (or parked) would silently rewind it and strand it:
         // the driver would have no legal way to confirm parking, because the confirm
-        // endpoint only accepts IN_TRANSIT or PARKED_REJECTED.
-        const shouldSetReadyToMove = ['PLANNED', 'READY_TO_MOVE'].includes(machine.parkStatus);
+        // endpoint only accepts IN_TRANSIT or PARKED_REJECTED. A barcode is also
+        // required: without one the machine must stay PLANNED until the feed delivers
+        // a barcode, so it is never offered as ready-to-move at the gate.
+        const shouldSetReadyToMove = ['PLANNED', 'READY_TO_MOVE'].includes(machine.parkStatus) &&
+            !!machine.barcode &&
+            machine.barcode.trim() !== '';
         const updatedMachine = await prisma_1.default.machine.update({
             where: { id: machineId },
             data: {

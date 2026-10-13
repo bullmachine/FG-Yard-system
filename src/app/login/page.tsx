@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { asset } from '@/lib/basePath';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -40,7 +41,7 @@ export default function LoginPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-              <img src="/company-logo.png" alt="Logo" className="h-7 w-7 object-contain brightness-0 invert" />
+              <img src={asset("/company-logo.png")} alt="Logo" className="h-7 w-7 object-contain brightness-0 invert" />
             </div>
             <div>
               <p className="text-sm font-bold text-white">Yard Management System</p>
@@ -50,7 +51,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-          <img src="/backhoe-loader.webp" alt="Backhoe Loader" className="w-full max-w-md mx-auto opacity-90 drop-shadow-2xl" />
+                <img src={asset("/backhoe-loader.webp")} alt="Backhoe Loader" className="w-full max-w-md mx-auto opacity-90 drop-shadow-2xl" />
         </div>
 
         <div className="relative z-10 space-y-3">
@@ -84,7 +85,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-              <img src="/company-logo.png" alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
+              <img src={asset("/company-logo.png")} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">Yard Management System</p>
@@ -114,7 +115,7 @@ export default function LoginPage() {
 
             <p className="mt-4 text-center text-sm text-slate-500">
               Don&apos;t have an account?{' '}
-              <a href="/register" className="text-blue-700 hover:text-blue-900 font-semibold">Register</a>
+                <a href={asset("/register")} className="text-blue-700 hover:text-blue-900 font-semibold">Register</a>
             </p>
           </div>
 

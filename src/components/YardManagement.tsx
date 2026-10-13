@@ -15,6 +15,7 @@ import MachineHistoryModal, { Movement } from '@/components/MachineHistoryModal'
 import DriverDetailsModal, { DriverDetails } from '@/components/DriverDetailsModal';
 import { slotLabel, formatDateShort, formatDateTime } from '@/lib/format';
 import { EXIT_REASON_OPTIONS } from '@/lib/exitReasons';
+import { asset } from '@/lib/basePath';
 import { Search, Plus, MapPin, Grid3X3, ExternalLink, Pencil } from 'lucide-react';
 
 interface Yard { id: string; name: string; description?: string; rows: number; cols: number; latitude?: number; longitude?: number; address?: string; slotCounts?: Record<string, number>; totalSlots?: number; }
@@ -540,7 +541,7 @@ export default function YardManagement() {
                           {slot.machine && (
                             /* Decorative only: the serial below carries the meaning, and
                                the status colour must stay readable through it. */
-                            <img src="/backhoe-loader.webp" alt="" aria-hidden="true" draggable={false}
+                            <img src={asset("/backhoe-loader.webp")} alt="" aria-hidden="true" draggable={false}
                               className="pointer-events-none absolute inset-0 h-full w-full object-contain p-0.5 opacity-30" />
                           )}
                           <span className="relative z-10">{slotLabel(slot.row, slot.col)}</span>
@@ -555,7 +556,7 @@ export default function YardManagement() {
               <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-200">
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white border border-slate-200">
                   <div className="relative w-4 h-4 rounded-sm bg-red-100 border border-red-400 overflow-hidden">
-                    <img src="/backhoe-loader.webp" alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-contain opacity-30" />
+                    <img src={asset("/backhoe-loader.webp")} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-contain opacity-30" />
                   </div>
                   <span className="text-[10px] font-medium text-slate-600">Machine present</span>
                 </div>

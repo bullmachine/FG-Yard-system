@@ -27,6 +27,7 @@ import MachineReturns from '@/components/MachineReturns';
 import ProcessFlowDocument from '@/components/ProcessFlowDocument';
 import NotificationCenter, { NotificationBell } from '@/components/NotificationCenter';
 import SettingsPage from '@/components/SettingsPage';
+import { asset } from '@/lib/basePath';
 
 type Tab = 'dashboard' | 'yards' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'notifications';
 
@@ -124,7 +125,7 @@ function SidebarContent({ allowedTabs, activeTab, collapsed, user, isAuthenticat
     <div className="flex flex-col h-full">
       <div className={`py-5 flex items-center ${collapsed ? 'px-3 justify-center' : 'px-5 gap-3'}`}>
         <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-          <img src="/company-logo.png" alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
+          <img src={asset("/company-logo.png")} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
         </div>
         {!collapsed && (
           <>

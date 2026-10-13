@@ -224,6 +224,22 @@ async function syncProductionOrders(date) {
                 result.errors.push(errorMsg);
             }
         }
+        // Safety net: enforce "READY_TO_MOVE requires a barcode" over every machine,
+        // not just the orders present in this window. Completed orders leave the
+        // feed, so a barcode-less READY_TO_MOVE row could otherwise linger forever;
+        // this keeps the gate list authoritative regardless of feed coverage.
+        // Machines that have already left the ready phase (IN_TRANSIT or parked)
+        // are never demoted.
+        const barcodeLessReady = await prisma_1.default.machine.updateMany({
+            where: {
+                parkStatus: 'READY_TO_MOVE',
+                OR: [{ barcode: null }, { barcode: '' }]
+            },
+            data: { parkStatus: 'PLANNED' }
+        });
+        if (barcodeLessReady.count > 0) {
+            console.log(`Reconciliation: demoted ${barcodeLessReady.count} barcode-less READY_TO_MOVE machine(s) to PLANNED`);
+        }
         console.log(`Sync completed: ${result.created} created, ${result.updated} updated, ${result.errors.length} errors`);
         return result;
     }
@@ -315,6 +331,14 @@ async function processOrder(order) {
     if (!serialNumber) {
         throw new Error('Plant order has no item_serial_no; cannot identify the machine');
     }
+    // A barcode is part of gate identification, so once a machine reaches ready-to-move
+    // (stage 18) it must have one. Slot assignment still proceeds ("alert but still
+    // assign"), and the helper re-alerts every sync until the barcode is populated.
+    // Placed before the create/update split so both paths (and stuck-order refreshes)
+    // are covered.
+    if (highestStage >= 18 && (!barcode || !barcode.trim())) {
+        await (0, notificationService_1.alertIfMissingBarcode)({ serialNumber, model, assemblyStage: highestStage, barcode });
+    }
     // Find existing machine by serial number or order number
     const existingMachine = await prisma_1.default.machine.findFirst({
         where: {
@@ -346,8 +370,13 @@ async function processOrder(order) {
         if (highestStage >= 13 && !existingMachine.plannedSlotId) {
             await (0, locationAssignmentService_1.assignLocationAtStage13)(existingMachine.id);
         }
-        // If machine reached stage 18, set park status to READY_TO_MOVE
-        if (highestStage >= 18 && existingMachine.parkStatus === 'PLANNED') {
+        // A barcode is part of gate identification: without it the machine must
+        // never be offered as ready-to-move. The elevation only fires once the
+        // barcode is present, and the symmetric demote below keeps the invariant
+        // true even when a store-created row (or a later barcode clear) leaves an
+        // existing machine in READY_TO_MOVE with an empty barcode.
+        const hasBarcode = !!barcode && barcode.trim() !== '';
+        if (highestStage >= 18 && existingMachine.parkStatus === 'PLANNED' && hasBarcode) {
             await prisma_1.default.machine.update({
                 where: { id: existingMachine.id },
                 data: { parkStatus: 'READY_TO_MOVE' }
@@ -358,6 +387,12 @@ async function processOrder(order) {
                 title: 'Machine ready to move',
                 message: `${existingMachine.serialNumber} (${existingMachine.model}) reached stage 18 and is ready for driver assignment.`,
                 link: 'assembly'
+            });
+        }
+        else if (existingMachine.parkStatus === 'READY_TO_MOVE' && !hasBarcode) {
+            await prisma_1.default.machine.update({
+                where: { id: existingMachine.id },
+                data: { parkStatus: 'PLANNED' }
             });
         }
     }
@@ -381,7 +416,7 @@ async function processOrder(order) {
                 productionOrderId,
                 itemCode,
                 itemDescription,
-                parkStatus: highestStage >= exports.STUCK_STAGE_LIMIT ? 'READY_TO_MOVE' : 'PLANNED',
+                parkStatus: highestStage >= exports.STUCK_STAGE_LIMIT && barcode && barcode.trim() !== '' ? 'READY_TO_MOVE' : 'PLANNED',
                 lastSyncAt: syncedAt
             }
         });
@@ -452,13 +487,24 @@ function machinesByStage(stageData) {
 /**
  * Per-stage counts for the assembly views.
  *
- * `total` is where machines currently sit, `startedToday` is how many machines
- * entered that stage today, and `inProgress` is how many are part-way through
- * that stage right now. "Today" uses local day boundaries to match the way
- * timestamps are rendered everywhere else.
+ * `total` is where machines currently sit, `startedToday` is how many machine+stage
+ * pairs entered that stage today, and `inProgress` is how many are part-way through
+ * that stage right now. "Today" uses local day boundaries to match the way timestamps
+ * are rendered everywhere else.
  *
- * A stage can hold both a PLANT_SYNC and a MANUAL row for the same machine, so
- * every count is keyed on machine+stage to avoid counting one machine twice.
+ * A stage can hold both a PLANT_SYNC and a MANUAL row for the same machine, so every
+ * count is keyed on machine+stage to avoid counting one machine twice.
+ *
+ * Every stage that has history gets a bucket even when no machine is sitting in it at
+ * this moment. Skipping those stages used to drop them from the tallies entirely, so a
+ * machine that flowed through stage 5 this morning and moved on was counted nowhere -
+ * it alone made `startedTodayTotal` under-report by roughly a third. Such a stage now
+ * shows total 0 with its real activity underneath.
+ *
+ * A pair count and a machine count are both returned because they are not
+ * interchangeable: one machine runs through several stages a day, so operations always
+ * run to a multiple of machines. Mixing the two up is what made "Started Today" appear
+ * to equal the machine total.
  */
 async function getStageStats(includeDemo = false) {
     const dayStart = new Date();
@@ -470,13 +516,16 @@ async function getStageStats(includeDemo = false) {
         select: { id: true, assemblyStage: true }
     });
     const byStage = {};
+    // Lazily create the bucket so history alone can introduce a stage.
+    const ensureStage = (stage) => {
+        if (!byStage[stage])
+            byStage[stage] = { total: 0, inProgress: 0, startedToday: 0 };
+        return byStage[stage];
+    };
     for (const machine of machines) {
         if (!machine.assemblyStage || machine.assemblyStage < 1)
             continue;
-        if (!byStage[machine.assemblyStage]) {
-            byStage[machine.assemblyStage] = { total: 0, inProgress: 0, startedToday: 0 };
-        }
-        byStage[machine.assemblyStage].total++;
+        ensureStage(machine.assemblyStage).total++;
     }
     const rows = await prisma_1.default.machineStageHistory.findMany({
         where: { machineId: { in: machines.map((m) => m.id) } },
@@ -484,28 +533,35 @@ async function getStageStats(includeDemo = false) {
     });
     const inProgressSeen = new Set();
     const startedTodaySeen = new Set();
+    const inProgressMachines = new Set();
+    const startedTodayMachines = new Set();
     for (const row of rows) {
-        if (!byStage[row.stage])
-            continue;
+        const stat = ensureStage(row.stage);
         if (!row.isCompleted) {
             const key = `${row.machineId}:${row.stage}`;
             if (!inProgressSeen.has(key)) {
                 inProgressSeen.add(key);
-                byStage[row.stage].inProgress++;
+                stat.inProgress++;
+                inProgressMachines.add(row.machineId);
             }
         }
         if (row.startedAt && row.startedAt >= dayStart && row.startedAt < dayEnd) {
             const key = `${row.machineId}:${row.stage}`;
             if (!startedTodaySeen.has(key)) {
                 startedTodaySeen.add(key);
-                byStage[row.stage].startedToday++;
+                stat.startedToday++;
+                startedTodayMachines.add(row.machineId);
             }
         }
     }
     return {
         byStage: byStage,
+        // Operations: one machine contributes one entry per stage it entered today.
         startedTodayTotal: startedTodaySeen.size,
+        // Machines: what a person means by "how many started today".
+        machinesStartedToday: startedTodayMachines.size,
         inProgressTotal: inProgressSeen.size,
+        machinesInProgress: inProgressMachines.size,
         day: {
             from: dayStart.toISOString(),
             to: dayEnd.toISOString()

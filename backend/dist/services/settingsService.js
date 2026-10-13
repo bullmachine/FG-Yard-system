@@ -30,7 +30,11 @@ function bootstrapDefaults() {
         materialPlant: process.env.MATERIAL_MASTER_PLANT || '1500',
         materialSyncDays: 7,
         materialCron: '0 6 * * *',
-        materialTimeoutMs: 30000
+        materialTimeoutMs: 30000,
+        barrierOpenUrl: '',
+        barrierCloseUrl: '',
+        barrierAutoCloseSeconds: 5,
+        barrierManualOpenEnabled: false
     };
 }
 let cache = null;
@@ -54,7 +58,11 @@ function rowToSettings(row) {
         materialPlant: row.materialPlant,
         materialSyncDays: row.materialSyncDays,
         materialCron: row.materialCron,
-        materialTimeoutMs: row.materialTimeoutMs
+        materialTimeoutMs: row.materialTimeoutMs,
+        barrierOpenUrl: row.barrierOpenUrl,
+        barrierCloseUrl: row.barrierCloseUrl,
+        barrierAutoCloseSeconds: row.barrierAutoCloseSeconds,
+        barrierManualOpenEnabled: row.barrierManualOpenEnabled
     };
 }
 async function ensureRow() {
@@ -103,7 +111,11 @@ async function updateSettings(update, updatedById) {
         materialPlant: update.materialPlant ?? current.materialPlant,
         materialSyncDays: update.materialSyncDays ?? current.materialSyncDays,
         materialCron: update.materialCron ?? current.materialCron,
-        materialTimeoutMs: update.materialTimeoutMs ?? current.materialTimeoutMs
+        materialTimeoutMs: update.materialTimeoutMs ?? current.materialTimeoutMs,
+        barrierOpenUrl: update.barrierOpenUrl ?? current.barrierOpenUrl,
+        barrierCloseUrl: update.barrierCloseUrl ?? current.barrierCloseUrl,
+        barrierAutoCloseSeconds: update.barrierAutoCloseSeconds ?? current.barrierAutoCloseSeconds,
+        barrierManualOpenEnabled: update.barrierManualOpenEnabled ?? current.barrierManualOpenEnabled
     };
     await prisma_1.default.systemSetting.update({
         where: { id: SINGLETON_ID },
@@ -136,6 +148,10 @@ function toPublicSettings(settings) {
         materialSyncDays: settings.materialSyncDays,
         materialCron: settings.materialCron,
         materialTimeoutMs: settings.materialTimeoutMs,
+        barrierOpenUrl: settings.barrierOpenUrl,
+        barrierCloseUrl: settings.barrierCloseUrl,
+        barrierAutoCloseSeconds: settings.barrierAutoCloseSeconds,
+        barrierManualOpenEnabled: settings.barrierManualOpenEnabled,
         hasMaterialPassword: Boolean(settings.materialPassword)
     };
 }

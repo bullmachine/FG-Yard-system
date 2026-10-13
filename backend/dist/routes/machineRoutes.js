@@ -9,6 +9,9 @@ const router = (0, express_1.Router)();
 // own driver record from a token, while other callers keep the existing
 // unauthenticated read behaviour.
 router.get('/', auth_1.optionalAuth, machineController_1.getAllMachines);
+// Returns must be declared before GET /:id, which would otherwise treat "returns"
+// as a machine id.
+router.get('/returns', auth_1.auth, machineController_1.getReturnMachines);
 router.get('/:id', machineController_1.getMachineById);
 // Protected routes (require authentication)
 router.get('/:id/history', auth_1.auth, machineController_1.getMachineStageHistory);
@@ -16,12 +19,16 @@ router.post('/', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER', 
 router.put('/:id', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER']), machineController_1.updateMachine);
 router.delete('/:id', auth_1.auth, (0, auth_1.requireRole)(['ADMIN']), machineController_1.deleteMachine);
 router.post('/:id/allocate', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER', 'OPERATOR']), machineController_1.allocateMachine);
-router.post('/:id/remove', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER', 'OPERATOR']), machineController_1.removeMachineFromSlot);
+router.post('/:id/remove', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER']), machineController_1.removeMachineFromSlot);
+// Reserve a slot for a machine coming back to the yard, so the gate-in checkpoint
+// will admit it. Managers and the operator plan returns; everyone else reads.
+router.post('/:id/return-slot', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER', 'OPERATOR']), machineController_1.reserveReturnSlot);
 // Driver confirms the machine is physically parked in its slot. This is the step
 // that creates the security verification queue entry. Ownership of the machine
 // is enforced in the controller, so the role gate here is only the outer
 // boundary: a logged-in user of an allowed role still has to be the assigned
-// driver (or an ADMIN, who may record it on the driver's behalf).
+// driver, unless they are an ADMIN, YARD_MANAGER or OPERATOR recording it on
+// the driver's behalf, which is written into the movement notes.
 router.post('/:id/parked', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'YARD_MANAGER', 'OPERATOR', 'DRIVER']), machineController_1.confirmMachineParked);
 // Assembly stage management
 router.post('/:id/advance-stage', auth_1.auth, (0, auth_1.requireRole)(['ADMIN', 'OPERATOR']), assemblyController_1.advanceStage);

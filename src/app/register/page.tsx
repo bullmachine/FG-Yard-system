@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { asset } from '@/lib/basePath';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
@@ -43,7 +44,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-slate-900" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative z-10 text-center">
-          <img src="/backhoe-loader.webp" alt="Backhoe Loader" className="w-64 mx-auto opacity-90 drop-shadow-2xl mb-8" />
+            <img src={asset("/backhoe-loader.webp")} alt="Backhoe Loader" className="w-64 mx-auto opacity-90 drop-shadow-2xl mb-8" />
           <h2 className="text-2xl font-bold text-white mb-2">Join the Team</h2>
           <p className="text-slate-400 text-sm max-w-sm">
             Create your account to start managing yard operations and tracking machines.
@@ -79,7 +80,7 @@ export default function RegisterPage() {
 
             <p className="mt-4 text-center text-sm text-slate-500">
               Already have an account?{' '}
-              <a href="/login" className="text-blue-700 hover:text-blue-900 font-semibold">Sign in</a>
+              <a href={asset("/login")} className="text-blue-700 hover:text-blue-900 font-semibold">Sign in</a>
             </p>
           </div>
         </div>

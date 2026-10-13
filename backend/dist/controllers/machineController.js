@@ -3,9 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMachineStageHistory = exports.removeMachineFromSlot = exports.confirmMachineParked = exports.allocateMachine = exports.deleteMachine = exports.updateMachine = exports.createMachine = exports.getMachineById = exports.getAllMachines = void 0;
+exports.reserveReturnSlot = exports.getReturnMachines = exports.getMachineStageHistory = exports.removeMachineFromSlot = exports.confirmMachineParked = exports.allocateMachine = exports.deleteMachine = exports.updateMachine = exports.createMachine = exports.getMachineById = exports.getAllMachines = void 0;
 const prisma_1 = __importDefault(require("../lib/prisma"));
 const notificationService_1 = require("../services/notificationService");
+const exitRequestController_1 = require("./exitRequestController");
 const getAllMachines = async (req, res) => {
     try {
         const { search, status, parkStatus, includeDemo, mine } = req.query;
@@ -47,20 +48,31 @@ const getAllMachines = async (req, res) => {
             }
         }
         // mine=true resolves the caller's own Driver record from the token, so the
-        // driver's list cannot be widened by editing the query string. A user with no
-        // linked driver gets nothing rather than the whole plant.
+        // driver's list cannot be widened by editing the query string. Only the
+        // DRIVER role is scoped this way: the yard office (ADMIN / YARD_MANAGER /
+        // OPERATOR) uses the same screen to list every in-flight machine and record
+        // parking on a driver's behalf. A driver with no linked record gets nothing
+        // rather than the whole plant.
         if (mine === 'true') {
             const actorId = req.user?.id;
             if (!actorId) {
                 return res.status(401).json({ error: 'Authentication required' });
             }
-            const driver = await prisma_1.default.driver.findUnique({
-                where: { userId: actorId },
-                select: { id: true }
+            const actor = await prisma_1.default.user.findUnique({
+                where: { id: actorId },
+                select: { role: true }
             });
-            if (!driver)
-                return res.json([]);
-            where.driverId = driver.id;
+            if (!actor)
+                return res.status(401).json({ error: 'Authentication required' });
+            if (actor.role === 'DRIVER') {
+                const driver = await prisma_1.default.driver.findUnique({
+                    where: { userId: actorId },
+                    select: { id: true }
+                });
+                if (!driver)
+                    return res.json([]);
+                where.driverId = driver.id;
+            }
         }
         const machines = await prisma_1.default.machine.findMany({
             where,
@@ -70,17 +82,34 @@ const getAllMachines = async (req, res) => {
                         yard: true
                     }
                 },
+                // The slot promised to a machine that has not arrived yet. currentSlot is
+                // still null while it is READY_TO_MOVE, so screens that need to tell the
+                // operator where a machine is headed (the gate) must read this one.
+                plannedSlot: {
+                    include: {
+                        yard: true
+                    }
+                },
+                // Name only, so the dashboard can say who has a machine on the road.
+                driver: {
+                    select: { id: true, name: true }
+                },
                 movements: {
                     include: {
                         machine: true,
-                        fromSlot: true,
-                        toSlot: true,
+                        // The slot's own yard, not just the movement's, so a relocation
+                        // between yards still labels its origin correctly.
+                        fromSlot: { include: { yard: { select: { name: true } } } },
+                        toSlot: { include: { yard: { select: { name: true } } } },
                         yard: true,
                         user: {
                             select: {
                                 id: true,
                                 name: true,
-                                email: true
+                                email: true,
+                                // Lets a movement show whether the driver self-confirmed or the
+                                // yard office recorded it on the driver's behalf.
+                                role: true
                             }
                         }
                     },
@@ -108,17 +137,29 @@ const getMachineById = async (req, res) => {
                         yard: true
                     }
                 },
+                // Included so the details view can name the slot a machine is reserved
+                // for while currentSlot is still null, instead of calling it unallocated.
+                plannedSlot: {
+                    include: {
+                        yard: true
+                    }
+                },
                 movements: {
                     include: {
                         machine: true,
-                        fromSlot: true,
-                        toSlot: true,
+                        // The slot's own yard, not just the movement's, so a relocation
+                        // between yards still labels its origin correctly.
+                        fromSlot: { include: { yard: { select: { name: true } } } },
+                        toSlot: { include: { yard: { select: { name: true } } } },
                         yard: true,
                         user: {
                             select: {
                                 id: true,
                                 name: true,
-                                email: true
+                                email: true,
+                                // Lets a movement show whether the driver self-confirmed or the
+                                // yard office recorded it on the driver's behalf.
+                                role: true
                             }
                         }
                     },
@@ -300,11 +341,12 @@ const confirmMachineParked = async (req, res) => {
             return res.status(404).json({ error: 'Machine not found' });
         }
         // Only the driver who was actually assigned the machine may confirm it is
-        // parked. Without this, any operator or manager could vouch for another
-        // driver's load and the security walk-down would verify a claim that was
-        // never made by the person who drove the machine. ADMIN is the one override,
-        // for the case where a driver forgot to tap and the yard has to record it;
-        // that override is visible in the movement notes.
+        // parked. Without this, any stranger could vouch for another driver's load and
+        // the security walk-down would verify a claim that was never made by the
+        // person who drove the machine. The yard office (ADMIN / YARD_MANAGER /
+        // OPERATOR - the same roles allowed to run the gate) is the override, for the
+        // case where a driver forgot to tap and the yard has to record it; that
+        // override is visible in the movement notes.
         const actor = await prisma_1.default.user.findUnique({
             where: { id: actorId },
             select: { id: true, role: true }
@@ -313,8 +355,8 @@ const confirmMachineParked = async (req, res) => {
             where: { userId: actorId },
             select: { id: true, name: true }
         });
-        const isAdminOverride = actor?.role === 'ADMIN';
-        if (!isAdminOverride) {
+        const isOperatorOverride = actor?.role === 'ADMIN' || actor?.role === 'YARD_MANAGER' || actor?.role === 'OPERATOR';
+        if (!isOperatorOverride) {
             if (!actorDriver) {
                 return res.status(403).json({
                     error: 'Your login is not linked to a driver record, so you cannot confirm parking'
@@ -356,10 +398,10 @@ const confirmMachineParked = async (req, res) => {
             });
         }
         const isRepark = machine.parkStatus === 'PARKED_REJECTED';
-        // An admin confirming on a driver's behalf is recorded explicitly, so a later
-        // audit can tell a self-confirmed park from a yard-recorded one.
-        const overrideNote = isAdminOverride
-            ? ` [confirmed by admin on behalf of ${machine.driver?.name ?? 'unassigned driver'}]`
+        // An override by the yard office is recorded explicitly, so a later audit can
+        // tell a self-confirmed park from one recorded by the office.
+        const overrideNote = isOperatorOverride
+            ? ` [recorded by yard office on behalf of ${machine.driver?.name ?? 'unassigned driver'}]`
             : '';
         // A re-park is the machine moving back into the slot it already occupies, so
         // there is nothing to record as a movement. The first park is a real move.
@@ -420,7 +462,7 @@ const confirmMachineParked = async (req, res) => {
             ...updatedMachine,
             slotLabel: `${slot.row}-${slot.col}`,
             isRepark,
-            adminOverride: isAdminOverride
+            adminOverride: isOperatorOverride
         });
     }
     catch (error) {
@@ -438,9 +480,10 @@ const removeMachineFromSlot = async (req, res) => {
         if (!actorId) {
             return res.status(401).json({ error: 'Authentication required' });
         }
+        const exitReason = typeof reason === 'string' && exitRequestController_1.EXIT_REASONS.includes(reason) ? reason : 'DISPATCH';
         const machine = await prisma_1.default.machine.findUnique({
             where: { id: machineId },
-            include: { currentSlot: true }
+            select: { id: true, serialNumber: true, currentSlotId: true, parkStatus: true }
         });
         if (!machine) {
             return res.status(404).json({ error: 'Machine not found' });
@@ -448,30 +491,32 @@ const removeMachineFromSlot = async (req, res) => {
         if (!machine.currentSlotId) {
             return res.status(400).json({ error: 'Machine is not in any slot' });
         }
-        const currentSlot = await prisma_1.default.slot.findUnique({
-            where: { id: machine.currentSlotId }
-        });
-        // Create movement record for exit
-        await prisma_1.default.movement.create({
+        // Manager quick-release: stamp an auto-approved exit ticket (so the audit trail
+        // and Security's Authorized Exits list both stay complete), then release the slot,
+        // park the machine AT_GATE and record the dispatch movement - the same outcome an
+        // approve button produces for a staff request.
+        await prisma_1.default.machineExitRequest.create({
             data: {
                 machineId,
-                yardId: currentSlot?.yardId || '',
-                fromSlotId: machine.currentSlotId,
-                toSlotId: null,
-                userId: actorId,
-                reason: reason || 'DISPATCH',
-                notes
+                requestedById: actorId,
+                reason: exitReason,
+                notes: typeof notes === 'string' && notes.trim() !== '' ? notes.trim() : null,
+                status: 'APPROVED',
+                approvedById: actorId,
+                approvedAt: new Date()
             }
         });
-        // Update machine's current slot to null
-        const updatedMachine = await prisma_1.default.machine.update({
-            where: { id: machineId },
-            data: { currentSlotId: null }
+        const released = await (0, exitRequestController_1.releaseMachine)(machineId, exitReason, actorId, null);
+        if (!released) {
+            return res.status(400).json({ error: 'Machine is not in any slot' });
+        }
+        await (0, notificationService_1.pushExitRequestsChanged)('approved', {
+            machineId,
+            serialNumber: released.serialNumber,
+            reason: exitReason
         });
-        // Update previous slot status to AVAILABLE
-        await prisma_1.default.slot.update({
-            where: { id: machine.currentSlotId },
-            data: { status: 'AVAILABLE' }
+        const updatedMachine = await prisma_1.default.machine.findUnique({
+            where: { id: machineId }
         });
         res.json(updatedMachine);
     }
@@ -585,3 +630,139 @@ const getMachineStageHistory = async (req, res) => {
     }
 };
 exports.getMachineStageHistory = getMachineStageHistory;
+/**
+ * Machines that left the yard and are expected back.
+ *
+ * Only machines with parkStatus EXITED are candidates. Whether one is "expected
+ * back" is decided by its most recent exit ticket: a DISPATCH never returns, every
+ * other reason (inspection/testing, repair, maintenance, relocation) does. Machines
+ * whose exit predates the ticket flow are treated as returns too, so nothing that
+ * ever left is silently stranded.
+ */
+const getReturnMachines = async (req, res) => {
+    try {
+        const machines = await prisma_1.default.machine.findMany({
+            where: { parkStatus: 'EXITED' },
+            include: {
+                plannedSlot: { include: { yard: true } },
+                exitRequests: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    include: {
+                        requestedBy: { select: { id: true, name: true, email: true, role: true } },
+                        approvedBy: { select: { id: true, name: true } }
+                    }
+                }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+        const returns = machines
+            .map((machine) => {
+            const ticket = machine.exitRequests[0] ?? null;
+            return {
+                ...machine,
+                exitRequest: ticket,
+                isReturnExpected: ticket ? ticket.reason !== 'DISPATCH' : true
+            };
+        })
+            .filter((machine) => machine.isReturnExpected);
+        res.json(returns);
+    }
+    catch (error) {
+        console.error('getReturnMachines error:', error);
+        res.status(500).json({ error: 'Failed to fetch machines expected to return' });
+    }
+};
+exports.getReturnMachines = getReturnMachines;
+/**
+ * Reserve a slot for a machine that is coming back into the yard.
+ *
+ * The gate-in checkpoint only admits machines whose slot is RESERVED (see
+ * authenticateGate), so this is the step that makes a return able to check back
+ * in. It mirrors the slot-assignment transaction used for stage-13 machines:
+ * machine points at the slot, the slot is RESERVED, and a movement records who
+ * made the arrangement.
+ */
+const reserveReturnSlot = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const machineId = Array.isArray(id) ? id[0] : id;
+        const { slotId } = req.body;
+        const actorId = req.user?.id;
+        if (!actorId) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+        if (typeof slotId !== 'string' || slotId.trim() === '') {
+            return res.status(400).json({ error: 'Slot is required' });
+        }
+        const machine = await prisma_1.default.machine.findUnique({ where: { id: machineId } });
+        if (!machine) {
+            return res.status(404).json({ error: 'Machine not found' });
+        }
+        if (machine.parkStatus !== 'EXITED') {
+            return res.status(400).json({ error: `Only EXITED machines can be scheduled to return (this one is ${machine.parkStatus})` });
+        }
+        // A machine normally keeps a stale plannedSlotId pointing at the slot it left
+        // (now AVAILABLE again). Only an *active* reservation blocks a re-reservation;
+        // a leftover plan is simply overwritten by the new one.
+        if (machine.plannedSlotId) {
+            const existingPlan = await prisma_1.default.slot.findUnique({
+                where: { id: machine.plannedSlotId },
+                select: { status: true }
+            });
+            if (existingPlan?.status === 'RESERVED') {
+                return res.status(400).json({ error: 'A return slot is already reserved for this machine' });
+            }
+        }
+        const slot = await prisma_1.default.slot.findUnique({
+            where: { id: slotId },
+            include: { machine: true, plannedFor: true }
+        });
+        if (!slot) {
+            return res.status(404).json({ error: 'Slot not found' });
+        }
+        if (slot.status !== 'AVAILABLE' || slot.machine || slot.plannedFor) {
+            return res.status(400).json({ error: `Slot ${slot.row}-${slot.col} is not available` });
+        }
+        await prisma_1.default.$transaction([
+            prisma_1.default.machine.update({
+                where: { id: machineId },
+                // The machine stays EXITED until it actually passes the gate: reserving a
+                // slot is a plan, not a re-entry. Gate IN flips the status to IN_TRANSIT,
+                // which drops it off the returns board where it belongs.
+                data: { plannedSlotId: slotId, slotWaitingSince: null }
+            }),
+            prisma_1.default.slot.update({
+                where: { id: slotId },
+                data: { status: 'RESERVED', reservedAt: new Date() }
+            }),
+            prisma_1.default.movement.create({
+                data: {
+                    machineId,
+                    yardId: slot.yardId,
+                    toSlotId: slotId,
+                    userId: actorId,
+                    reason: 'RELOCATION',
+                    notes: 'Return slot reserved for re-entry'
+                }
+            })
+        ]);
+        const updated = await prisma_1.default.machine.findUnique({
+            where: { id: machineId },
+            include: { plannedSlot: { include: { yard: true } } }
+        });
+        await (0, notificationService_1.notifyEvent)({
+            type: 'RETURN_SLOT_RESERVED',
+            severity: 'INFO',
+            title: 'Return slot reserved',
+            message: `${machine.serialNumber} has a reserved slot - it can check back in at the gate.`,
+            link: 'gate'
+        });
+        res.json(updated);
+    }
+    catch (error) {
+        console.error('reserveReturnSlot error:', error);
+        res.status(500).json({ error: 'Failed to reserve return slot' });
+    }
+};
+exports.reserveReturnSlot = reserveReturnSlot;

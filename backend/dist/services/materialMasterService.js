@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UNCLASSIFIED_KMAT_TYPE = void 0;
+exports.PENDING_MODEL_STATUS = exports.MODEL_MASTER_STATUSES = exports.UNCLASSIFIED_KMAT_TYPE = void 0;
 exports.buildModelType = buildModelType;
 exports.isUsableKmat = isUsableKmat;
 exports.syncKmatToVehicleModelMaster = syncKmatToVehicleModelMaster;
@@ -28,6 +28,17 @@ dotenv_1.default.config();
  * can mark them for review instead of showing them as finished records.
  */
 exports.UNCLASSIFIED_KMAT_TYPE = 'UNCLASSIFIED';
+/**
+ * Review states a VehicleModelMaster row can hold.
+ *
+ * These are labels, not permissions: no code path branches on them, so flipping a row
+ * to INACTIVE cannot strand a machine or change where anything is routed. They exist
+ * so a human can see which KMATs the sync invented and confirm the ones they trust.
+ * PENDING is what the sync assigns, and the column default, so a row is never
+ * presented as reviewed without somebody having said so.
+ */
+exports.MODEL_MASTER_STATUSES = ['PENDING', 'ACTIVE', 'INACTIVE'];
+exports.PENDING_MODEL_STATUS = 'PENDING';
 /**
  * Derive the display model-type from a model and a type.
  *
@@ -107,12 +118,16 @@ async function syncKmatToVehicleModelMaster(confMaterials) {
         return summary;
     }
     // skipDuplicates guards the unique index in case two processes sync concurrently.
+    // status is pinned to PENDING on every inserted row: the sync has no basis for
+    // approving a model, so a new row always enters the review queue rather than
+    // silently looking usable. An administrator promotes it to ACTIVE.
     const created = await prisma_1.default.vehicleModelMaster.createMany({
         data: missing.map((kmat) => ({
             kmat,
             model: kmat,
             type: exports.UNCLASSIFIED_KMAT_TYPE,
-            modelType: buildModelType(kmat, exports.UNCLASSIFIED_KMAT_TYPE)
+            modelType: buildModelType(kmat, exports.UNCLASSIFIED_KMAT_TYPE),
+            status: exports.PENDING_MODEL_STATUS
         })),
         skipDuplicates: true
     });
@@ -120,8 +135,9 @@ async function syncKmatToVehicleModelMaster(confMaterials) {
     console.log(`KMAT registration: ${summary.kmatsCreated} created, ${summary.kmatsExisting} already existed ` +
         `(${summary.kmatsSkippedEmpty} empty, ${summary.kmatsSkippedNotAKmat} non-KMAT value(s) skipped)`);
     if (summary.kmatsCreated > 0) {
-        console.log(`The ${summary.kmatsCreated} new KMAT row(s) use type "${exports.UNCLASSIFIED_KMAT_TYPE}" and have no ` +
-            'preferred yard. Set both in the Vehicle Model Master screen to enable yard routing.');
+        console.log(`The ${summary.kmatsCreated} new KMAT row(s) use type "${exports.UNCLASSIFIED_KMAT_TYPE}", status ` +
+            `"${exports.PENDING_MODEL_STATUS}" and have no preferred yard. Review each one in the Vehicle Model Master ` +
+            'screen: set a real type, pick a preferred yard to enable yard routing, and move the status to ACTIVE.');
     }
     return summary;
 }

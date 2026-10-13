@@ -8,6 +8,7 @@ const MIN_DAYS = 1;
 const MAX_DAYS = 31;
 const MIN_TIMEOUT_MS = 1000;
 const MAX_TIMEOUT_MS = 120000;
+const MAX_AUTO_CLOSE_SECONDS = 300;
 /**
  * Validates a URL when one is supplied. Omitted fields are left untouched, so a
  * partial save (for example only the cron expression) is valid on its own.
@@ -75,6 +76,45 @@ function validateCron(value, field, errors) {
     }
     return trimmed;
 }
+/**
+ * The barrier URL is optional: a blank value keeps the gate in demo mode (the tab
+ * does not call any controller). When one is supplied it must be a valid http(s)
+ * URL, the same rule as the upstream providers.
+ */
+function validateOptionalUrl(value, field, errors) {
+    if (value === undefined)
+        return undefined;
+    if (typeof value !== 'string' || !value.trim()) {
+        return '';
+    }
+    const trimmed = value.trim();
+    try {
+        const parsed = new URL(trimmed);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            errors[field] = 'URL must start with http:// or https://';
+            return undefined;
+        }
+    }
+    catch {
+        errors[field] = 'Not a valid URL';
+        return undefined;
+    }
+    return trimmed;
+}
+function validateAutoCloseSeconds(value, field, errors) {
+    if (value === undefined)
+        return undefined;
+    const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+    if (Number.isNaN(num) || !Number.isInteger(num)) {
+        errors[field] = 'Must be a whole number of seconds';
+        return undefined;
+    }
+    if (num < 0 || num > MAX_AUTO_CLOSE_SECONDS) {
+        errors[field] = `Must be between 0 and ${MAX_AUTO_CLOSE_SECONDS} seconds`;
+        return undefined;
+    }
+    return num;
+}
 const getSettingsHandler = async (req, res) => {
     try {
         const settings = await (0, settingsService_1.getSettings)();
@@ -139,6 +179,23 @@ const updateSettingsHandler = async (req, res) => {
         const materialTimeoutMs = validateTimeout(body.materialTimeoutMs, 'materialTimeoutMs', errors);
         if (materialTimeoutMs !== undefined)
             update.materialTimeoutMs = materialTimeoutMs;
+        const barrierOpenUrl = validateOptionalUrl(body.barrierOpenUrl, 'barrierOpenUrl', errors);
+        if (barrierOpenUrl !== undefined)
+            update.barrierOpenUrl = barrierOpenUrl;
+        const barrierCloseUrl = validateOptionalUrl(body.barrierCloseUrl, 'barrierCloseUrl', errors);
+        if (barrierCloseUrl !== undefined)
+            update.barrierCloseUrl = barrierCloseUrl;
+        const barrierAutoCloseSeconds = validateAutoCloseSeconds(body.barrierAutoCloseSeconds, 'barrierAutoCloseSeconds', errors);
+        if (barrierAutoCloseSeconds !== undefined)
+            update.barrierAutoCloseSeconds = barrierAutoCloseSeconds;
+        if (body.barrierManualOpenEnabled !== undefined) {
+            if (typeof body.barrierManualOpenEnabled !== 'boolean') {
+                errors.barrierManualOpenEnabled = 'Must be a boolean';
+            }
+            else {
+                update.barrierManualOpenEnabled = body.barrierManualOpenEnabled;
+            }
+        }
         if (Object.keys(errors).length > 0) {
             return res.status(400).json({ error: 'Validation failed', fieldErrors: errors });
         }

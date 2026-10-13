@@ -12,6 +12,10 @@ export function getToken(): string | null {
 }
 
 export function buildSocketUrl(path: string): string {
-  const base = API_URL.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+  let base = API_URL.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+  if (base.startsWith('/')) {
+    const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    base = `${scheme}//${window.location.host}${base}`;
+  }
   return `${base}${path}`;
 }
