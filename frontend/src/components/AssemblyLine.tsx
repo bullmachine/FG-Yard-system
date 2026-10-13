@@ -11,10 +11,30 @@ import { AssemblyStageBadge, ParkStatusBadge } from '@/components/ui/StatusBadge
 import Badge from '@/components/ui/Badge';
 import { PageSpinner } from '@/components/ui/Spinner';
 import StageHistoryModal from '@/components/StageHistoryModal';
-import { formatDateTime } from '@/lib/format';
-import { RefreshCw, Factory, Clock, Zap, Activity, Calendar, AlertCircle, CheckCircle2, Search, X } from 'lucide-react';
+import { formatDateTime, slotLabel } from '@/lib/format';
+import { RefreshCw, Factory, Clock, Zap, Activity, Calendar, AlertCircle, CheckCircle2, Search, X, MapPin } from 'lucide-react';
 
-interface Machine { id: string; serialNumber: string; barcode?: string; model: string; machineType?: string; modelType?: string; assemblyStage: number; orderNo?: string; itemCode?: string; itemDescription?: string; parkStatus: string; lastSyncAt?: string; isDemo?: boolean; }
+interface SlotRef { row: number; col: number; yard?: { name: string } }
+interface Machine { id: string; serialNumber: string; barcode?: string; model: string; machineType?: string; modelType?: string; assemblyStage: number; orderNo?: string; itemCode?: string; itemDescription?: string; parkStatus: string; lastSyncAt?: string; isDemo?: boolean; assemblyCompleted?: boolean; currentSlot?: SlotRef | null; plannedSlot?: SlotRef | null; }
+
+// Where a machine that has finished stage 18 is now. Parking states are grouped
+// because the yard cares that it is in a slot, not which security step it is at.
+type CompletedFilter = 'ALL' | 'AWAITING_BARCODE' | 'READY_TO_MOVE' | 'IN_TRANSIT' | 'AT_GATE' | 'PARKED' | 'EXITED';
+const COMPLETED_FILTERS: { value: CompletedFilter; label: string; match: (parkStatus: string) => boolean; tone: string }[] = [
+  { value: 'ALL', label: 'All', match: () => true, tone: 'bg-slate-200 text-slate-800' },
+  { value: 'AWAITING_BARCODE', label: 'No Barcode', match: (s) => s === 'PLANNED', tone: 'bg-red-100 text-red-800' },
+  { value: 'READY_TO_MOVE', label: 'Ready to Move', match: (s) => s === 'READY_TO_MOVE', tone: 'bg-emerald-100 text-emerald-800' },
+  { value: 'IN_TRANSIT', label: 'In Transit', match: (s) => s === 'IN_TRANSIT', tone: 'bg-blue-100 text-blue-800' },
+  { value: 'AT_GATE', label: 'At Gate', match: (s) => s === 'AT_GATE', tone: 'bg-indigo-100 text-indigo-800' },
+  { value: 'PARKED', label: 'Parked', match: (s) => s.startsWith('PARKED_'), tone: 'bg-amber-100 text-amber-800' },
+  { value: 'EXITED', label: 'Exited', match: (s) => s === 'EXITED', tone: 'bg-slate-200 text-slate-700' },
+];
+
+const locationLabel = (m: Machine) => {
+  if (m.currentSlot) return `${m.currentSlot.yard?.name ? `${m.currentSlot.yard.name} ` : ''}(${slotLabel(m.currentSlot.row, m.currentSlot.col)})`;
+  if (m.plannedSlot) return `Reserved ${m.plannedSlot.yard?.name ? `${m.plannedSlot.yard.name} ` : ''}(${slotLabel(m.plannedSlot.row, m.plannedSlot.col)})`;
+  return null;
+};
   interface SyncStatus { lastSyncAt: string | null; totalMachines: number; machinesByStage: Record<number, number>; windowDays?: number; scheduler?: { isSyncing: boolean; lastSyncResult: SyncResult | null; cronExpression: string; }; }
   interface StuckRefresh { checked: number; refreshed: number; advanced: number; notFound: string[]; }
   interface SyncResult { totalOrders: number; created: number; updated: number; errors: string[]; window?: { from: string; to: string; days: number }; emptyDays?: string[]; stuckRefresh?: StuckRefresh; }
@@ -32,7 +52,10 @@ export default function AssemblyLine() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [notice, setNotice] = useState<SyncNotice | null>(null);
-  const [selectedStage, setSelectedStage] = useState<number | null>(null);
+  // A stage number, 'completed' for machines that have finished stage 18, or null for
+  // everything still in assembly.
+  const [selectedStage, setSelectedStage] = useState<number | 'completed' | null>(null);
+  const [completedFilter, setCompletedFilter] = useState<CompletedFilter>('ALL');
   const [search, setSearch] = useState('');
   const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
   // Demo rows are shown by default so the seeded stage history is visible, but
@@ -50,7 +73,7 @@ export default function AssemblyLine() {
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };
 
   const fetchMachines = async () => {
-    try { const r = await fetch(`${API_URL}/api/machines?includeDemo=${includeDemo}`, { headers: headers() }); const d = await r.json(); setMachines(d.filter((m: Machine) => m.assemblyStage > 0)); } catch { } finally { setLoading(false); }
+    try { const r = await fetch(`${API_URL}/api/machines?includeDemo=${includeDemo}&withAssemblyCompletion=true`, { headers: headers() }); const d = await r.json(); setMachines(d.filter((m: Machine) => m.assemblyStage > 0)); } catch { } finally { setLoading(false); }
   };
   const fetchSyncStatus = async () => { try { const r = await fetch(`${API_URL}/api/assembly/sync/status`, { headers: headers() }); setSyncStatus(await r.json()); } catch { } };
   const fetchStageStats = async () => { try { const r = await fetch(`${API_URL}/api/assembly/stage-stats?includeDemo=${includeDemo}`, { headers: headers() }); if (r.ok) setStageStats(await r.json()); } catch { } };
@@ -66,7 +89,7 @@ export default function AssemblyLine() {
     (async () => {
       try {
         const [machinesRes, statsRes] = await Promise.all([
-          fetch(`${API_URL}/api/machines?includeDemo=${includeDemo}`, { headers: headers() }),
+          fetch(`${API_URL}/api/machines?includeDemo=${includeDemo}&withAssemblyCompletion=true`, { headers: headers() }),
           fetch(`${API_URL}/api/assembly/stage-stats?includeDemo=${includeDemo}`, { headers: headers() })
         ]);
         if (cancelled) return;
@@ -165,7 +188,16 @@ export default function AssemblyLine() {
     );
   }, [machines, term]);
 
-  const filtered = selectedStage ? searched.filter(m => m.assemblyStage === selectedStage) : searched;
+  // Machines that finished stage 18 leave the stage buttons and are only listed
+  // under Completed, so stage 18 shows just the ones still being worked on.
+  const inAssembly = machines.filter(m => !m.assemblyCompleted);
+  const completed = machines.filter(m => m.assemblyCompleted);
+  const showingCompleted = selectedStage === 'completed';
+  const completedMatch = COMPLETED_FILTERS.find(f => f.value === completedFilter)!.match;
+
+  const filtered = showingCompleted
+    ? searched.filter(m => m.assemblyCompleted && completedMatch(m.parkStatus))
+    : searched.filter(m => !m.assemblyCompleted && (selectedStage === null || m.assemblyStage === selectedStage));
   // Only meaningful while demo rows are visible; the banner text falls back to
   // the availability flag when they are hidden.
   const demoCount = machines.filter(m => m.isDemo).length;
@@ -205,7 +237,7 @@ export default function AssemblyLine() {
           authenticated user. The sync cards stay behind syncStatus, which is
           admin-only. */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard label="In Assembly" value={machines.length} icon={<Factory className="w-4 h-4" />} color="indigo" />
+        <StatCard label="In Assembly" value={inAssembly.length} icon={<Factory className="w-4 h-4" />} color="indigo" hint={`${completed.length} completed`} />
         <StatCard
           label="Started Today"
           value={stageStats ? stageStats.machinesStartedToday : '—'}
@@ -268,7 +300,7 @@ export default function AssemblyLine() {
         <div className="flex flex-wrap gap-1.5">
           <button onClick={() => setSelectedStage(null)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedStage === null ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
           {Array.from({ length: 18 }, (_, i) => i + 1).map(s => {
-            const count = machines.filter(m => m.assemblyStage === s).length;
+            const count = inAssembly.filter(m => m.assemblyStage === s).length;
             return (
               <button key={s} onClick={() => setSelectedStage(s)} className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${selectedStage === s ? 'bg-indigo-600 text-white shadow-sm' : count > 0 ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
                 {s}
@@ -276,13 +308,47 @@ export default function AssemblyLine() {
               </button>
             );
           })}
+          <button
+            onClick={() => { setSelectedStage('completed'); setCompletedFilter('ALL'); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${showingCompleted ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'}`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Completed
+            <span className={`text-[9px] px-1 py-0 rounded-full ${showingCompleted ? 'bg-white/20' : 'bg-emerald-200 text-emerald-800'}`}>{completed.length}</span>
+          </button>
         </div>
+
+        {showingCompleted && (
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Completed — where they are now</p>
+            <div className="flex flex-wrap gap-1.5">
+              {COMPLETED_FILTERS.map(f => {
+                const count = completed.filter(m => f.match(m.parkStatus)).length;
+                const active = completedFilter === f.value;
+                return (
+                  <button
+                    key={f.value}
+                    onClick={() => setCompletedFilter(f.value)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${active ? 'bg-slate-900 text-white shadow-sm' : `${f.tone} hover:opacity-80`} ${count === 0 && !active ? 'opacity-50' : ''}`}
+                  >
+                    {f.label}
+                    <span className={`text-[10px] tabular-nums ${active ? 'text-white/70' : ''}`}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </SectionCard>
 
       {/* Machines Table */}
       <SectionCard
         title={`Machines (${filtered.length})`}
-        description={selectedStage ? `Filtered to Stage ${selectedStage}` : 'All assembly stages'}
+        description={
+          showingCompleted
+            ? `Completed${completedFilter === 'ALL' ? '' : ` · ${COMPLETED_FILTERS.find(f => f.value === completedFilter)!.label}`}`
+            : selectedStage ? `Filtered to Stage ${selectedStage}` : 'All machines still in assembly'
+        }
         action={
           <div className="w-full sm:w-72">
             <Input
@@ -299,8 +365,8 @@ export default function AssemblyLine() {
         {term && (
           <div className="mb-3 flex items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2">
             <span className="text-[11px] text-slate-600">
-              {searched.length} match{searched.length === 1 ? '' : 'es'} for <span className="font-mono font-medium text-slate-900">{search.trim()}</span>
-              {selectedStage && ` at stage ${selectedStage}`}
+              {filtered.length} match{filtered.length === 1 ? '' : 'es'} for <span className="font-mono font-medium text-slate-900">{search.trim()}</span>
+              {showingCompleted ? ' in Completed' : selectedStage ? ` at stage ${selectedStage}` : ' in assembly'}
             </span>
             <button
               onClick={() => setSearch('')}
@@ -314,7 +380,7 @@ export default function AssemblyLine() {
 
         {filtered.length === 0 ? (
           <p className="text-sm text-slate-500 text-center py-6">
-            {term ? `No machines match "${search.trim()}"` : 'No machines at this stage'}
+            {term ? `No machines match "${search.trim()}"` : showingCompleted ? 'No completed machines in this group' : 'No machines at this stage'}
           </p>
         ) : (
           <Table>
@@ -324,6 +390,7 @@ export default function AssemblyLine() {
               <TableHeaderCell>Order No</TableHeaderCell>
               <TableHeaderCell>Stage</TableHeaderCell>
               <TableHeaderCell>Park Status</TableHeaderCell>
+              {showingCompleted && <TableHeaderCell>Location</TableHeaderCell>}
               <TableHeaderCell>Model-Type</TableHeaderCell>
               <TableHeaderCell>Last Sync</TableHeaderCell>
             </TableHeader>
@@ -351,8 +418,20 @@ export default function AssemblyLine() {
                   </TableCell>
                   <TableCell>{m.model}</TableCell>
                   <TableCell><span className="text-xs font-mono text-slate-600">{m.orderNo || '—'}</span></TableCell>
-                  <TableCell><AssemblyStageBadge stage={m.assemblyStage} /></TableCell>
+                  <TableCell><AssemblyStageBadge stage={m.assemblyStage} completed={!!m.assemblyCompleted} /></TableCell>
                   <TableCell><ParkStatusBadge status={m.parkStatus} /></TableCell>
+                  {showingCompleted && (
+                    <TableCell>
+                      {locationLabel(m) ? (
+                        <span className="inline-flex items-center gap-1 text-[13px]">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          {locationLabel(m)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     {m.modelType ? (
                       <Badge>{m.modelType}</Badge>
@@ -380,7 +459,8 @@ export default function AssemblyLine() {
               .sort(([a], [b]) => Number(a) - Number(b))
               .map(([stage, stat]) => (
                 <div key={stage} className="p-2.5 bg-slate-50 rounded-lg text-center border border-slate-100">
-                  <p className="text-base font-bold text-slate-900 tabular-nums">{stat.total}</p>
+                  {/* Completed machines are counted in their own tile, not under stage 18. */}
+                  <p className="text-base font-bold text-slate-900 tabular-nums">{Math.max(0, stat.total - completed.filter(m => m.assemblyStage === Number(stage)).length)}</p>
                   <p className="text-[10px] text-slate-500 font-medium">Stage {stage}</p>
                   {(stat.startedToday > 0 || stat.inProgress > 0) && (
                     <div className="mt-1 space-y-0.5 border-t border-slate-200 pt-1">
@@ -398,6 +478,14 @@ export default function AssemblyLine() {
                   )}
                 </div>
               ))}
+            <button
+              type="button"
+              onClick={() => { setSelectedStage('completed'); setCompletedFilter('ALL'); }}
+              className="p-2.5 bg-emerald-50 rounded-lg text-center border border-emerald-200 hover:bg-emerald-100 transition-colors"
+            >
+              <p className="text-base font-bold text-emerald-800 tabular-nums">{completed.length}</p>
+              <p className="text-[10px] text-emerald-700 font-medium">Completed</p>
+            </button>
           </div>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
             <span className="inline-flex items-center gap-1">

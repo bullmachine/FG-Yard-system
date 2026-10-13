@@ -118,7 +118,34 @@ export const getAllMachines = async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-    
+
+    // Opt-in for the Assembly Line page, which lists a machine under stage 18 only
+    // while that stage is still being worked on and moves it to Completed once it
+    // is done. Other callers skip the extra query.
+    if (req.query.withAssemblyCompletion === 'true') {
+      const atFinalStage = machines.filter((m) => m.assemblyStage >= 18);
+      const finalRows = await prisma.machineStageHistory.findMany({
+        where: { machineId: { in: atFinalStage.map((m) => m.id) }, stage: 18 },
+        select: { machineId: true, isCompleted: true }
+      });
+      // Stage 18 can have several operations, so it is done only when every
+      // recorded operation is. A machine that has left PLANNED is past assembly
+      // whatever the history says.
+      const rowsByMachine = new Map<string, boolean[]>();
+      for (const row of finalRows) {
+        const list = rowsByMachine.get(row.machineId) ?? [];
+        list.push(row.isCompleted);
+        rowsByMachine.set(row.machineId, list);
+      }
+      return res.json(machines.map((m) => {
+        const rows = rowsByMachine.get(m.id) ?? [];
+        const assemblyCompleted = m.assemblyStage >= 18 && (
+          m.parkStatus !== 'PLANNED' || (rows.length > 0 && rows.every(Boolean))
+        );
+        return { ...m, assemblyCompleted };
+      }));
+    }
+
     res.json(machines);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch machines' });

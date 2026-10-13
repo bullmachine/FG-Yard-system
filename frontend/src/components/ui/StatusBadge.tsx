@@ -57,9 +57,11 @@ export function ParkStatusBadge({ status }: { status: string }) {
   return <Badge variant={config.variant} dot>{config.label}</Badge>;
 }
 
-export function AssemblyStageBadge({ stage }: { stage: number }) {
+// `completed` is only passed where stage-18 completion is known (the Assembly Line);
+// a machine still working through stage 18 then reads 18/18 rather than Complete.
+export function AssemblyStageBadge({ stage, completed }: { stage: number; completed?: boolean }) {
   if (stage === 0) return <Badge variant="gray">Not Started</Badge>;
-  if (stage >= 18) return <Badge variant="green" dot>Complete</Badge>;
+  if (stage >= 18 && completed !== false) return <Badge variant="green" dot>Complete</Badge>;
   return <Badge variant="blue">Stage {stage}/18</Badge>;
 }
 
