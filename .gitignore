@@ -45,3 +45,6 @@ next-env.d.ts
 
 # driver photo uploads (backend/src/lib/upload.ts)
 backend/uploads/
+
+# crash dumps
+*.stackdump
