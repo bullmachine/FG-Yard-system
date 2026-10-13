@@ -231,7 +231,7 @@ export default function NotificationCenter() {
                 const unread = notification.readAt === null;
                 return (
                   <TableRow key={notification.id} className={style.row}>
-                    <TableCell>
+                    <TableCell className="whitespace-normal min-w-[240px]">
                       <div className="flex items-start gap-2">
                         <span className="mt-0.5 shrink-0">{style.icon}</span>
                         <div className="min-w-0">

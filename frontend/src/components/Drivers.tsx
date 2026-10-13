@@ -267,8 +267,8 @@ export default function Drivers() {
               {previewUrl
                 ? <img src={previewUrl} alt={editing?.name ?? 'Photo preview'} className="w-14 h-14 rounded-lg object-cover" />
                 : <div className="w-14 h-14 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400"><UserRound className="w-5 h-5" /></div>}
-              <div className="space-y-1.5">
-                <div className="flex gap-2">
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} icon={<Camera className="w-3.5 h-3.5" />}>
                     {previewUrl ? 'Replace photo' : 'Upload photo'}
                   </Button>

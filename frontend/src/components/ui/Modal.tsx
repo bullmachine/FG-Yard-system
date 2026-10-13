@@ -45,12 +45,12 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 animate-fade-in"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
-      <div className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[85vh] flex flex-col animate-slide-in`}>
+      <div className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-slide-in`}>
         {(title || subtitle) && (
-          <div className="flex items-start justify-between px-5 py-3 border-b border-slate-200">
+          <div className="flex items-start justify-between gap-2 px-4 sm:px-5 py-3 border-b border-slate-200">
             <div className="min-w-0">
               {title && <h3 className="text-sm font-semibold text-slate-900">{title}</h3>}
               {subtitle && <p className="text-xs text-slate-500 mt-0.5 truncate">{subtitle}</p>}
@@ -60,11 +60,11 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
           {children}
         </div>
         {footer && (
-          <div className="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+          <div className="px-4 sm:px-5 py-3 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
             {footer}
           </div>
         )}

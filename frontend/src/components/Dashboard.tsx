@@ -314,7 +314,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
             {searchResults.length > 0 && (
               <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto">
                 {searchResults.slice(0, LIST_CAP).map((m: any) => (
-                  <div key={m.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-md border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors">
+                  <div key={m.id} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-md border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-7 h-7 bg-blue-100 rounded-md flex items-center justify-center shrink-0">
                         <Truck className="w-3.5 h-3.5 text-blue-600" />
@@ -488,7 +488,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
             ) : (
               <>
                 {modalView.list.slice(0, MODAL_CAP).map((m: any) => (
-                  <div key={m.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-md border border-slate-200">
+                  <div key={m.id} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-md border border-slate-200">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-7 h-7 bg-blue-100 rounded-md flex items-center justify-center shrink-0">
                         <Truck className="w-3.5 h-3.5 text-blue-600" />

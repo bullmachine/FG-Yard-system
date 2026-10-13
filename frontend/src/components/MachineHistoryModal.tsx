@@ -222,7 +222,7 @@ export default function MachineHistoryModal({
       role="tab"
       aria-selected={tab === id}
       onClick={() => setTab(id)}
-      className={`inline-flex items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
         tab === id
           ? 'border-indigo-600 text-indigo-700'
           : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -294,7 +294,7 @@ export default function MachineHistoryModal({
           </div>
         )}
 
-        <div className="flex gap-1 border-b border-slate-200" role="tablist">
+        <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
           {tabButton('stages', 'Assembly Stages', current?.summary.recordedCount ?? null)}
           {tabButton('movements', 'Movements', rows.length)}
           {tabButton('parking', 'Parking', parkRows.length)}

@@ -404,6 +404,11 @@ export default function YardManagement() {
   // Position -> slot, so the grid can render a fixed rows x cols matrix and place an
   // explicit empty cell where a slot has been removed.
   const slotIndex = new Map(selectedYardSlots.map(s => [`${s.row}:${s.col}`, s]));
+  // Header and rows share one template so the column numbers stay aligned. Cells
+  // keep a 36px floor (plus the 6px gap); a wide yard scrolls sideways on a phone
+  // rather than shrinking slots until the labels are unreadable.
+  const gridTemplate = selectedYard ? `22px repeat(${selectedYard.cols}, minmax(0, 1fr))` : '';
+  const gridMinWidth = selectedYard ? 22 + selectedYard.cols * 42 : 0;
 
   return (
     <div className="space-y-4">
@@ -422,8 +427,8 @@ export default function YardManagement() {
 
       {availability && availability.totalAvailable === 0 && (
         <div className="rounded-lg border border-red-300 bg-red-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+            <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-red-800">No allocatable slots — every yard is fully reserved</p>
               <p className="text-xs text-red-700 mt-1">
                 {availability.availability.map(a => `${a.yardName}: ${a.reserved} reserved / ${a.total} total`).join(' · ')}.
@@ -498,8 +503,8 @@ export default function YardManagement() {
             <div className="flex-1 min-w-0">
               {(selectedYard.latitude || selectedYard.address) && (
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
                       {selectedYard.address && <p className="text-xs font-medium text-blue-800">{selectedYard.address}</p>}
                       {selectedYard.latitude && <p className="text-xs text-blue-600">{selectedYard.latitude.toFixed(6)}, {selectedYard.longitude?.toFixed(6)}</p>}
                     </div>
@@ -513,12 +518,14 @@ export default function YardManagement() {
                 {highlightedSlot && <p className="text-xs text-emerald-600 mt-1 font-medium">Found — highlighted in grid</p>}
               </div>
 
-              <div className="space-y-1.5 p-3 bg-slate-50 rounded-lg">
-                <div className="flex items-center gap-1.5 ml-[22px] mb-1">
-                  {Array.from({ length: selectedYard.cols }, (_, i) => <span key={i} className="flex-1 text-center text-[9px] font-bold text-slate-500">{i + 1}</span>)}
+              <div className="p-3 bg-slate-50 rounded-lg overflow-x-auto">
+              <div className="space-y-1.5" style={{ minWidth: gridMinWidth }}>
+                <div className="grid gap-1.5 mb-1" style={{ gridTemplateColumns: gridTemplate }}>
+                  <span />
+                  {Array.from({ length: selectedYard.cols }, (_, i) => <span key={i} className="text-center text-[9px] font-bold text-slate-500">{i + 1}</span>)}
                 </div>
                 {Array.from({ length: selectedYard.rows }, (_, ri) => (
-                  <div key={ri} className="grid gap-1.5" style={{ gridTemplateColumns: `22px repeat(${selectedYard.cols}, minmax(0, 1fr))` }}>
+                  <div key={ri} className="grid gap-1.5" style={{ gridTemplateColumns: gridTemplate }}>
                     <div className="aspect-square flex items-center justify-center text-[9px] font-bold text-slate-500 bg-slate-200 rounded">{String.fromCharCode(64 + ri + 1)}</div>
                     {/* Every row emits exactly `cols` cells. The old code mapped over the
                         slots that existed, so one removed slot shifted every slot after it
@@ -551,6 +558,7 @@ export default function YardManagement() {
                     })}
                   </div>
                 ))}
+              </div>
               </div>
 
               <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-200">

@@ -12,7 +12,7 @@ export default function PageHeader({ title, description, actions, className = ''
         <h1 className="text-base font-semibold text-slate-900 leading-tight">{title}</h1>
         {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function StatCard({ label, value, icon, trend, color = 'blue', onClick, h
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 space-y-0.5">
           <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate">{label}</p>
-          <p className="text-lg font-bold text-slate-900 tabular-nums leading-none">{value}</p>
+          <p className="text-lg font-bold text-slate-900 tabular-nums leading-tight break-words">{value}</p>
           {trend && (
             <p className={`text-[11px] font-medium ${trend.positive ? 'text-emerald-600' : 'text-red-600'}`}>
               {trend.positive ? '↑' : '↓'} {trend.value}
@@ -77,10 +77,10 @@ interface SectionCardProps {
 export function SectionCard({ title, description, action, children, className = '', bodyClassName = '', noPadding = false }: SectionCardProps) {
   return (
     <div className={`bg-white rounded-lg border border-slate-200 shadow-[0_1px_2px_0_rgb(2_6_23_/_0.05)] ${className}`}>
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+      <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-[13px] font-semibold text-slate-900">{title}</h3>
-          {description && <p className="text-xs text-slate-500 mt-px truncate">{description}</p>}
+          {description && <p className="text-xs text-slate-500 mt-px sm:truncate">{description}</p>}
         </div>
         {action}
       </div>

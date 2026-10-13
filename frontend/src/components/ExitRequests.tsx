@@ -237,12 +237,12 @@ export default function ExitRequests() {
         />
       ) : (
         <>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-slate-500">
               {visible.length} request{visible.length !== 1 ? 's' : ''}
               {statusFilter ? ` · ${STATUS_META[statusFilter as ExitRequestStatus].label.toLowerCase()}` : ''}
             </p>
-            <div className="w-56">
+            <div className="w-full sm:w-56">
               <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={STATUS_OPTIONS} />
             </div>
           </div>

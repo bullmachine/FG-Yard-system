@@ -339,17 +339,18 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             description={direction === 'IN' ? 'Scan the driver and the machine barcode to authenticate' : 'Scan the driver badge and the released machine barcode'}
           >
             {/* 3-Step Visual */}
-            <div className="flex items-center gap-2 mb-4">
+            {/* Wraps on phones; the connector lines only show when the steps fit on one row. */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
               <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${driverScan.state === 'ok' ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
                 {stepIcon(driverScan.state === 'ok', <UserRound className="w-2.5 h-2.5" />)}
                 <span className="text-xs font-medium text-slate-700">Scan Driver</span>
               </div>
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="hidden sm:block h-px flex-1 bg-slate-200" />
               <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${pickedLabel ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
                 {stepIcon(!!pickedLabel, <ScanLine className="w-2.5 h-2.5" />)}
                 <span className="text-xs font-medium text-slate-700">Scan Machine</span>
               </div>
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="hidden sm:block h-px flex-1 bg-slate-200" />
               <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${barrierOpen ? 'bg-emerald-50 border-emerald-200' : authResult && !authorized ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
                 {stepIcon(barrierOpen, barrierOpen ? <DoorOpen className="w-2.5 h-2.5" /> : <DoorClosed className="w-2.5 h-2.5" />)}
                 <span className="text-xs font-medium text-slate-700">Gate {barrierOpen ? 'Open' : authResult ? 'Closed' : '—'}</span>
@@ -474,7 +475,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
               )}
             </div>
 
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
 <Button onClick={handleAuthenticate} loading={authenticating} disabled={driverScan.state !== 'ok' || (!selectedMachine && !barcodeInput) || barrierOpen} className="flex-1" icon={<Shield className="w-4 h-4" />}>
                   {direction === 'IN' ? 'Authenticate & Open Barrier' : 'Authorize Exit & Open Barrier'}
                 </Button>
@@ -578,9 +579,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             ) : (
               logs.map(log => (
                 <div key={log.id} className={`p-2.5 rounded-lg border text-xs ${log.result === 'AUTHORIZED' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-                  <div className="flex items-start justify-between mb-0.5">
-                    <span className="font-medium text-slate-900">{log.machine.serialNumber}</span>
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-start justify-between gap-2 mb-0.5">
+                    <span className="font-medium text-slate-900 min-w-0 truncate">{log.machine.serialNumber}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <Badge variant={log.direction === 'OUT' ? 'indigo' : 'gray'}>{log.direction === 'OUT' ? 'OUT' : 'IN'}</Badge>
                       <Badge variant={log.result === 'AUTHORIZED' ? 'green' : 'red'}>{log.result}</Badge>
                     </div>

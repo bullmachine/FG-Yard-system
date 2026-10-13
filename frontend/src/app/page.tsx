@@ -311,19 +311,22 @@ export default function Home() {
       )}
 
       {/* Main content */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-200 ${collapsed ? 'lg:pl-[68px]' : 'lg:pl-64'}`}>
+      {/* min-w-0 lets this flex child shrink below its content width, so a wide
+          table scrolls inside its own box instead of widening the whole page. */}
+      <div className={`flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-200 ${collapsed ? 'lg:pl-[68px]' : 'lg:pl-64'}`}>
         {/* Top bar */}
         <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200">
           <div className="flex items-center justify-between h-11 px-4 lg:px-5">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                aria-label="Open menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900">{TAB_LABELS[effectiveTab]}</h2>
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-slate-900 truncate">{TAB_LABELS[effectiveTab]}</h2>
               </div>
             </div>
             <div className="flex items-center gap-3">

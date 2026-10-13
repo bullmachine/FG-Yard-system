@@ -149,7 +149,7 @@ export default function MovementHistory() {
       role="tab"
       aria-selected={mode === id}
       onClick={() => setMode(id)}
-      className={`inline-flex items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
         mode === id ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-700'
       }`}
     >
@@ -167,7 +167,7 @@ export default function MovementHistory() {
       <PageHeader title={title} description={countLabel} />
 
       <SectionCard title={title} bodyClassName={(mode === 'verifications' ? verifications.items.length === 0 : mode === 'parking' ? parking.items.length === 0 : movements.items.length === 0) ? '' : 'p-0'}>
-        <div className="flex gap-1 border-b border-slate-200 px-4" role="tablist">
+        <div className="flex gap-1 overflow-x-auto border-b border-slate-200 px-4" role="tablist">
           {modeButton('movements', 'Movements')}
           {modeButton('parking', 'Parking')}
           {canViewVerifications && modeButton('verifications', 'Verifications')}
