@@ -14,12 +14,13 @@ import { SectionCard } from '@/components/ui/Card';
 import PageHeader from '@/components/ui/PageHeader';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import BarcodeCameraModal from '@/components/BarcodeCameraModal';
 import { PageSpinner } from '@/components/ui/Spinner';
 import EmptyState from '@/components/ui/EmptyState';
 import { slotLabel, formatDateTime } from '@/lib/format';
 import { Barcode as BarcodeSvg, canEncodeCode128 } from '@/lib/barcode';
 import { renderGateLabel } from '@/lib/gateLabel';
-import { Shield, CheckCircle2, XCircle, ScanLine, UserRound, DoorOpen, DoorClosed, MapPin, RotateCcw, ArrowRight, ChevronDown, ChevronUp, Printer, Download } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, ScanLine, UserRound, DoorOpen, DoorClosed, MapPin, RotateCcw, ArrowRight, ChevronDown, ChevronUp, Printer, Download, Camera } from 'lucide-react';
 
 interface Driver { id: string; name: string; employeeCode?: string | null; photoUrl?: string | null; }
 interface SlotRef { row: number; col: number; status?: string; yard?: { name: string } | null; }
@@ -74,6 +75,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const [driverScan, setDriverScan] = useState<{ state: 'none' | 'ok' | 'missing'; driver?: Driver }>({ state: 'none' });
   const [selectedMachine, setSelectedMachine] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
+  const [scannerTarget, setScannerTarget] = useState<'driver' | 'machine' | null>(null);
   const [showManualPicker, setShowManualPicker] = useState(false);
   const [detection, setDetection] = useState<{ state: DetectionState; machine?: Machine }>({ state: 'none' });
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
@@ -237,6 +239,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     setDriverScan({ state: 'none' });
     setSelectedMachine('');
     setBarcodeInput('');
+    setScannerTarget(null);
     setShowManualPicker(false);
     setDetection({ state: 'none' });
     setAuthResult(null);
@@ -255,6 +258,20 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
       <span className="text-[10px] font-bold">{icon}</span>
     </div>
+  );
+
+  // Trailing camera button: fills the field from a live barcode scan, exactly as
+  // a hardware scanner would, so all the existing detection/validation still runs.
+  const cameraSuffix = (target: 'driver' | 'machine', label: string) => (
+    <button
+      type="button"
+      onClick={() => setScannerTarget(target)}
+      title={`Scan ${label} with camera`}
+      aria-label={`Scan ${label} with camera`}
+      className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-blue-600 hover:bg-slate-100 transition-colors"
+    >
+      <Camera className="w-4 h-4" />
+    </button>
   );
 
   const authorized = authResult?.result === 'AUTHORIZED';
@@ -364,6 +381,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                 onChange={e => setDriverBarcodeInput(e.target.value)}
                 placeholder="Scan or type the driver's employee code..."
                 icon={<UserRound className="w-4 h-4" />}
+                suffix={cameraSuffix('driver', 'employee code')}
                 autoFocus
               />
               {driverScan.state === 'ok' && driverScan.driver && (
@@ -395,6 +413,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
               onChange={e => setBarcodeInput(e.target.value)}
               placeholder="Scan or type the machine barcode..."
               icon={<ScanLine className="w-4 h-4" />}
+              suffix={cameraSuffix('machine', 'machine barcode')}
               autoFocus
             />
 
@@ -680,6 +699,22 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
           </div>
         )}
       </Modal>
+
+      {/* Camera barcode scanner: fills the driver badge or machine barcode field */}
+      <BarcodeCameraModal
+        open={scannerTarget !== null}
+        onClose={() => setScannerTarget(null)}
+        onScan={(code) => {
+          if (scannerTarget === 'driver') {
+            setDriverBarcodeInput(code);
+          } else if (scannerTarget === 'machine') {
+            setSelectedMachine('');
+            setBarcodeInput(code);
+          }
+        }}
+        title={scannerTarget === 'driver' ? 'Scan Driver Badge' : 'Scan Machine Barcode'}
+        subtitle="Point the camera at the barcode. It is filled in automatically."
+      />
     </div>
   );
 }
