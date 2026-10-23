@@ -762,13 +762,12 @@ export const getReturnMachines = async (req: Request, res: Response) => {
 };
 
 /**
- * Reserve a slot for a machine that is coming back into the yard.
+ * Reserve a slot ahead of time for a machine that is coming back into the yard.
  *
- * The gate-in checkpoint only admits machines whose slot is RESERVED (see
- * authenticateGate), so this is the step that makes a return able to check back
- * in. It mirrors the slot-assignment transaction used for stage-13 machines:
- * machine points at the slot, the slot is RESERVED, and a movement records who
- * made the arrangement.
+ * This is now optional: the gate assigns a slot to any returning machine that does
+ * not already hold one (see authenticateGate), so reserving here just plans where the
+ * machine will park. It mirrors the gate assignment: machine points at the slot, the
+ * slot is RESERVED, and a movement records who made the arrangement.
  */
 export const reserveReturnSlot = async (req: Request, res: Response) => {
   try {

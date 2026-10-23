@@ -52,6 +52,9 @@ interface AuthResult {
     parkStatus: string;
     assignedSlot?: { id: string; row: number; col: number; status: string; yard?: { name: string } };
   };
+  // How the server decided the slot, and a message when it had to change the choice.
+  slotSource?: 'RESERVED' | 'AUTO' | 'MANUAL' | 'AUTO_FALLBACK';
+  slotNotice?: string;
 }
 
 type DetectionState = 'none' | 'detecting' | 'ok' | 'notready' | 'missing';
@@ -77,6 +80,11 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const [barcodeInput, setBarcodeInput] = useState('');
   const [scannerTarget, setScannerTarget] = useState<'driver' | 'machine' | null>(null);
   const [showManualPicker, setShowManualPicker] = useState(false);
+  // Slot override for IN: available slots across yards plus the one the server would
+  // auto-pick for this machine. null until the options for the detected machine load.
+  const [gateSlots, setGateSlots] = useState<Array<{ id: string; yardId: string; row: number; col: number; yardName: string }> | null>(null);
+  const [gateSuggestion, setGateSuggestion] = useState('');
+  const [selectedGateSlot, setSelectedGateSlot] = useState('');
   const [detection, setDetection] = useState<{ state: DetectionState; machine?: Machine }>({ state: 'none' });
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
   const [issuedAt, setIssuedAt] = useState('');
@@ -129,6 +137,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     if (!code) {
       setDetection({ state: 'none' });
       setSelectedMachine(prev => (detection.machine?.id === prev ? '' : prev));
+      setGateSlots(null);
+      setGateSuggestion('');
+      setSelectedGateSlot('');
       return;
     }
 
@@ -153,11 +164,43 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
         if (eligible) {
           setSelectedMachine(match.id);
           setDetection({ state: 'ok', machine: match });
+          // A live reservation is honoured by the server as-is, so no picker is
+          // offered for it; the screen shows the reserved slot instead.
+          if (direction === 'IN' && match.plannedSlot?.status !== 'RESERVED') {
+            try {
+              const s = await fetch(`${API_URL}/api/gate/slots?machineId=${encodeURIComponent(match.id)}`, { headers: headers() });
+              if (s.ok) {
+                const sd = await s.json();
+                setGateSlots(sd.slots || []);
+                const sug = sd.suggested?.id ?? '';
+                setGateSuggestion(sug);
+                setSelectedGateSlot(sug);
+              } else {
+                setGateSlots([]);
+                setGateSuggestion('');
+                setSelectedGateSlot('');
+              }
+            } catch {
+              setGateSlots([]);
+              setGateSuggestion('');
+              setSelectedGateSlot('');
+            }
+          } else {
+            setGateSlots(null);
+            setGateSuggestion('');
+            setSelectedGateSlot('');
+          }
         } else {
           setDetection({ state: 'notready', machine: match });
+          setGateSlots(null);
+          setGateSuggestion('');
+          setSelectedGateSlot('');
         }
       } catch {
         if (detectSeq.current === seq) setDetection({ state: 'missing' });
+        setGateSlots(null);
+        setGateSuggestion('');
+        setSelectedGateSlot('');
       }
     }, 400);
 
@@ -191,7 +234,11 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     setAuthResult(null);
     clearBarrierTimer();
     try {
-      const r = await fetch(`${API_URL}/api/gate/authenticate`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers() }, body: JSON.stringify({ driverBarcode: driverBarcodeInput, machineId: selectedMachine, barcode: barcodeInput, direction }) });
+      const payload: { driverBarcode: string; machineId: string; barcode: string; direction: 'IN' | 'OUT'; slotId?: string } = { driverBarcode: driverBarcodeInput, machineId: selectedMachine, barcode: barcodeInput, direction };
+      // Only a slot the operator actually changed is sent, so the server records the
+      // automatic pick as automatic and can fall back if it was taken meanwhile.
+      if (direction === 'IN' && selectedGateSlot && selectedGateSlot !== gateSuggestion) payload.slotId = selectedGateSlot;
+      const r = await fetch(`${API_URL}/api/gate/authenticate`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers() }, body: JSON.stringify(payload) });
       const data = await r.json();
       setAuthResult(data);
       // Freeze the pass timestamp at authorization so the printed "Issued" does
@@ -206,7 +253,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
         }
       }
       fetchData();
-    } catch { setAuthResult({ result: 'REJECTED', reason: 'Connection error' }); } finally { setAuthenticating(false); }
+    } catch { setAuthResult({ result: 'REJECTED', reason: 'Connection error - check the network and try again' }); } finally { setAuthenticating(false); }
   };
 
   const handleManualOpen = () => {
@@ -244,6 +291,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     setDetection({ state: 'none' });
     setAuthResult(null);
     setIssuedAt('');
+    setGateSlots(null);
+    setGateSuggestion('');
+    setSelectedGateSlot('');
   };
 
   const setGateDirection = (d: 'IN' | 'OUT') => {
@@ -251,6 +301,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     // A fresh flow: clear any in-progress scan and result so nothing from the
     // other direction remains on screen.
     handleReset();
+    setGateSlots(null);
+    setGateSuggestion('');
+    setSelectedGateSlot('');
     setDirection(d);
   };
 
@@ -315,9 +368,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     a.click();
   };
   const screenMachines = direction === 'IN'
-    // A machine that left the yard counts as inward-eligible again only once a
-    // return slot has been reserved for it, so it does not surface here by mistake.
-    ? machines.filter(m => m.parkStatus !== 'PARKED_VERIFIED' && (m.parkStatus !== 'EXITED' || m.plannedSlot?.status === 'RESERVED'))
+    // A machine that left the yard (EXITED) can come back. No pre-reservation is
+    // required - the gate will assign a slot at authentication time.
+    ? machines.filter(m => m.parkStatus !== 'PARKED_VERIFIED')
     : machines.filter(m => m.parkStatus === 'AT_GATE');
   const pickedLabel = screenMachines.find(m => m.id === selectedMachine);
 
@@ -434,21 +487,52 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                   </div>
                 );
               }
-              const target = detection.machine.plannedSlot ?? detection.machine.currentSlot;
+              // OUT returned above, so this is always inward: the slot is chosen in
+              // the gate slot picker below rather than shown inline.
               return (
-                <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+              <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <div className="text-xs">
                     <span className="font-semibold text-emerald-800">Detected:</span>
                     <span className="text-emerald-800"> {detection.machine.serialNumber}</span>
                     <span className="text-emerald-600"> · Stage {detection.machine.assemblyStage} · {detection.machine.parkStatus.replace(/_/g, ' ')}</span>
-                    {target ? (
-                      <span className="text-emerald-600"> · {target.yard?.name ? `${target.yard.name} ` : ''}{slotLabel(target.row, target.col)}</span>
-                    ) : (
-                      <span className="font-medium text-amber-700"> · No slot assigned</span>
-                    )}
                   </div>
                 </div>
+                {direction === 'IN' && detection.machine.plannedSlot?.status === 'RESERVED' && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-yellow-300 bg-yellow-50 px-2 py-1 text-[11px] font-medium text-yellow-900">
+                    <MapPin className="w-3 h-3" />
+                    Reserved slot: {detection.machine.plannedSlot.yard?.name ? `${detection.machine.plannedSlot.yard.name} · ` : ''}{slotLabel(detection.machine.plannedSlot.row, detection.machine.plannedSlot.col)}
+                    <span className="font-normal text-yellow-800">(already held for this machine)</span>
+                  </p>
+                )}
+                {direction === 'IN' && detection.machine.plannedSlot?.status !== 'RESERVED' && (
+                  <div className="mt-2 space-y-1.5">
+                    <p className="text-[11px] text-slate-600">
+                      {gateSlots && gateSlots.length === 0
+                        ? 'No free slot in any yard. The gate will refuse entry until a slot is freed.'
+                        : selectedGateSlot && selectedGateSlot !== gateSuggestion
+                          ? 'Manual: the slot you selected will be assigned.'
+                          : 'Automatic: the suggested slot will be assigned. Choose another to override.'}
+                    </p>
+                    <Select
+                      label="Gate slot (override allowed)"
+                      value={selectedGateSlot}
+                      onChange={e => setSelectedGateSlot(e.target.value)}
+                      placeholder={gateSlots && gateSlots.length === 0 ? 'No available slots' : 'Use suggested slot'}
+                      options={(gateSlots || []).map(s => ({
+                        value: s.id,
+                        label: `${s.yardName ? s.yardName + ' · ' : ''}${slotLabel(s.row, s.col)}${s.id === gateSuggestion ? ' (suggested)' : ''}`
+                      }))}
+                    />
+                    {gateSuggestion && selectedGateSlot !== gateSuggestion && (
+                      <button type="button" onClick={() => setSelectedGateSlot(gateSuggestion)} className="text-[11px] font-medium text-blue-700 hover:underline">
+                        Back to suggested slot
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               );
             })()}
             {detection.state === 'notready' && detection.machine && (
@@ -539,7 +623,15 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                     {slot && (
                       <p className="text-xs text-slate-700 mt-0.5 ml-6">
                         <span className="font-medium inline-flex items-center gap-1"><MapPin className="w-3 h-3" />Slot:</span> {slot.yard?.name ? `${slot.yard.name} · ` : ''}{slotLabel(slot.row, slot.col)}
+                        {authResult.slotSource && (
+                          <span className="ml-1.5 text-[11px] text-slate-500">
+                            ({authResult.slotSource === 'RESERVED' ? 'reserved' : authResult.slotSource === 'MANUAL' ? 'manual' : 'automatic'})
+                          </span>
+                        )}
                       </p>
+                    )}
+                    {authResult.slotNotice && (
+                      <p className="mt-1 ml-6 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-800">{authResult.slotNotice}</p>
                     )}
                   </>
                 )}

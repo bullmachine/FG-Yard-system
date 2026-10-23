@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { notifyEvent, pushExitRequestsChanged } from '../services/notificationService';
 import { getSettings } from '../services/settingsService';
+import {
+  assignAvailableSlot,
+  assignSlotToMachine,
+  findSlotForMachine,
+  listAvailableSlots
+} from '../services/locationAssignmentService';
 
 async function rejectGate(reason: string, context: { driverId?: string; barcode?: string }) {
   await notifyEvent({
@@ -144,13 +150,67 @@ export const authenticateGate = async (req: Request, res: Response) => {
       return res.json(await rejectGate('Machine has no barcode. Cannot be checked in at the gate.', { barcode }));
     }
 
-    if (!machine.plannedSlotId) {
-      return res.json(await rejectGate('No assigned slot', { barcode }));
+    // The gate is where a slot is assigned. A machine either carries a live
+    // reservation (an admin pre-assigned it, or it was re-queued after a release),
+    // or it is assigned one right now from the available pool. The operator may pass
+    // slotId to override the automatic pick. If nothing is free the machine is
+    // turned away with a visible reason rather than being let in without a slot.
+    const requestedSlotId = typeof req.body.slotId === 'string' ? req.body.slotId.trim() : '';
+
+    let slot = null;
+    if (machine.plannedSlotId) {
+      const planned = await prisma.slot.findUnique({
+        where: { id: machine.plannedSlotId },
+        include: { yard: true }
+      });
+      if (planned && planned.status === 'RESERVED') {
+        slot = planned;
+      } else {
+        // Stale plan left behind by a previous visit (its slot is AVAILABLE again).
+        // Clear it so a fresh assignment can take its place.
+        await prisma.machine.update({
+          where: { id: machine.id },
+          data: { plannedSlotId: null }
+        });
+      }
     }
 
-    const slot = await prisma.slot.findUnique({ where: { id: machine.plannedSlotId }, include: { yard: true } });
-    if (!slot || slot.status !== 'RESERVED') {
-      return res.json(await rejectGate('ASSIGNED SLOT UNAVAILABLE', { barcode }));
+    // How the slot was decided, returned so the gate screen can say so: an existing
+    // reservation, the automatic pick, the operator's choice, or the automatic pick
+    // because the operator's choice was taken in the meantime.
+    let slotSource: 'RESERVED' | 'AUTO' | 'MANUAL' | 'AUTO_FALLBACK' = slot ? 'RESERVED' : 'AUTO';
+    let slotNotice: string | undefined;
+
+    if (!slot) {
+      let assignment = requestedSlotId
+        ? await assignSlotToMachine(machine.id, requestedSlotId, actorId, 'Assigned at gate IN (operator selected)')
+        : await assignAvailableSlot(machine.id, { userId: actorId, notes: 'Assigned at gate IN' });
+      if (requestedSlotId) slotSource = 'MANUAL';
+
+      // The operator's slot was free when the picker loaded but another machine took
+      // it first. Fall back to the automatic pick rather than turning the driver away.
+      if (requestedSlotId && !assignment.success &&
+          (assignment.errorCode === 'SLOT_NOT_AVAILABLE' || assignment.errorCode === 'SLOT_NOT_FOUND')) {
+        assignment = await assignAvailableSlot(machine.id, { userId: actorId, notes: 'Assigned at gate IN (selected slot was taken)' });
+        slotSource = 'AUTO_FALLBACK';
+        slotNotice = 'The selected slot was no longer free, so the next available slot was assigned.';
+      }
+
+      if (!assignment.success || !assignment.slotId) {
+        const reason = assignment.errorCode === 'NO_SLOT_ANYWHERE'
+          ? 'No available slot in any yard'
+          : (assignment.error || 'Could not assign a slot');
+        return res.json(await rejectGate(reason, { barcode }));
+      }
+
+      slot = await prisma.slot.findUnique({
+        where: { id: assignment.slotId },
+        include: { yard: true }
+      });
+    }
+
+    if (!slot) {
+      return res.json(await rejectGate('Could not assign a slot', { barcode }));
     }
 
     const log = await prisma.gateLog.create({
@@ -196,7 +256,9 @@ export const authenticateGate = async (req: Request, res: Response) => {
         assemblyStage: machine.assemblyStage,
         parkStatus: machine.parkStatus,
         assignedSlot: slot
-      }
+      },
+      slotSource,
+      ...(slotNotice ? { slotNotice } : {})
     });
   } catch (error) {
     res.status(500).json({ error: 'Gate authentication failed' });
@@ -247,5 +309,33 @@ export const getBarrierConfig = async (req: Request, res: Response) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to load barrier config' });
+  }
+};
+
+/**
+ * Slots the gate operator can choose from for an incoming machine, plus the slot the
+ * server would auto-pick. Read-only: nothing is reserved until authenticate runs, so
+ * an operator who changes their mind leaks no reservation.
+ */
+export const getGateSlots = async (req: Request, res: Response) => {
+  try {
+    const machineId = typeof req.query.machineId === 'string' ? req.query.machineId : '';
+    const slots = await listAvailableSlots();
+    const suggested = machineId ? await findSlotForMachine(machineId) : null;
+
+    res.json({
+      suggested: suggested
+        ? { id: suggested.id, yardId: suggested.yardId, row: suggested.row, col: suggested.col }
+        : null,
+      slots: slots.map((s) => ({
+        id: s.id,
+        yardId: s.yardId,
+        row: s.row,
+        col: s.col,
+        yardName: s.yard?.name ?? ''
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load gate slots' });
   }
 };

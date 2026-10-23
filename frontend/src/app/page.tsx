@@ -7,9 +7,10 @@ import {
   LayoutDashboard, MapPin, Truck, Users, Shield,
   Clock, LogOut, Menu, X, Factory, Package, Fence, Database, Layers,
   PanelLeftClose, PanelLeftOpen, BookOpen, Bell, Settings, ParkingCircle, Send,
-  RotateCcw
+  RotateCcw, LayoutGrid, LifeBuoy
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
+import DashboardV2 from '@/components/DashboardV2';
 import YardManagement from '@/components/YardManagement';
 import MachineTracking from '@/components/MachineTracking';
 import AssemblyLine from '@/components/AssemblyLine';
@@ -27,12 +28,14 @@ import MachineReturns from '@/components/MachineReturns';
 import ProcessFlowDocument from '@/components/ProcessFlowDocument';
 import NotificationCenter, { NotificationBell } from '@/components/NotificationCenter';
 import SettingsPage from '@/components/SettingsPage';
+import UserGuide from '@/components/UserGuide';
 import { asset } from '@/lib/basePath';
 
-type Tab = 'dashboard' | 'yards' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'notifications';
+type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'notifications' | 'help';
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
+  dashboard2: <LayoutGrid className="w-5 h-5" />,
   yards: <MapPin className="w-5 h-5" />,
   machines: <Truck className="w-5 h-5" />,
   assembly: <Factory className="w-5 h-5" />,
@@ -49,11 +52,13 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   requests: <Send className="w-5 h-5" />,
   returns: <RotateCcw className="w-5 h-5" />,
   docs: <BookOpen className="w-5 h-5" />,
+  help: <LifeBuoy className="w-5 h-5" />,
   notifications: <Bell className="w-5 h-5" />,
 };
 
 const TAB_LABELS: Record<Tab, string> = {
   dashboard: 'Dashboard',
+  dashboard2: 'Dashboard (New)',
   yards: 'Yard Management',
   machines: 'Machine Tracking',
   assembly: 'Assembly Line',
@@ -70,22 +75,25 @@ const TAB_LABELS: Record<Tab, string> = {
   requests: 'Exit Requests',
   returns: 'Returns',
   docs: 'Docs',
+  help: 'Help & User Guide',
   notifications: 'Notifications',
 };
 
 const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
-  { label: 'OVERVIEW', tabs: ['dashboard'] },
+  { label: 'OVERVIEW', tabs: ['dashboard', 'dashboard2'] },
   { label: 'OPERATIONS', tabs: ['yards', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers'] },
   { label: 'ADMINISTRATION', tabs: ['users', 'settings'] },
   { label: 'CONTROL', tabs: ['gate', 'parked', 'security', 'returns', 'requests', 'history'] },
-  { label: 'DOCUMENTATION', tabs: ['docs', 'notifications'] },
+  { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'notifications'] },
 ];
 
 const ROLE_TABS: Record<string, Tab[]> = {
-  ADMIN: ['dashboard', 'yards', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'users', 'settings', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
-  YARD_MANAGER: ['dashboard', 'yards', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'returns', 'requests', 'history'],
+  // dashboard2 is the replacement dashboard under development; only its reviewers see it.
+  ADMIN: ['dashboard', 'dashboard2', 'yards', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'users', 'settings', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
+  YARD_MANAGER: ['dashboard', 'dashboard2', 'yards', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'returns', 'requests', 'history'],
   OPERATOR: ['dashboard', 'yards', 'machines', 'assembly', 'gate', 'parked', 'returns', 'requests', 'history'],
-  SERVICE_TECHNICIAN: ['dashboard', 'machines', 'returns', 'requests', 'history'],
+  // No history: the movements endpoint does not admit this role.
+  SERVICE_TECHNICIAN: ['dashboard', 'machines', 'returns', 'requests'],
   SECURITY: ['dashboard', 'security', 'returns', 'requests', 'history'],
   VIEW_ONLY: ['dashboard', 'yards', 'machines', 'returns', 'requests'],
   // A driver only ever sees the parking confirmation, not the yard overview.
@@ -224,11 +232,12 @@ export default function Home() {
   const router = useRouter();
 
   const roleTabs = isAuthenticated && user?.role ? ROLE_TABS[user.role] || ROLE_TABS.VIEW_ONLY : ROLE_TABS.VIEW_ONLY;
+  // Help is open to everyone, signed in or not, so a new user can read it first.
   const allowedTabs: Tab[] = isAuthenticated && !roleTabs.includes('docs')
-    ? [...roleTabs, 'docs', 'notifications']
+    ? [...roleTabs, 'help', 'docs', 'notifications']
     : isAuthenticated
-      ? [...roleTabs, 'notifications']
-      : roleTabs;
+      ? [...roleTabs, 'help', 'notifications']
+      : [...roleTabs, 'help'];
   const effectiveTab = allowedTabs.includes(activeTab) ? activeTab : 'dashboard';
 
   const toggleSidebar = () => {
@@ -248,6 +257,7 @@ export default function Home() {
   const renderContent = () => {
     switch (effectiveTab) {
       case 'dashboard': return <Dashboard onNavigate={(tab) => handleSelect(tab as Tab)} allowedTabs={allowedTabs} />;
+      case 'dashboard2': return <DashboardV2 />;
       case 'yards': return <YardManagement />;
       case 'machines': return <MachineTracking />;
       case 'assembly': return <AssemblyLine />;
@@ -265,6 +275,7 @@ export default function Home() {
       case 'returns': return <MachineReturns />;
       case 'docs': return <ProcessFlowDocument />;
       case 'notifications': return <NotificationCenter />;
+      case 'help': return <UserGuide onNavigate={(tab) => handleSelect(tab as Tab)} allowedTabs={allowedTabs} />;
       default: return <Dashboard />;
     }
   };

@@ -67,7 +67,8 @@ export default function AssemblyLine() {
   // control that can bring them back.
   const [demoAvailable, setDemoAvailable] = useState(false);
   const { isAuthenticated, user } = useAuth();
-  const isAdmin = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'YARD_MANAGER');
+  // The sync endpoint is ADMIN-only on the server, so the button follows it.
+  const canSync = isAuthenticated && user?.role === 'ADMIN';
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };
@@ -209,7 +210,7 @@ export default function AssemblyLine() {
       <PageHeader
         title="Assembly Line"
         description="Track machines through stages 1–18"
-        actions={isAdmin ? (
+        actions={canSync ? (
         <Button variant="secondary" icon={<RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />} onClick={handleSync} loading={syncing}>
           Sync last {syncStatus?.windowDays ?? 7} days
         </Button>

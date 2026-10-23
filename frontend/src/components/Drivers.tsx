@@ -231,7 +231,8 @@ export default function Drivers() {
                               : <Button variant="ghost" size="icon" onClick={() => openAccount(d)} aria-label="Create driver login"><KeyRound className="w-3.5 h-3.5" /></Button>
                           )}
                           <Button variant="ghost" size="icon" onClick={() => openEdit(d)} aria-label="Edit driver"><Pencil className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)} aria-label="Delete driver"><Trash2 className="w-3.5 h-3.5" /></Button>
+                          {/* Deleting a driver is ADMIN-only on the server. */}
+                          {isSysAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)} aria-label="Delete driver"><Trash2 className="w-3.5 h-3.5" /></Button>}
                         </div>
                       </TableCell>
                     )}

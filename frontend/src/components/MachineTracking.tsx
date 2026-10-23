@@ -228,8 +228,8 @@ export default function MachineTracking() {
                         <span className="text-xs text-yellow-700 font-medium">Slot reserved</span>
                       ) : (
                         <div className="flex items-center gap-2">
-                          {m.assemblyStage >= 13 && (
-                            <span className="text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5" title="Reached stage 13 but no slot is reserved for this machine">Waiting for slot</span>
+                          {m.assemblyStage >= 18 && (
+                            <span className="text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5" title="Ready to move but no slot is assigned at gate yet">Awaiting gate slot</span>
                           )}
                           {canManageMachines && <Button variant="ghost" size="sm" onClick={() => { setSelectedMachine(m); setShowAllocateModal(true); }}>Allocate</Button>}
                         </div>

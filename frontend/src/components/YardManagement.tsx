@@ -415,7 +415,7 @@ export default function YardManagement() {
       <PageHeader
         title="Yard Management"
         description={`${yards.length} yard${yards.length !== 1 ? 's' : ''} configured`}
-        actions={!isViewOnly ? <Button icon={<Plus className="w-4 h-4" />} onClick={openCreateYard}>Create Yard</Button> : undefined}
+        actions={canRelease ? <Button icon={<Plus className="w-4 h-4" />} onClick={openCreateYard}>Create Yard</Button> : undefined}
       />
 
       {yardNotice && (
@@ -447,7 +447,7 @@ export default function YardManagement() {
       )}
 
       {yards.length === 0 ? (
-        <EmptyState title="No yards created" description="Create your first yard to start managing slots" action={!isViewOnly ? <Button onClick={openCreateYard}>Create Yard</Button> : undefined} />
+        <EmptyState title="No yards created" description="Create your first yard to start managing slots" action={canRelease ? <Button onClick={openCreateYard}>Create Yard</Button> : undefined} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {yards.map(yard => (

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-import { assignLocationAtStage13, assignSlotToMachine } from '../services/locationAssignmentService';
+import { assignSlotToMachine } from '../services/locationAssignmentService';
 import { triggerManualSync, getSchedulerStatus } from '../services/scheduler';
 import { getSyncStatus, getStageStats } from '../services/syncService';
 import { notifyEvent, notifyDriverParking, pushSecurityQueueChanged, alertIfMissingBarcode } from '../services/notificationService';
@@ -76,16 +76,9 @@ export const advanceStage = async (req: Request, res: Response) => {
       });
     }
 
-    // If stage 13, auto-assign location
-    if (stage >= 13 && !machine.plannedSlotId) {
-      const assignmentResult = await assignLocationAtStage13(machineId);
-      if (!assignmentResult.success) {
-        return res.json({
-          machine: updatedMachine,
-          warning: assignmentResult.error
-        });
-      }
-    }
+    // Slots are no longer reserved when a machine reaches stage 13 or beyond. The
+    // slot is assigned at the gate when the machine actually arrives, so a manual
+    // stage advance no longer touches slot state.
 
     // If stage 18 and the machine has a barcode, set park status to
     // READY_TO_MOVE. Without a barcode the machine stays PLANNED: it must not be

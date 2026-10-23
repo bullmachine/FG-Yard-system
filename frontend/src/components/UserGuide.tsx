@@ -1,0 +1,528 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { SectionCard } from '@/components/ui/Card';
+import PageHeader from '@/components/ui/PageHeader';
+import Input from '@/components/ui/Input';
+import Badge from '@/components/ui/Badge';
+import {
+  Search, ChevronDown, ChevronRight, ArrowRight, LogIn, PanelLeft, LayoutDashboard, Bell, LogOut,
+  Lightbulb, HelpCircle, UserCog, Route
+} from 'lucide-react';
+
+// Plain-language guide for every screen. Content is data so the page can filter
+// it by the reader's role and by a search term. Keep it in step with the screens:
+// when a screen changes, update its entry here.
+
+interface ScreenGuide {
+  tab: string;
+  title: string;
+  purpose: string;
+  roles: string;
+  steps: string[];
+  tips?: string[];
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Administrator',
+  YARD_MANAGER: 'Yard Manager',
+  OPERATOR: 'Operator',
+  SERVICE_TECHNICIAN: 'Service Technician',
+  SECURITY: 'Security',
+  VIEW_ONLY: 'View Only',
+  DRIVER: 'Driver',
+};
+
+const ROLE_SUMMARY: Record<string, string> = {
+  ADMIN: 'Full access: every screen, user accounts, settings and master data.',
+  YARD_MANAGER: 'Runs the yard: slots, machines, master data, drivers, gate, exit approvals and returns.',
+  OPERATOR: 'Day-to-day yard work: gate check-in/out, parking confirmation, machine tracking.',
+  SERVICE_TECHNICIAN: 'Looks up machines, raises exit requests for testing or repair, and follows returns.',
+  SECURITY: 'Verifies parked machines and watches authorized exits at the gate.',
+  VIEW_ONLY: 'Read-only view of the dashboard, yards and machines. Can raise exit requests.',
+  DRIVER: 'Confirms when a machine has been parked in its slot.',
+};
+
+const QUICK_START = [
+  { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open the Yard Management System and sign in with your work email and password. New users can register, but start with View Only access until an Administrator changes the role.' },
+  { icon: <PanelLeft className="w-4 h-4" />, title: 'Use the menu', text: 'The left menu lists only the screens your role can open. On a phone or tablet, tap the ☰ button at the top left to open it. On a computer, use the arrow at the top of the menu to collapse it.' },
+  { icon: <LayoutDashboard className="w-4 h-4" />, title: 'Start at the Dashboard', text: 'The Dashboard shows today’s position: machines, free slots, and a "Needs attention" list. Click any card to see the machines behind the number.' },
+  { icon: <Bell className="w-4 h-4" />, title: 'Watch the bell', text: 'The bell at the top right shows alerts for your role (yard full, gate rejected, sync failed and so on). Critical alerts also pop up on screen. Open Notifications for the full list.' },
+  { icon: <LogOut className="w-4 h-4" />, title: 'Sign out', text: 'Use the exit icon next to your name at the bottom of the menu. Always sign out on a shared gate or yard device.' },
+];
+
+const JOURNEY = [
+  { step: 'Assembly', status: 'Stages 1–18', text: 'Production orders are read from the plant every morning. Each machine moves through 18 assembly stages.' },
+  { step: 'Completed', status: 'Stage 18 done', text: 'When stage 18 is finished the machine appears under Assembly Line → Completed. It needs a barcode before it can leave the plant.' },
+  { step: 'Ready to Move', status: 'READY TO MOVE', text: 'With a barcode, the machine is released and waits for a driver.' },
+  { step: 'Gate In', status: 'IN TRANSIT', text: 'At the gate the driver badge and machine barcode are scanned. If authorized, the barrier opens and the driver is told which yard slot to go to.' },
+  { step: 'Parked', status: 'PARKED PENDING', text: 'The driver (or the yard office) confirms the machine is in its slot.' },
+  { step: 'Verified', status: 'PARKED VERIFIED', text: 'Security checks the machine is in the right slot and approves it. If rejected, the driver re-parks in the same slot and confirms again.' },
+  { step: 'Exit', status: 'AT GATE → EXITED', text: 'To take a machine out, an exit request is raised and approved by a Yard Manager. The gate then checks it out. Machines that left for testing or repair show under Returns until they come back.' },
+];
+
+const SCREENS: ScreenGuide[] = [
+  {
+    tab: 'dashboard', title: 'Dashboard', roles: 'Everyone',
+    purpose: 'A live summary of the yard and every machine’s position in its journey.',
+    steps: [
+      'Read the top cards: total machines, available, reserved and occupied slots, ready to move, waiting for a slot.',
+      'Check "Needs attention" first. Each card names a problem (for example completed without barcode, yards full) and opens the list or the screen that fixes it.',
+      'Use "Machine Flow" to see how many machines are at each step. Click a step to list them.',
+      'Use "Quick Search" to find a machine by serial number, model, barcode or order number, then click View for its location and movement history.',
+      '"Yard Capacity" shows each yard’s free, reserved and occupied slots as a bar.',
+    ],
+    tips: ['The page refreshes itself every minute and when new alerts arrive. The time of the last update is shown at the top right.'],
+  },
+  {
+    tab: 'dashboard2', title: 'Dashboard (New)', roles: 'Administrator, Yard Manager',
+    purpose: 'A second dashboard under review, with filters and full detail lists per card.',
+    steps: [
+      'Set the filters at the top (period and other options) to narrow the cards.',
+      'Each card shows its total, a breakdown by model type, and the full list of machines or slots behind it.',
+    ],
+    tips: ['This screen is still being reviewed alongside the main Dashboard. Report anything that does not match the main Dashboard.'],
+  },
+  {
+    tab: 'yards', title: 'Yard Management', roles: 'Administrator, Yard Manager, Operator, View Only',
+    purpose: 'See every yard as a grid of slots, find a machine, and manage slots.',
+    steps: [
+      'Click a yard card to open its slot grid. Rows are letters (A, B, C…) and columns are numbers, so slot B5 is row B, column 5.',
+      'Read the colours: green Available, yellow Reserved (held for an incoming machine), red Occupied, blue Dispatch Ready, amber Inspection, orange Maintenance, grey Blocked.',
+      'Type a serial number or slot (for example A1) in the search box. The match is highlighted in the grid.',
+      'Click a slot to see its machine, driver, park time and aging on the right.',
+      'Administrators and Yard Managers can Dispatch a machine, release a reservation (a reason is required), and remove a damaged slot.',
+      'Administrators and Yard Managers create or edit yards with Create Yard / the pencil icon. Rows and columns can only be increased.',
+    ],
+    tips: ['On a phone, a large yard grid scrolls sideways. Swipe the grid left and right.', 'A red banner at the top means every yard is fully reserved and machines are waiting for space.'],
+  },
+  {
+    tab: 'machines', title: 'Machine Tracking', roles: 'Administrator, Yard Manager, Operator, Service Technician, View Only',
+    purpose: 'The full machine inventory with status, park status and location.',
+    steps: [
+      'Search by serial number or model, and filter by status or park status.',
+      'Click "Stage X/18" to see the assembly stage history, or History for slot movements.',
+      'Machines without a slot show "Allocate". Administrators, Yard Managers and Operators can use it to put the machine into a chosen yard and slot.',
+      'Administrators, Yard Managers and Operators can add a machine manually with Add Machine.',
+    ],
+  },
+  {
+    tab: 'assembly', title: 'Assembly Line', roles: 'Administrator, Yard Manager, Operator',
+    purpose: 'Track machines through assembly stages 1–18, and follow machines that have completed assembly.',
+    steps: [
+      'Click a stage button (1–18) to list machines currently at that stage. "All" lists every machine still in assembly.',
+      'Click Completed (after 18) to see machines that finished stage 18. Use the chips to filter: No Barcode, Ready to Move, In Transit, At Gate, Parked, Exited.',
+      'Search by serial, order number or barcode. The search works inside the stage or Completed view you have selected.',
+      'Click any machine row to open its full stage history: work centre, start and end time, duration.',
+      'Administrators can press "Sync last N days" to read the latest production orders from the plant now. The Last Sync and Schedule cards are also Administrator-only.',
+    ],
+    tips: ['"No Barcode" machines cannot be released to the yard. The barcode must be added in the plant system; the next sync picks it up.', 'The plant sync runs automatically every morning (schedule set in Settings).'],
+  },
+  {
+    tab: 'fert', title: 'FERT Categories', roles: 'Administrator, Yard Manager',
+    purpose: 'Groups of finished machines (FERT) with a priority and a preferred yard.',
+    steps: ['Read the list: code, name, priority, preferred yard, and how many machines use each category.', 'Administrators add a category with Add Category, and edit or delete it with the icons at the end of each row.'],
+  },
+  {
+    tab: 'models', title: 'Vehicle Models', roles: 'Administrator, Yard Manager',
+    purpose: 'Maps each KMAT code to a model, type and preferred yard. The preferred yard decides where a machine is parked first.',
+    steps: [
+      'Use the status filter to find models marked Pending. These came from SAP without a model or type and need completing.',
+      'Click the pencil icon to set the model, type and preferred yard.',
+      'Add a new mapping with Add Model.',
+    ],
+    tips: ['The KMAT must match CONF_MATERIAL in the Material Master. A sync never overwrites values you entered.'],
+  },
+  {
+    tab: 'materials', title: 'Material Master', roles: 'Administrator, Yard Manager',
+    purpose: 'Item codes read from SAP, linking each item to its CONF_MATERIAL (KMAT).',
+    steps: ['Read the cards for record count, last sync, plant and sync window.', 'Administrators and Yard Managers press Sync Now to read SAP immediately.'],
+    tips: ['SAP is only reachable from the office network. A sync from guest Wi-Fi will fail.'],
+  },
+  {
+    tab: 'drivers', title: 'Drivers', roles: 'Administrator, Yard Manager',
+    purpose: 'The driver roster, badges and driver logins.',
+    steps: [
+      'Add Driver: enter name, phone, licence number and employee code. The employee code is what the gate scans from the badge.',
+      'Upload a photo so the gate guard can recognise the driver.',
+      'Print Badges prints a sheet of barcode badges for all drivers with an employee code.',
+      'Administrators only: the key icon creates (or removes) a login so the driver can confirm parking on a device, and the bin icon deletes a driver.',
+    ],
+  },
+  {
+    tab: 'users', title: 'User Management', roles: 'Administrator',
+    purpose: 'Create user accounts and control their role and access.',
+    steps: [
+      'Add User: name, email, role and a password of at least 8 characters.',
+      'Pencil icon: change name, role or password. Leave password empty to keep the current one.',
+      'Power icon: deactivate or reactivate an account. You cannot deactivate your own account or change your own role.',
+    ],
+    tips: ['A role change applies on the user’s next action. Deactivating is safer than deleting because history stays linked to the person.'],
+  },
+  {
+    tab: 'settings', title: 'Settings', roles: 'Administrator',
+    purpose: 'Connections to the plant production system, SAP material master and the gate barrier.',
+    steps: [
+      'Set each API URL, sync window (days), schedule (cron) and timeout.',
+      'Press Test Connection before saving to confirm the server can reach the system.',
+      'Gate Boom Barrier: set the Open and Close URLs and the auto-close time. Optionally enable the Manual Open button for the gate.',
+      'Press Save Changes. New schedules take effect immediately.',
+    ],
+    tips: ['Schedule format is 5 fields: "30 6 * * *" means every day at 06:30.'],
+  },
+  {
+    tab: 'gate', title: 'Gate Control', roles: 'Administrator, Yard Manager, Operator',
+    purpose: 'Check machines in to the yard (Inward) and out of the yard (Outward).',
+    steps: [
+      'Choose Inward or Outward at the top right.',
+      'Scan the driver badge into "Scan Driver Badge". With no barcode reader, tap the camera icon at the end of the field and point the camera at the badge.',
+      'Scan the machine barcode the same way. The screen shows the detected machine, its stage and status.',
+      'Inward slot: if the machine already has a reserved slot, it is shown in yellow and used as it is. Otherwise the "Gate slot" list is pre-set to the suggested slot (automatic). To override, choose another free slot from the list; "Back to suggested slot" undoes it.',
+      'If the chosen slot is taken by another machine before you authenticate, the next free slot is assigned and a notice says so. If no yard has a free slot, entry is refused.',
+      'Press "Authenticate & Open Barrier" (or "Authorize Exit" for Outward). Green means authorized and the barrier opens. Red shows the reason it was refused.',
+      'Print the Driver Pass or the 50mm label if needed, then Close Barrier (or let it close automatically).',
+      'Press Reset before the next machine.',
+    ],
+    tips: [
+      'Camera scanning needs the site opened over https (or on the same computer) and permission to use the camera. Tap Allow when the browser asks.',
+      'If a barcode will not scan, use "or select machine manually".',
+      'Outward only lists machines whose exit request was approved.',
+      '"Recent Gate Logs" on the right shows every attempt, authorized or rejected.',
+    ],
+  },
+  {
+    tab: 'parked', title: 'Confirm Parking', roles: 'Administrator, Yard Manager, Operator, Driver',
+    purpose: 'Tell the yard the machine is physically in its slot.',
+    steps: [
+      'Find your machine card. It shows the yard and slot it should be in.',
+      'Park the machine in that exact slot, then press "I have parked it".',
+      'The card changes to "Waiting for security to check it". You are notified when Security approves or rejects.',
+      'If rejected, put the machine back in the same slot and press "I have parked it" again.',
+    ],
+    tips: ['Drivers only see their own machines. Yard office staff can confirm on a driver’s behalf.'],
+  },
+  {
+    tab: 'security', title: 'Security Verification', roles: 'Administrator, Security',
+    purpose: 'Check parked machines and see which machines are cleared to leave.',
+    steps: [
+      'Each card is a machine waiting for a check, with its yard and slot.',
+      'Walk to the slot. If the right machine is there, press Approve.',
+      'If not, press Reject, type the reason, and Confirm reject. The driver is told to re-park.',
+      '"Authorized Exits" lists machines approved to leave. They drop off once the gate checks them out.',
+      '"Recent Verifications" keeps the last 8 decisions as a record.',
+    ],
+    tips: ['New machines appear automatically. If "Live updates offline" is shown, press Refresh.'],
+  },
+  {
+    tab: 'returns', title: 'Returns', roles: 'Everyone except Drivers',
+    purpose: 'Machines that left for testing, inspection, repair, relocation or maintenance and are expected back.',
+    steps: [
+      'Each row shows why the machine left, who requested it and when.',
+      'Administrators, Yard Managers and Operators can press Reserve Slot to hold a slot for its return (optional: the gate can also assign one on arrival).',
+      'When the machine comes back, check it in through Gate Control → Inward as usual.',
+    ],
+  },
+  {
+    tab: 'requests', title: 'Exit Requests', roles: 'Everyone',
+    purpose: 'Ask for a parked machine to leave the yard, and approve or reject those requests.',
+    steps: [
+      'New Request: choose a parked machine, the purpose (Dispatch, Testing / Inspection, Repair, Relocation, Maintenance) and optional notes, then Submit.',
+      'Yard Managers and Administrators press Approve or Reject (with a reason) on pending requests.',
+      'Approval frees the slot and sends the machine to the gate. Security sees it straight away.',
+      'Use the status filter to find Pending, Approved, Rejected or Completed requests.',
+    ],
+    tips: ['Most roles only see their own requests. Managers see every request.'],
+  },
+  {
+    tab: 'history', title: 'Movement History', roles: 'Administrator, Yard Manager, Operator, Security',
+    purpose: 'The audit trail of every slot movement, parking confirmation and security decision.',
+    steps: [
+      'Choose a tab: Movements, Parking or Verifications.',
+      'Filter by machine to see one machine’s history.',
+      'Each row records who did it. Parking rows show whether the Driver or the Yard office entered it.',
+    ],
+  },
+  {
+    tab: 'docs', title: 'Docs (Process Flow)', roles: 'All signed-in users',
+    purpose: 'Reference of the full process, the rules the system enforces, and what each role can do.',
+    steps: ['Read the machine lifecycle and access lifecycle, the guardrails, the role table and the alert list.'],
+  },
+  {
+    tab: 'notifications', title: 'Notifications', roles: 'All signed-in users',
+    purpose: 'Every alert sent to your role.',
+    steps: ['Read new alerts (red = critical, amber = warning, blue = information).', 'Press Mark read on one alert or "Mark all read".'],
+    tips: ['The same alert is not repeated more than once every 15 minutes. Read alerts are removed after 30 days.'],
+  },
+];
+
+const GLOSSARY = [
+  { term: 'Slot label (A1, B5…)', meaning: 'The letter is the row and the number is the column of the yard grid. B5 = row B, column 5.' },
+  { term: 'Stage 1–18', meaning: 'The assembly stages a machine passes on the production line. Stage 18 is the last one.' },
+  { term: 'Completed', meaning: 'Every stage-18 operation is finished. The machine has left assembly.' },
+  { term: 'Barcode', meaning: 'The machine’s identification label, scanned at the gate. A machine without one cannot be released.' },
+  { term: 'Employee code / badge', meaning: 'The driver’s identity code, printed as a barcode on the driver badge and scanned at the gate.' },
+  { term: 'Order No', meaning: 'The production order number from the plant system.' },
+  { term: 'FERT', meaning: 'A finished machine (finished product) as recorded in SAP.' },
+  { term: 'KMAT / CONF_MATERIAL', meaning: 'The configurable material code that identifies the machine model. It links SAP items to Vehicle Models.' },
+  { term: 'Model-Type', meaning: 'The model and type of a machine, taken from the Vehicle Model master.' },
+  { term: 'Preferred yard', meaning: 'The yard a model or category should be parked in first, if it has free slots.' },
+  { term: 'Reservation', meaning: 'A slot held for a machine that has not arrived yet (yellow in the grid).' },
+  { term: 'Sync', meaning: 'Reading the latest data from the plant production system or SAP. Runs every morning automatically.' },
+  { term: 'Aging', meaning: 'How long a machine has been parked in its slot.' },
+];
+
+const FAQ = [
+  { q: 'I cannot see a screen my colleague can see.', a: 'The menu shows only the screens your role can open. Ask an Administrator to check your role in User Management.' },
+  { q: 'The gate rejected a machine. What now?', a: 'Read the red reason. Common causes: driver badge not found, machine not at stage 18, machine has no barcode, or no free slot in any yard. Fix the cause (for example free a slot or add the barcode in the plant system), then Reset and scan again.' },
+  { q: 'A completed machine shows "No Barcode".', a: 'The barcode is missing in the plant system. The machine cannot be released until it is added there; the next sync updates it automatically.' },
+  { q: 'The camera icon does not open the camera.', a: 'Tap Allow when the browser asks for the camera. Camera scanning only works over a secure (https) address or on the same computer. Otherwise use the barcode reader or type the code.' },
+  { q: 'Numbers look out of date.', a: 'Press Refresh on the screen, or reload the page. The Dashboard also refreshes every minute.' },
+  { q: 'Sync failed or Material Master is empty.', a: 'The plant and SAP systems are only reachable from the office network. An Administrator can use Settings → Test Connection to check.' },
+  { q: 'I forgot my password.', a: 'Ask an Administrator to set a new one in User Management.' },
+  { q: 'Something is wrong with the system.', a: 'Note the screen, the machine serial number and the time, take a screenshot if you can, and report it to the system administrator. Report anything that looks like a security problem to IT straight away.' },
+];
+
+interface UserGuideProps {
+  onNavigate?: (tab: string) => void;
+  allowedTabs?: string[];
+}
+
+export default function UserGuide({ onNavigate, allowedTabs }: UserGuideProps) {
+  const { user } = useAuth();
+  const [query, setQuery] = useState('');
+  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+
+  const can = (tab: string) => !allowedTabs || allowedTabs.includes(tab);
+  const role = user?.role || 'VIEW_ONLY';
+  const term = query.trim().toLowerCase();
+
+  const screens = useMemo(() => {
+    const base = showAll ? SCREENS : SCREENS.filter((s) => can(s.tab));
+    if (!term) return base;
+    // Search always covers every screen, so an answer is found even for a screen
+    // outside the reader's role.
+    return SCREENS.filter((s) =>
+      [s.title, s.purpose, s.roles, ...s.steps, ...(s.tips || [])].join(' ').toLowerCase().includes(term)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAll, term, allowedTabs]);
+
+  const faq = term ? FAQ.filter((f) => `${f.q} ${f.a}`.toLowerCase().includes(term)) : FAQ;
+  const glossary = term ? GLOSSARY.filter((g) => `${g.term} ${g.meaning}`.toLowerCase().includes(term)) : GLOSSARY;
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Help & User Guide"
+        description="How to use the Yard Management System, screen by screen"
+      />
+
+      <Input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search the guide, e.g. gate, barcode, slot, password…"
+        icon={<Search className="w-4 h-4" />}
+        aria-label="Search the user guide"
+      />
+
+      {!term && (
+        <>
+          {/* Your role */}
+          <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white"><UserCog className="w-4 h-4" /></span>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-blue-900">
+                {user ? <>You are signed in as {user.name} · <Badge variant="blue">{ROLE_LABELS[role] || role}</Badge></> : <>You are not signed in. Sign in (top right) to see your own screens.</>}
+              </p>
+              <p className="mt-0.5 text-xs text-blue-800">{ROLE_SUMMARY[role] || ROLE_SUMMARY.VIEW_ONLY}</p>
+              <p className="mt-1 text-[11px] text-blue-700">This guide shows the screens your role can open. Use &quot;Show all screens&quot; below to read about the others.</p>
+            </div>
+          </div>
+
+          {/* Quick start */}
+          <SectionCard title="Quick start" description="The basics, in five steps">
+            <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {QUICK_START.map((s, i) => (
+                <li key={s.title} className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">{i + 1}</span>
+                    <span className="text-slate-500">{s.icon}</span>
+                    <p className="text-[13px] font-semibold text-slate-900">{s.title}</p>
+                  </div>
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{s.text}</p>
+                </li>
+              ))}
+            </ol>
+          </SectionCard>
+
+          {/* Machine journey */}
+          <SectionCard title="A machine's journey" description="From the assembly line to a verified yard slot, and out again">
+            <ol>
+              {JOURNEY.map((j, i) => (
+                <li key={j.step} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white"><Route className="w-3 h-3" /></span>
+                    {i < JOURNEY.length - 1 && <span className="mt-1 w-px flex-1 bg-slate-200" />}
+                  </div>
+                  <div className="pb-3.5 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[13px] font-semibold text-slate-900">{i + 1}. {j.step}</p>
+                      <Badge variant="gray">{j.status}</Badge>
+                    </div>
+                    <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{j.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </SectionCard>
+        </>
+      )}
+
+      {/* Screen guides */}
+      <SectionCard
+        title={term ? `Screens matching "${query.trim()}" (${screens.length})` : `Screen guides (${screens.length})`}
+        description={term ? 'Search covers every screen' : showAll ? 'Every screen in the system' : 'The screens in your menu'}
+        action={!term ? (
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="text-[11px] font-semibold text-blue-700 hover:underline">
+            {showAll ? 'Show only my screens' : 'Show all screens'}
+          </button>
+        ) : undefined}
+        noPadding
+      >
+        {screens.length === 0 ? (
+          <p className="px-4 py-6 text-center text-sm text-slate-500">No screen matches your search.</p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {screens.map((s) => {
+              const expanded = open === s.tab || !!term;
+              return (
+                <div key={s.tab}>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(open === s.tab ? null : s.tab)}
+                    aria-expanded={expanded}
+                    className="flex w-full items-start gap-2.5 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                  >
+                    {expanded ? <ChevronDown className="mt-0.5 w-4 h-4 shrink-0 text-slate-400" /> : <ChevronRight className="mt-0.5 w-4 h-4 shrink-0 text-slate-400" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-[13px] font-semibold text-slate-900">{s.title}</span>
+                        {!can(s.tab) && <Badge variant="gray">Not in your menu</Badge>}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-600">{s.purpose}</span>
+                    </span>
+                  </button>
+                  {expanded && (
+                    <div className="px-4 pb-4 pl-10 space-y-3">
+                      <p className="text-[11px] text-slate-500"><span className="font-semibold text-slate-700">Who uses it:</span> {s.roles}</p>
+                      <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
+                        {s.steps.map((step) => <li key={step}>{step}</li>)}
+                      </ol>
+                      {s.tips && s.tips.length > 0 && (
+                        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                          <p className="mb-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800"><Lightbulb className="w-3.5 h-3.5" /> Tips</p>
+                          <ul className="list-disc space-y-0.5 pl-4 text-xs text-amber-900">
+                            {s.tips.map((tip) => <li key={tip}>{tip}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {can(s.tab) && onNavigate && (
+                        <button
+                          type="button"
+                          onClick={() => onNavigate(s.tab)}
+                          className="inline-flex items-center gap-1 rounded-md bg-blue-700 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-800 transition-colors"
+                        >
+                          Open {s.title} <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
+
+      {/* Status reference */}
+      {!term && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <SectionCard title="Machine park status" description="The badge shown next to each machine">
+            <dl className="space-y-1.5 text-xs">
+              {[
+                ['PLANNED', 'In assembly, or completed but not released yet (for example no barcode).'],
+                ['READY TO MOVE', 'Released with a barcode. Waiting for a driver to take it to the gate.'],
+                ['IN TRANSIT', 'Checked in at the gate, on its way to the slot.'],
+                ['PARKED PENDING', 'Confirmed parked. Waiting for Security to check.'],
+                ['PARKED REJECTED', 'Security found a problem. Re-park in the same slot and confirm again.'],
+                ['PARKED VERIFIED', 'Security approved. The machine is correctly parked.'],
+                ['AT GATE', 'Exit approved. Waiting to be checked out at the gate.'],
+                ['EXITED', 'Has left the yard.'],
+              ].map(([k, v]) => (
+                <div key={k} className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+                  <dt className="w-32 shrink-0 font-semibold text-slate-800">{k}</dt>
+                  <dd className="text-slate-600">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </SectionCard>
+
+          <SectionCard title="Yard slot colours" description="As shown in the Yard Management grid">
+            <dl className="space-y-1.5 text-xs">
+              {[
+                ['bg-emerald-100 border-emerald-400', 'Available', 'Free for the next machine.'],
+                ['bg-yellow-100 border-yellow-400', 'Reserved', 'Held for a machine on its way. Shows that machine’s serial.'],
+                ['bg-red-100 border-red-400', 'Occupied', 'A machine is parked here.'],
+                ['bg-blue-100 border-blue-400', 'Dispatch Ready', 'Machine ready to be dispatched.'],
+                ['bg-amber-100 border-amber-400', 'Inspection', 'Machine under inspection.'],
+                ['bg-orange-100 border-orange-400', 'Maintenance', 'Slot or machine under maintenance.'],
+                ['bg-slate-200 border-slate-400', 'Blocked', 'Out of service. Not used for new machines.'],
+              ].map(([cls, label, text]) => (
+                <div key={label} className="flex items-start gap-2.5">
+                  <span className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded-sm border ${cls}`} />
+                  <dt className="w-28 shrink-0 font-semibold text-slate-800">{label}</dt>
+                  <dd className="text-slate-600">{text}</dd>
+                </div>
+              ))}
+            </dl>
+          </SectionCard>
+        </div>
+      )}
+
+      {/* Glossary */}
+      {glossary.length > 0 && (
+        <SectionCard title="Glossary" description="Terms used across the screens">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 md:grid-cols-2">
+            {glossary.map((g) => (
+              <div key={g.term}>
+                <dt className="text-[13px] font-semibold text-slate-900">{g.term}</dt>
+                <dd className="text-xs leading-relaxed text-slate-600">{g.meaning}</dd>
+              </div>
+            ))}
+          </dl>
+        </SectionCard>
+      )}
+
+      {/* FAQ */}
+      <SectionCard title="Common questions" description="Problems users run into most often">
+        {faq.length === 0 ? (
+          <p className="text-center text-sm text-slate-500 py-3">No question matches your search.</p>
+        ) : (
+          <div className="space-y-2.5">
+            {faq.map((f) => (
+              <div key={f.q} className="flex gap-2.5">
+                <HelpCircle className="mt-0.5 w-4 h-4 shrink-0 text-blue-600" />
+                <div>
+                  <p className="text-[13px] font-semibold text-slate-900">{f.q}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{f.a}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+    </div>
+  );
+}

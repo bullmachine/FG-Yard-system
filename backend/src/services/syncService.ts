@@ -15,7 +15,6 @@ import {
   toNullableString,
   toStageNumber
 } from './productionApiService';
-import { assignLocationAtStage13 } from './locationAssignmentService';
 import { alertIfMissingBarcode, notifyEvent } from './notificationService';
 import { getSettings } from './settingsService';
 
@@ -453,10 +452,8 @@ async function processOrder(order: ProductionOrder): Promise<void> {
     // Preserve the plant's full operation list, not just the highest stage.
     await persistStageHistory(existingMachine.id, transactions, syncedAt);
 
-    // If machine reached stage 13 and no planned slot, assign location
-    if (highestStage >= 13 && !existingMachine.plannedSlotId) {
-      await assignLocationAtStage13(existingMachine.id);
-    }
+    // Slots are no longer reserved at stage 13 - the machine is assigned one when a
+    // driver brings it to the gate (see authenticateGate). Nothing to do here.
 
     // A barcode is part of gate identification: without it the machine must
     // never be offered as ready-to-move. The elevation only fires once the
@@ -511,10 +508,8 @@ async function processOrder(order: ProductionOrder): Promise<void> {
 
     await persistStageHistory(newMachine.id, transactions, syncedAt);
 
-    // If machine is already at stage 13 or beyond, assign location
-    if (highestStage >= 13 && !newMachine.plannedSlotId) {
-      await assignLocationAtStage13(newMachine.id);
-    }
+    // No slot is reserved here: assignment happens at the gate when the machine
+    // actually arrives (see authenticateGate).
   }
 }
 

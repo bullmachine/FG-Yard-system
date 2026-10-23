@@ -71,10 +71,10 @@ const machineFlow: FlowStep[] = [
     outcome: 'Machine is ready for location assignment',
   },
   {
-    title: 'Location allocation',
-    actor: 'Yard Manager / Admin',
-    description: 'An available yard slot is assigned to the machine so it can be physically parked. If nothing is free, the machine joins a waiting queue, and a reservation released later is handed straight to whoever has waited longest.',
-    outcome: 'Machine has a yard location',
+    title: 'Slot assignment at gate (IN)',
+    actor: 'Operator / Yard Manager / Admin',
+    description: 'When the driver and machine reach the gate for inward entry, the gate assigns an available slot automatically. If all yards are full, entry is rejected with a visible reason. An operator may override by selecting a specific slot from the suggested list.',
+    outcome: 'Machine has a yard slot for inward entry',
   },
   {
     title: 'Driver assignment',
@@ -91,7 +91,7 @@ const machineFlow: FlowStep[] = [
   {
     title: 'Gate authentication',
     actor: 'Operator / Yard Manager / Admin',
-    description: 'The driver is identified by scanning their employee-code badge, then the machine or barcode is verified before the barrier is opened. The screen is scan-first: a scanned barcode selects the machine and shows its stage, status and slot, with a manual fallback if the barcode is unreadable.',
+    description: 'The driver is identified by scanning their employee-code badge, then the machine or barcode is verified before the barrier is opened. The screen is scan-first: a scanned barcode selects the machine and shows its stage and status; for inward, the gate proposes a slot and allows manual override. If no slot exists, entry is rejected. Camera scanning supports both fields.',
     outcome: 'Authorized requests open the barrier; every attempt is logged',
   },
   {

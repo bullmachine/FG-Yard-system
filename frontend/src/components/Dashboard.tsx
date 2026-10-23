@@ -305,8 +305,8 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
     },
     waitingMachines.length > 0 && {
       key: 'waiting', count: waitingMachines.length, icon: <Clock className="w-4 h-4" />,
-      title: 'Waiting for a slot',
-      hint: 'Stage 13+ with no slot reserved yet',
+      title: 'Awaiting gate slot',
+      hint: 'Stage 18+ with no slot assigned at gate yet',
       tone: 'border-orange-200 bg-orange-50 text-orange-800', iconTone: 'bg-orange-600',
       onOpen: () => openMachines('Waiting for a slot', waitingMachines), tab: 'yards',
     },

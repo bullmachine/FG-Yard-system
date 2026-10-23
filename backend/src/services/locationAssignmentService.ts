@@ -102,26 +102,11 @@ export function describeExhaustion(availability: YardAvailability[]): string {
 }
 
 /**
- * Auto-assign a yard slot when a machine reaches stage 13.
- *
- * When nothing is free the machine is stamped with the time it started waiting rather
- * than being left stateless. The stamp is written only on the first refusal and never
- * overwritten, so a machine that is re-checked on every 2-hourly sync keeps its
- * original place in the queue instead of jumping to the back each time.
+ * Pick the best available slot for a machine without reserving it: the model's
+ * preferred yard first, then any yard by row/col order. Shared by the gate-time
+ * assignment and the "suggest a slot" read used to pre-fill the gate override.
  */
-export async function assignLocationAtStage13(machineId: string): Promise<AssignmentResult> {
-  const machine = await prisma.machine.findUnique({
-    where: { id: machineId },
-  });
-
-  if (!machine) {
-    return { success: false, errorCode: 'MACHINE_NOT_FOUND', error: 'Machine not found' };
-  }
-
-  if (machine.plannedSlotId) {
-    return { success: false, errorCode: 'ALREADY_PLANNED', error: 'Machine already has a planned slot' };
-  }
-
+async function pickSlotForMachine(machine: { id: string; modelMasterId: string | null }) {
   // Get model master to find preferred yard for this vehicle model
   let preferredYardId: string | null = null;
 
@@ -145,21 +130,69 @@ export async function assignLocationAtStage13(machineId: string): Promise<Assign
       orderBy: [{ row: 'asc' }, { col: 'asc' }],
     });
 
-    if (preferredSlot) {
-      return await assignSlot(machineId, preferredSlot.id, preferredSlot.yardId);
-    }
+    if (preferredSlot) return preferredSlot;
   }
 
   // If no slot in preferred yard, search all yards
-  const anySlot = await prisma.slot.findFirst({
+  return prisma.slot.findFirst({
     where: {
       status: 'AVAILABLE',
     },
     orderBy: [{ yardId: 'asc' }, { row: 'asc' }, { col: 'asc' }],
   });
+}
 
-  if (anySlot) {
-    return await assignSlot(machineId, anySlot.id, anySlot.yardId);
+/**
+ * Read-only suggestion: the slot a machine would be assigned right now. Used by the
+ * gate screen to pre-fill the slot picker for the operator's manual override.
+ */
+export async function findSlotForMachine(machineId: string) {
+  const machine = await prisma.machine.findUnique({
+    where: { id: machineId },
+    select: { id: true, modelMasterId: true },
+  });
+  if (!machine) return null;
+  return pickSlotForMachine(machine);
+}
+
+/** Every AVAILABLE slot across all yards, for the gate slot-override list. */
+export async function listAvailableSlots() {
+  return prisma.slot.findMany({
+    where: { status: 'AVAILABLE' },
+    orderBy: [{ yardId: 'asc' }, { row: 'asc' }, { col: 'asc' }],
+    select: { id: true, yardId: true, row: true, col: true, yard: { select: { name: true } } },
+  });
+}
+
+/**
+ * Assign a yard slot to a machine from the pool of AVAILABLE slots.
+ *
+ * This is the gate-time assignment: a machine only gets a slot once a driver brings
+ * it to the gate (or an admin assigns one manually). When nothing is free the machine
+ * is stamped with the time it started waiting rather than being left stateless. The
+ * stamp is written only on the first refusal and never overwritten, so a machine that
+ * is re-checked keeps its original place in the queue instead of jumping to the back.
+ */
+export async function assignAvailableSlot(
+  machineId: string,
+  opts: { userId?: string; notes?: string } = {}
+): Promise<AssignmentResult> {
+  const machine = await prisma.machine.findUnique({
+    where: { id: machineId },
+  });
+
+  if (!machine) {
+    return { success: false, errorCode: 'MACHINE_NOT_FOUND', error: 'Machine not found' };
+  }
+
+  if (machine.plannedSlotId) {
+    return { success: false, errorCode: 'ALREADY_PLANNED', error: 'Machine already has a planned slot' };
+  }
+
+  const slot = await pickSlotForMachine(machine);
+
+  if (slot) {
+    return await assignSlot(machineId, slot.id, slot.yardId, opts.userId, opts.notes || 'Slot assigned at gate');
   }
 
   // Nothing free anywhere. Record the start of this machine's wait, then report which
@@ -195,12 +228,20 @@ export async function assignLocationAtStage13(machineId: string): Promise<Assign
 }
 
 /**
- * Manually assign a slot to a machine
+ * Backwards-compatible alias. Slot assignment no longer fires at stage 13 - it now
+ * happens at the gate - but maintenance/verification scripts still import this name.
+ */
+export const assignLocationAtStage13 = assignAvailableSlot;
+
+/**
+ * Manually assign a specific slot to a machine (admin override, or the gate operator
+ * choosing a slot from the override list).
  */
 export async function assignSlotToMachine(
   machineId: string,
   slotId: string,
-  userId?: string
+  userId?: string,
+  notes?: string
 ): Promise<AssignmentResult> {
   const machine = await prisma.machine.findUnique({
     where: { id: machineId },
@@ -222,7 +263,7 @@ export async function assignSlotToMachine(
     return { success: false, errorCode: 'SLOT_NOT_AVAILABLE', error: 'Slot is not available' };
   }
 
-  return await assignSlot(machineId, slotId, slot.yardId, userId);
+  return await assignSlot(machineId, slotId, slot.yardId, userId, notes || 'Manually assigned');
 }
 
 /**
@@ -268,7 +309,7 @@ async function assignSlot(
           toSlotId: slotId,
           userId: userId || 'system',
           reason: 'PRODUCTION',
-          notes: notes || 'Auto-assigned at Stage 13',
+          notes: notes || 'Slot assigned',
         },
       });
     });
@@ -373,12 +414,14 @@ export async function releaseSlotReservation(
   // machines that never asked for it.
   const nextInQueue = await prisma.machine.findFirst({
     where: {
-      assemblyStage: { gte: 13 },
+      // A machine only waits for a slot after the gate has refused it (no free slot),
+      // so it has passed stage 18 and is READY_TO_MOVE or still PLANNED.
+      assemblyStage: { gte: 18 },
       plannedSlotId: null,
       slotWaitingSince: { not: null },
       driverId: null,
       currentSlotId: null,
-      parkStatus: 'PLANNED',
+      parkStatus: { in: ['PLANNED', 'READY_TO_MOVE'] },
     },
     orderBy: [{ slotWaitingSince: 'asc' }, { createdAt: 'asc' }],
     select: { id: true, serialNumber: true },
@@ -460,13 +503,14 @@ export async function releaseSlotReservation(
 }
 
 /**
- * Machines that have reached the point of needing a slot and still do not have one.
- * These are the ones the yard is too small for.
+ * Machines that are ready to move (stage 18+) and still have no slot. Slots are
+ * assigned at the gate now, so these are machines that have been refused at the gate
+ * because every yard was committed - the ones the yard is too small for.
  */
 export async function getWaitingMachines(limit = 50) {
   return prisma.machine.findMany({
     where: {
-      assemblyStage: { gte: 13 },
+      assemblyStage: { gte: 18 },
       plannedSlotId: null,
     },
     orderBy: [{ slotWaitingSince: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
