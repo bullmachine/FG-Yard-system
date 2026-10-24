@@ -32,6 +32,7 @@ const ROLE_LABELS: Record<string, string> = {
   SECURITY: 'Security',
   VIEW_ONLY: 'View Only',
   DRIVER: 'Driver',
+  PLANNER: 'Dispatch Planner',
 };
 
 const ROLE_SUMMARY: Record<string, string> = {
@@ -42,6 +43,7 @@ const ROLE_SUMMARY: Record<string, string> = {
   SECURITY: 'Verifies parked machines and watches authorized exits at the gate.',
   VIEW_ONLY: 'Read-only view of the dashboard, yards and machines. Can raise exit requests.',
   DRIVER: 'Confirms when a machine has been parked in its slot.',
+  PLANNER: 'Checks yard stock and raises dispatch plans that reserve machines against a sales order.',
 };
 
 const QUICK_START = [
@@ -96,6 +98,31 @@ const SCREENS: ScreenGuide[] = [
       'Administrators and Yard Managers create or edit yards with Create Yard / the pencil icon. Rows and columns can only be increased.',
     ],
     tips: ['On a phone, a large yard grid scrolls sideways. Swipe the grid left and right.', 'A red banner at the top means every yard is fully reserved and machines are waiting for space.'],
+  },
+  {
+    tab: 'stock', title: 'Yard Stock', roles: 'Administrator, Yard Manager, Dispatch Planner, Operator, View Only',
+    purpose: 'How many machines of each model-type are in the yard, and which one should be dispatched first (FIFO).',
+    steps: [
+      'Each row is a model-type with its free quantity (parked, verified and not reserved), machines reserved for dispatch plans, machines still awaiting verification, and the oldest inward date.',
+      'Click a model-type to list its machines in dispatch order. FIFO 1 (green) is the oldest and should go out first.',
+      'Filter by yard, or search a model-type or serial number.',
+      'The badge next to the inward date shows where the date came from: Actual (entered by hand), Gate (first gate check-in) or Stage 18 (estimate).',
+      'Administrators and Yard Managers can click the pencil icon to enter the real inward date of a machine that was in the yard before go-live.',
+    ],
+    tips: ['Machines awaiting security verification, reserved for a dispatch plan or on an exit request are shown but not numbered: only free stock gets a FIFO number.'],
+  },
+  {
+    tab: 'dispatch', title: 'Dispatch Planning', roles: 'Dispatch Planner, Yard Manager, Administrator (Operator and View Only can view)',
+    purpose: 'Reserve yard stock against a sales order, oldest machine first (FIFO), for the Yard Manager to approve.',
+    steps: [
+      'Click New Plan. Enter the sales order number, customer or dealer, destination and planned dispatch date.',
+      'Add one line per model-type with the quantity needed. The free stock for each model-type is shown as you type.',
+      'Save. The system reserves the oldest free machines of each model-type straight away. If stock is short, the plan keeps the shortfall.',
+      'Open the plan to see the reserved machines. To use a different machine, click Change and give a reason; the change is recorded as a FIFO override.',
+      'When more stock is parked and verified, click Reserve Shortfall to top the plan up.',
+      'The Yard Manager opens a plan waiting for approval and clicks Approve, or Reject with a reason. Rejecting or cancelling a plan frees its machines.',
+    ],
+    tips: ['A plan can only be changed while it waits for approval. An approved plan can only be cancelled by the Yard Manager.', 'Reserved machines show a Reserved badge with the plan number on the Yard Stock screen and do not count as free stock.'],
   },
   {
     tab: 'machines', title: 'Machine Tracking', roles: 'Administrator, Yard Manager, Operator, Service Technician, View Only',

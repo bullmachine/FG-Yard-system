@@ -17,7 +17,9 @@ export type NotificationEventType =
   | 'EXIT_REQUEST'
   | 'EXIT_APPROVED'
   | 'EXIT_REJECTED'
-  | 'RETURN_SLOT_RESERVED';;;
+  | 'RETURN_SLOT_RESERVED'
+  | 'DISPATCH_PLAN_SUBMITTED'
+  | 'DISPATCH_PLAN_DECIDED';
 
 export interface NotificationEvent {
   type: NotificationEventType;
@@ -57,6 +59,10 @@ export const NOTIFICATION_RECIPIENTS: Record<NotificationEventType, UserRole[]> 
   // A slot was promised to a returning machine; the gate and the yard should know
   // it is expected so it is not parked twice or refused at the checkpoint.
   RETURN_SLOT_RESERVED: ['SECURITY', 'YARD_MANAGER', 'ADMIN'],
+  // A planner's dispatch plan waits for the yard manager's approval.
+  DISPATCH_PLAN_SUBMITTED: ['YARD_MANAGER', 'ADMIN'],
+  // The planner who raised the plan is notified directly (single user).
+  DISPATCH_PLAN_DECIDED: [],
 };
 
 const DEDUPE_WINDOW_MINUTES = 15;

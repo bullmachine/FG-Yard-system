@@ -17,6 +17,8 @@ import securityRoutes from './routes/securityRoutes';
 import movementRoutes from './routes/movementRoutes';
 import exitRequestRoutes from './routes/exitRequestRoutes';
 import dashboardV2Routes from './routes/dashboardV2Routes';
+import yardStockRoutes from './routes/yardStockRoutes';
+import dispatchPlanRoutes from './routes/dispatchPlanRoutes';
 import { startScheduler } from './services/scheduler';
 import { attachRealtime } from './services/realtime';
 import { pruneReadNotifications } from './services/notificationService';
@@ -58,6 +60,8 @@ app.use('/api/security', securityRoutes);
 app.use('/api/movements', movementRoutes);
 app.use('/api/exit-requests', exitRequestRoutes);
 app.use('/api/dashboard-v2', dashboardV2Routes);
+app.use('/api/yard-stock', yardStockRoutes);
+app.use('/api/dispatch-plans', dispatchPlanRoutes);
 
 // Multer raises its own errors (oversized file, unexpected end of stream) which would
 // otherwise reach Express' default HTML handler. Turn them into the same JSON shape
