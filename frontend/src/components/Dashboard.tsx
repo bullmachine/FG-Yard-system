@@ -13,48 +13,100 @@ import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import { slotLabel, formatDateTime } from '@/lib/format';
 import {
-  Truck, MapPin, Package, CheckCircle2, Search, ArrowRight, Map, Bookmark, RefreshCw,
-  AlertTriangle, Barcode, Clock, Send, ShieldAlert, Factory, Fence, Shield, ChevronRight
+  Truck, MapPin, Package, CheckCircle2, Search, ArrowRight, Map, RefreshCw, AlertTriangle,
+  Clock, Send, ShieldAlert, Fence, Shield, ChevronRight, Boxes, ClipboardList, LogOut, Undo2, CalendarDays
 } from 'lucide-react';
 
-type SlotCardType = 'available' | 'reserved' | 'occupied' | 'dispatch';
+/**
+ * Main dashboard: FG yard only. Assembly is left out on purpose; the yard's story starts
+ * when a machine is released to the yard and ends when it leaves through the main gate.
+ * All counts come from one call, /api/dashboard.
+ */
+
+interface YardMachine {
+  id: string;
+  serialNumber: string;
+  model: string;
+  modelType: string;
+  parkStatus: string;
+  yard: string | null;
+  row: number | null;
+  col: number | null;
+  slotReservedOnly: boolean;
+  driver: string | null;
+  since: string | null;
+  daysInYard?: number | null;
+}
+
+interface DispatchMachine {
+  id: string;
+  status: string;
+  planNo: string;
+  modelType: string;
+  serialNumber: string;
+  model: string;
+  driver: string | null;
+  gateOutAt: string | null;
+  overdue: boolean;
+}
+
+interface Capped<T> { count: number; items: T[] }
+
+interface YardSummary {
+  id: string;
+  name: string;
+  totalSlots: number;
+  slotCounts: Record<string, number>;
+}
+
+interface DashboardData {
+  generatedAt: string;
+  settings: { inTransitAlertMinutes: number; dispatchAlertHours: number };
+  slots: { total: number; available: number; reserved: number; occupied: number; dispatchReady: number };
+  yards: YardSummary[];
+  today: { gateIn: number; gateOut: number; mainGateOut: number };
+  inbound: {
+    readyToMove: Capped<YardMachine>;
+    inTransit: Capped<YardMachine>;
+    stuck: Capped<YardMachine>;
+    awaitingVerify: Capped<YardMachine>;
+    rejected: Capped<YardMachine>;
+  };
+  stock: {
+    inYard: Capped<YardMachine>;
+    free: Capped<YardMachine>;
+    planned: Capped<YardMachine>;
+    returnHold: Capped<YardMachine>;
+    exitPending: number;
+    byModelType: { modelType: string; total: number; free: number; planned: number; oldestDays: number | null }[];
+    ageBands: { label: string; count: number }[];
+    undated: number;
+  };
+  dispatch: {
+    toLoad: Capped<DispatchMachine>;
+    awaitingMainGate: Capped<DispatchMachine>;
+    overdue: Capped<DispatchMachine>;
+  };
+  exitRequestsPending: number;
+}
+
 type ModalView =
   | { type: 'machine'; data: any }
-  | { type: 'machines'; list: any[]; title: string }
-  | { type: 'slots'; list: any[]; slotType: SlotCardType }
+  | { type: 'machines'; list: Capped<YardMachine>; title: string }
+  | { type: 'dispatch'; list: Capped<DispatchMachine>; title: string }
+  | { type: 'slots'; list: any[] }
   | null;
 
-// Every capped list uses one of these and always says how much it hid, so a
-// short list is never mistaken for the whole picture.
+// Every capped list says how much it hid, so a short list is never mistaken for
+// the whole picture. The server caps its lists at 50.
 const LIST_CAP = 8;
-const MODAL_CAP = 50;
 
 // The dashboard is left open on yard screens, so it re-reads on a timer as well
 // as on the realtime events it can hear.
 const AUTO_REFRESH_MS = 60_000;
 
-const SLOT_STATUS: Record<SlotCardType, string> = {
-  available: 'AVAILABLE',
-  reserved: 'RESERVED',
-  occupied: 'OCCUPIED',
-  dispatch: 'DISPATCH_READY',
-};
-
-interface YardSummary {
-  id: string;
-  name: string;
-  totalSlots?: number;
-  slotCounts?: Record<string, number>;
-}
-
-interface WaitingMachine {
-  id: string;
-  serialNumber: string;
-  model?: string;
-  assemblyStage: number;
-  parkStatus: string;
-  slotWaitingSince?: string | null;
-}
+// Machines that have never been released to the yard are assembly's, not the yard's.
+const NOT_IN_FG = 'PLANNED';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -66,89 +118,59 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// A machine can be in one of two places at once, conceptually: standing in a
-// slot, or holding a reservation for a slot it has not reached yet. Only the
-// first one is a currentSlot, so a machine waiting for its turn was previously
-// shown as unallocated.
+function location(m: { yard: string | null; row: number | null; col: number | null; slotReservedOnly?: boolean }) {
+  if (!m.yard || m.row === null || m.col === null) return 'No slot';
+  return `${m.slotReservedOnly ? 'Reserved ' : ''}${m.yard} (${slotLabel(m.row, m.col)})`;
+}
+
+// A full machine row from /api/machines, as used by search and the detail modal.
 function machineLocation(machine: any): string {
-  if (machine?.currentSlot) {
-    return `${machine.currentSlot.yard.name} (${slotLabel(machine.currentSlot.row, machine.currentSlot.col)})`;
-  }
-  if (machine?.plannedSlot) {
-    return `Reserved ${machine.plannedSlot.yard.name} (${slotLabel(machine.plannedSlot.row, machine.plannedSlot.col)})`;
-  }
-  return 'Not allocated';
+  if (machine?.currentSlot) return `${machine.currentSlot.yard.name} (${slotLabel(machine.currentSlot.row, machine.currentSlot.col)})`;
+  if (machine?.plannedSlot) return `Reserved ${machine.plannedSlot.yard.name} (${slotLabel(machine.plannedSlot.row, machine.plannedSlot.col)})`;
+  return 'Not in a slot';
+}
+
+function elapsed(iso: string | null) {
+  if (!iso) return '';
+  const mins = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60_000));
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) return `${hours} h ${mins % 60} min`;
+  return `${Math.floor(hours / 24)} days`;
 }
 
 function MoreHint({ total, cap, label }: { total: number; cap: number; label: string }) {
   if (total <= cap) return null;
-  return (
-    <p className="px-2 pt-1.5 text-[11px] font-medium text-slate-500">
-      +{total - cap} more {label}
-    </p>
-  );
+  return <p className="px-2 pt-1.5 text-[11px] font-medium text-slate-500">+{total - cap} more {label}</p>;
 }
 
 export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
-  const [machines, setMachines] = useState<any[]>([]);
-  const [yards, setYards] = useState<YardSummary[]>([]);
-  const [waiting, setWaiting] = useState<WaitingMachine[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<any[] | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const { user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchPool, setSearchPool] = useState<any[] | null>(null);
   const [modalView, setModalView] = useState<ModalView>(null);
   const [machineHistory, setMachineHistory] = useState<any[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const can = (tab: string) => !allowedTabs || allowedTabs.includes(tab);
-  const canSeeRequests = can('requests');
 
   // A refresh triggered by a realtime event or the timer must not blank the page,
   // so only the first load owns the loading spinner.
   const fetchDashboard = useCallback(async (initial: boolean) => {
     if (!initial) setRefreshing(true);
     try {
-      const headers = authHeaders();
-
-      const [machinesRes, yardsRes, availabilityRes, requestsRes] = await Promise.all([
-        fetch(`${API_URL}/api/machines?withAssemblyCompletion=true`, { headers }),
-        fetch(`${API_URL}/api/yards`, { headers }),
-        fetch(`${API_URL}/api/yards/availability`, { headers }),
-        canSeeRequests
-          ? fetch(`${API_URL}/api/exit-requests?status=PENDING`, { headers })
-          : Promise.resolve(null),
-      ]);
-      if (!machinesRes.ok) throw new Error(`GET /api/machines -> ${machinesRes.status}`);
-      if (!yardsRes.ok) throw new Error(`GET /api/yards -> ${yardsRes.status}`);
-
-      const [allMachines, yardList] = await Promise.all([machinesRes.json(), yardsRes.json()]);
-      if (!Array.isArray(allMachines)) throw new Error('GET /api/machines did not return a list');
-      if (!Array.isArray(yardList)) throw new Error('GET /api/yards did not return a list');
-
-      // The yard list already carries per-status slot counts, so the tiles no
-      // longer need one request per yard.
-      setMachines(allMachines);
-      setYards(yardList);
-
-      // Secondary panels degrade on their own rather than failing the page.
-      if (availabilityRes.ok) {
-        const availability = await availabilityRes.json();
-        setWaiting(Array.isArray(availability?.waiting) ? availability.waiting : []);
-      }
-      if (requestsRes && requestsRes.ok) {
-        const list = await requestsRes.json();
-        setPendingRequests(Array.isArray(list) ? list : []);
-      }
-
-      setUpdatedAt(new Date());
+      const res = await fetch(`${API_URL}/api/dashboard`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`GET /api/dashboard -> ${res.status}`);
+      setData(await res.json());
       setError(null);
+      // Search reloads its machine list on next use, so it never shows stale slots.
+      setSearchPool(null);
     } catch (err) {
       console.error('Failed to load dashboard:', err);
       setError('Could not load yard data. Check that the backend is running, then retry.');
@@ -156,7 +178,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
       if (initial) setLoading(false);
       setRefreshing(false);
     }
-  }, [API_URL, canSeeRequests]);
+  }, [API_URL]);
 
   useEffect(() => {
     fetchDashboard(true);
@@ -164,65 +186,72 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
     return () => clearInterval(timer);
   }, [fetchDashboard]);
 
-  // security-queue and exit-request only reach some roles; notification reaches
-  // everyone an alert is addressed to. The timer covers whatever none of them do.
   useRealtimeEvent('security-queue', () => { fetchDashboard(false); });
   useRealtimeEvent('exit-request', () => { fetchDashboard(false); });
   useRealtimeEvent('notification', () => { fetchDashboard(false); });
 
-  const handleSearch = (query: string) => {
+  // Search loads the machine list only when someone types, and keeps FG yard machines.
+  const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    if (query.length < 2) { setSearchResults([]); return; }
-    const needle = query.toLowerCase();
-    setSearchResults(
-      machines.filter((m: any) =>
-        m.serialNumber?.toLowerCase().includes(needle) ||
-        m.model?.toLowerCase().includes(needle) ||
-        m.barcode?.toLowerCase().includes(needle) ||
-        m.orderNo?.toLowerCase().includes(needle)
-      )
-    );
-  };
-
-  const handleViewDetails = async (machine: any) => {
-    setModalView({ type: 'machine', data: machine });
-    setMachineHistory([]);
+    if (query.length < 2 || searchPool) return;
     try {
-      const res = await fetch(`${API_URL}/api/machines/${machine.id}`, { headers: authHeaders() });
-      if (!res.ok) throw new Error(`GET /api/machines/${machine.id} -> ${res.status}`);
-      const data = await res.json();
-      setMachineHistory(data.movements || []);
+      const res = await fetch(`${API_URL}/api/machines`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`GET /api/machines -> ${res.status}`);
+      const all = await res.json();
+      setSearchPool(Array.isArray(all) ? all.filter((m: any) => m.parkStatus && m.parkStatus !== NOT_IN_FG) : []);
     } catch (err) {
-      console.error('Failed to load machine detail:', err);
-      setMachineHistory([]);
+      console.error('Failed to load machines for search:', err);
+      setSearchPool([]);
     }
   };
 
-  const openMachines = (title: string, list: any[]) => setModalView({ type: 'machines', list, title });
+  const needle = searchQuery.toLowerCase();
+  const searchResults = searchQuery.length >= 2 && searchPool
+    ? searchPool.filter((m: any) =>
+        m.serialNumber?.toLowerCase().includes(needle) ||
+        m.model?.toLowerCase().includes(needle) ||
+        m.modelType?.toLowerCase().includes(needle) ||
+        m.barcode?.toLowerCase().includes(needle))
+    : [];
 
-  const handleSlotCardClick = async (type: SlotCardType) => {
+  const handleViewDetails = async (machineId: string) => {
+    setModalView({ type: 'machine', data: null });
+    setMachineHistory([]);
+    try {
+      const res = await fetch(`${API_URL}/api/machines/${machineId}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`GET /api/machines/${machineId} -> ${res.status}`);
+      const detail = await res.json();
+      setModalView({ type: 'machine', data: detail });
+      setMachineHistory(detail.movements || []);
+    } catch (err) {
+      console.error('Failed to load machine detail:', err);
+      setModalView(null);
+    }
+  };
+
+  const openMachines = (title: string, list: Capped<YardMachine>) => setModalView({ type: 'machines', list, title });
+  const openDispatch = (title: string, list: Capped<DispatchMachine>) => setModalView({ type: 'dispatch', list, title });
+
+  const openFreeSlots = async () => {
+    if (!data) return;
     setDetailLoading(true);
-    setModalView({ type: 'slots', list: [], slotType: type });
+    setModalView({ type: 'slots', list: [] });
     try {
       const headers = authHeaders();
       const details = await Promise.all(
-        yards.map(async (yard) => {
+        data.yards.map(async (yard) => {
           const res = await fetch(`${API_URL}/api/yards/${yard.id}`, { headers });
           if (!res.ok) throw new Error(`GET /api/yards/${yard.id} -> ${res.status}`);
-          return { yard, data: await res.json() };
+          return { yard, detail: await res.json() };
         })
       );
-
-      const wanted = SLOT_STATUS[type];
-      const matched = details.flatMap(({ yard, data }) =>
-        (data.slots || [])
-          .filter((s: any) => s.status === wanted)
-          .map((s: any) => ({ ...s, yardName: yard.name }))
-      );
-      setModalView({ type: 'slots', list: matched, slotType: type });
+      setModalView({
+        type: 'slots',
+        list: details.flatMap(({ yard, detail }) =>
+          (detail.slots || []).filter((s: any) => s.status === 'AVAILABLE').map((s: any) => ({ ...s, yardName: yard.name }))),
+      });
     } catch (err) {
       console.error('Failed to load slots:', err);
-      setModalView({ type: 'slots', list: [], slotType: type });
     } finally {
       setDetailLoading(false);
     }
@@ -230,102 +259,79 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
 
   const closeModal = () => { setModalView(null); setMachineHistory([]); };
 
-  const detailTitles: Record<string, string> = {
-    available: 'Available Slots',
-    reserved: 'Reserved Slots',
-    occupied: 'Occupied Slots',
-    dispatch: 'Dispatch Ready Slots',
-  };
-
-  // A reserved slot names the machine holding the promise through plannedFor,
-  // because the machine is not physically there and has no currentSlot.
-  const slotMachine = (slot: any) =>
-    slot.machine?.serialNumber || slot.plannedFor?.serialNumber || null;
-
   const quickActions = [
     { tab: 'yards', label: 'Yard Management', hint: 'View and manage yard slots', icon: <Map className="w-3.5 h-3.5 text-blue-600" />, iconWrap: 'bg-blue-100 group-hover:bg-blue-200', hover: 'hover:bg-blue-50 hover:border-blue-200', arrow: 'group-hover:text-blue-600' },
-    { tab: 'assembly', label: 'Assembly Line', hint: 'Stages 1–18 and completed machines', icon: <Factory className="w-3.5 h-3.5 text-indigo-600" />, iconWrap: 'bg-indigo-100 group-hover:bg-indigo-200', hover: 'hover:bg-indigo-50 hover:border-indigo-200', arrow: 'group-hover:text-indigo-600' },
+    { tab: 'stock', label: 'Yard Stock', hint: 'Stock by model-type in FIFO order', icon: <Boxes className="w-3.5 h-3.5 text-teal-600" />, iconWrap: 'bg-teal-100 group-hover:bg-teal-200', hover: 'hover:bg-teal-50 hover:border-teal-200', arrow: 'group-hover:text-teal-600' },
+    { tab: 'dispatch', label: 'Dispatch Planning', hint: 'Plan machines for dispatch', icon: <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />, iconWrap: 'bg-indigo-100 group-hover:bg-indigo-200', hover: 'hover:bg-indigo-50 hover:border-indigo-200', arrow: 'group-hover:text-indigo-600' },
+    { tab: 'pdi', label: 'Dispatch Machine List', hint: 'Drivers, slip and main gate out', icon: <Truck className="w-3.5 h-3.5 text-emerald-600" />, iconWrap: 'bg-emerald-100 group-hover:bg-emerald-200', hover: 'hover:bg-emerald-50 hover:border-emerald-200', arrow: 'group-hover:text-emerald-600' },
     { tab: 'gate', label: 'Gate Control', hint: 'Check machines in and out', icon: <Fence className="w-3.5 h-3.5 text-slate-600" />, iconWrap: 'bg-slate-100 group-hover:bg-slate-200', hover: 'hover:bg-slate-50 hover:border-slate-300', arrow: 'group-hover:text-slate-700' },
-    { tab: 'machines', label: 'Track Machines', hint: 'Locate and manage inventory', icon: <Truck className="w-3.5 h-3.5 text-emerald-600" />, iconWrap: 'bg-emerald-100 group-hover:bg-emerald-200', hover: 'hover:bg-emerald-50 hover:border-emerald-200', arrow: 'group-hover:text-emerald-600' },
-    { tab: 'parked', label: 'Confirm Parking', hint: 'Confirm or record a machine parked in its slot', icon: <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />, iconWrap: 'bg-amber-100 group-hover:bg-amber-200', hover: 'hover:bg-amber-50 hover:border-amber-200', arrow: 'group-hover:text-amber-600' },
+    { tab: 'parked', label: 'Confirm Parking', hint: 'Confirm a machine parked in its slot', icon: <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />, iconWrap: 'bg-amber-100 group-hover:bg-amber-200', hover: 'hover:bg-amber-50 hover:border-amber-200', arrow: 'group-hover:text-amber-600' },
     { tab: 'security', label: 'Security Verification', hint: 'Approve or reject parked machines', icon: <Shield className="w-3.5 h-3.5 text-red-600" />, iconWrap: 'bg-red-100 group-hover:bg-red-200', hover: 'hover:bg-red-50 hover:border-red-200', arrow: 'group-hover:text-red-600' },
     { tab: 'requests', label: 'Exit Requests', hint: 'Request or approve machines leaving', icon: <Send className="w-3.5 h-3.5 text-sky-600" />, iconWrap: 'bg-sky-100 group-hover:bg-sky-200', hover: 'hover:bg-sky-50 hover:border-sky-200', arrow: 'group-hover:text-sky-600' },
   ].filter((action) => can(action.tab)).slice(0, 5);
 
   if (loading) return <PageSpinner />;
 
-  // Slot totals, summed from the per-yard counts.
-  const slotTotal = (status: string) => yards.reduce((sum, y) => sum + (y.slotCounts?.[status] ?? 0), 0);
-  const totalSlots = yards.reduce((sum, y) => sum + (y.totalSlots ?? 0), 0);
-  const stats = {
-    availableSlots: slotTotal('AVAILABLE'),
-    reservedSlots: slotTotal('RESERVED'),
-    occupiedSlots: slotTotal('OCCUPIED'),
-    dispatchReady: slotTotal('DISPATCH_READY'),
+  if (!data) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title={`Welcome back, ${user?.name || 'User'}`} description="FG yard at a glance." />
+        <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-xs text-amber-800 flex-1">{error}</p>
+          <button onClick={() => fetchDashboard(false)} className="flex items-center gap-1.5 text-xs font-medium text-amber-900 hover:underline">
+            <RefreshCw className="w-3.5 h-3.5" /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { inbound, stock, dispatch, slots, today } = data;
+  const tabName: Record<string, string> = {
+    yards: 'Yard Management', parked: 'Confirm Parking', security: 'Security Verification',
+    stock: 'Yard Stock', pdi: 'Dispatch Machine List', requests: 'Exit Requests',
   };
-
-  // Lifecycle buckets. "Completed" follows the Assembly Line: stage 18 done, so a
-  // machine still working through stage 18 is in assembly, not finished.
-  const inAssembly = machines.filter((m: any) => m.assemblyStage > 0 && !m.assemblyCompleted);
-  const noBarcode = machines.filter((m: any) => m.assemblyCompleted && m.parkStatus === 'PLANNED');
-  const readyToMove = machines.filter((m: any) => m.parkStatus === 'READY_TO_MOVE');
-  const inTransit = machines.filter((m: any) => m.parkStatus === 'IN_TRANSIT' || m.parkStatus === 'AT_GATE');
-  const awaitingVerify = machines.filter(
-    (m: any) => m.parkStatus === 'PARKED_PENDING' || m.parkStatus === 'PARKED_REJECTED'
-  );
-  const rejectedParking = machines.filter((m: any) => m.parkStatus === 'PARKED_REJECTED');
-  const parked = machines.filter((m: any) => m.parkStatus === 'PARKED_VERIFIED');
-  const exited = machines.filter((m: any) => m.parkStatus === 'EXITED');
-  const completedCount = machines.filter((m: any) => m.assemblyCompleted).length;
-
-  // Waiting machines come from the availability endpoint without slot data; map
-  // them back to full rows so the modal can show model and location.
-  const machineById = new globalThis.Map(machines.map((m: any) => [m.id, m]));
-  const waitingMachines = waiting.map((w) => machineById.get(w.id) ?? w);
-
-  const flow = [
-    { key: 'assembly', label: 'In Assembly', list: inAssembly, tone: 'border-indigo-200 bg-indigo-50 text-indigo-800' },
-    { key: 'barcode', label: 'No Barcode', list: noBarcode, tone: 'border-red-200 bg-red-50 text-red-800' },
-    { key: 'ready', label: 'Ready to Move', list: readyToMove, tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
-    { key: 'transit', label: 'In Transit / Gate', list: inTransit, tone: 'border-blue-200 bg-blue-50 text-blue-800' },
-    { key: 'verify', label: 'Awaiting Verify', list: awaitingVerify, tone: 'border-amber-200 bg-amber-50 text-amber-800' },
-    { key: 'parked', label: 'Parked', list: parked, tone: 'border-teal-200 bg-teal-50 text-teal-800' },
-    { key: 'exited', label: 'Exited', list: exited, tone: 'border-slate-200 bg-slate-50 text-slate-700' },
-  ];
 
   // Only problems that need a person to act. Each one opens its list, and the
   // button jumps to the screen where it is fixed when this role can reach it.
   const attention = [
-    noBarcode.length > 0 && {
-      key: 'barcode', count: noBarcode.length, icon: <Barcode className="w-4 h-4" />,
-      title: 'Completed without barcode',
-      hint: 'Finished stage 18 but cannot be released to the yard',
+    dispatch.overdue.count > 0 && {
+      key: 'overdue', count: dispatch.overdue.count, icon: <AlertTriangle className="w-4 h-4" />,
+      title: 'Dispatch overdue at main gate',
+      hint: `Out of the FG yard over ${data.settings.dispatchAlertHours} h, not through the main gate`,
       tone: 'border-red-200 bg-red-50 text-red-800', iconTone: 'bg-red-600',
-      onOpen: () => openMachines('Completed without barcode', noBarcode), tab: 'assembly',
+      onOpen: () => openDispatch('Overdue at main gate', dispatch.overdue), tab: 'pdi',
     },
-    waitingMachines.length > 0 && {
-      key: 'waiting', count: waitingMachines.length, icon: <Clock className="w-4 h-4" />,
-      title: 'Awaiting gate slot',
-      hint: 'Stage 18+ with no slot assigned at gate yet',
+    inbound.stuck.count > 0 && {
+      key: 'stuck', count: inbound.stuck.count, icon: <Clock className="w-4 h-4" />,
+      title: 'Parking not confirmed',
+      hint: `In transit over ${data.settings.inTransitAlertMinutes} min after gate in`,
       tone: 'border-orange-200 bg-orange-50 text-orange-800', iconTone: 'bg-orange-600',
-      onOpen: () => openMachines('Waiting for a slot', waitingMachines), tab: 'yards',
+      onOpen: () => openMachines('Parking not confirmed', inbound.stuck), tab: 'parked',
     },
-    stats.availableSlots === 0 && yards.length > 0 && {
-      key: 'full', count: 0, icon: <AlertTriangle className="w-4 h-4" />,
-      title: 'All yards are full',
-      hint: 'No slot is available for the next machine',
-      tone: 'border-red-200 bg-red-50 text-red-800', iconTone: 'bg-red-600',
-      onOpen: () => onNavigate?.('yards'), tab: 'yards',
-    },
-    rejectedParking.length > 0 && {
-      key: 'rejected', count: rejectedParking.length, icon: <ShieldAlert className="w-4 h-4" />,
+    inbound.rejected.count > 0 && {
+      key: 'rejected', count: inbound.rejected.count, icon: <ShieldAlert className="w-4 h-4" />,
       title: 'Parking rejected',
       hint: 'Must be re-parked and confirmed again',
       tone: 'border-amber-200 bg-amber-50 text-amber-800', iconTone: 'bg-amber-600',
-      onOpen: () => openMachines('Parking rejected', rejectedParking), tab: 'parked',
+      onOpen: () => openMachines('Parking rejected', inbound.rejected), tab: 'parked',
     },
-    pendingRequests && pendingRequests.length > 0 && {
-      key: 'requests', count: pendingRequests.length, icon: <Send className="w-4 h-4" />,
+    stock.returnHold.count > 0 && {
+      key: 'hold', count: stock.returnHold.count, icon: <Undo2 className="w-4 h-4" />,
+      title: 'Returned after dispatch',
+      hint: 'On hold until a manager clears them for dispatch',
+      tone: 'border-red-200 bg-red-50 text-red-800', iconTone: 'bg-red-600',
+      onOpen: () => openMachines('Returned after dispatch (on hold)', stock.returnHold), tab: 'stock',
+    },
+    slots.available === 0 && data.yards.length > 0 && {
+      key: 'full', count: 0, icon: <AlertTriangle className="w-4 h-4" />,
+      title: 'All yards are full',
+      hint: 'No slot is free for the next machine',
+      tone: 'border-red-200 bg-red-50 text-red-800', iconTone: 'bg-red-600',
+      onOpen: () => onNavigate?.('yards'), tab: 'yards',
+    },
+    can('requests') && data.exitRequestsPending > 0 && {
+      key: 'requests', count: data.exitRequestsPending, icon: <Send className="w-4 h-4" />,
       title: 'Exit requests pending',
       hint: 'Waiting for a yard manager decision',
       tone: 'border-sky-200 bg-sky-50 text-sky-800', iconTone: 'bg-sky-600',
@@ -336,54 +342,58 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
     tone: string; iconTone: string; onOpen: () => void; tab: string;
   }[];
 
-  const listCard = (
-    items: any[],
-    dot: string,
-    wrapper: string,
-    empty: string,
-    renderSub: (m: any) => string,
-    renderBadge: (m: any) => React.ReactNode = (m) => <ParkStatusBadge status={m.parkStatus} />
-  ) => (
-    <>
-      {items.length === 0 ? (
-        <p className="text-sm text-slate-500 text-center py-3">{empty}</p>
-      ) : (
-        <>
-          <div className="space-y-1.5 max-h-72 overflow-y-auto">
-            {items.slice(0, LIST_CAP).map((m: any) => (
-              <div key={m.id} className={`flex items-center justify-between gap-2 p-2 rounded-md ${wrapper}`}>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-2 h-2 rounded-full ${dot} shrink-0`} />
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-slate-900 truncate">{m.serialNumber}</p>
-                    <p className="text-xs text-slate-500 truncate">{renderSub(m)}</p>
-                  </div>
+  // FG yard flow, left to right: released to the yard, through to the main gate.
+  const flow = [
+    { key: 'ready', label: 'Ready to Move', count: inbound.readyToMove.count, tone: 'border-indigo-200 bg-indigo-50 text-indigo-800', open: () => openMachines('Ready to Move', inbound.readyToMove) },
+    { key: 'transit', label: 'In Transit / Gate', count: inbound.inTransit.count, tone: 'border-blue-200 bg-blue-50 text-blue-800', open: () => openMachines('In Transit / Gate', inbound.inTransit) },
+    { key: 'verify', label: 'Awaiting Verify', count: inbound.awaitingVerify.count + inbound.rejected.count, tone: 'border-amber-200 bg-amber-50 text-amber-800', open: () => openMachines('Awaiting Verification', { count: inbound.awaitingVerify.count + inbound.rejected.count, items: [...inbound.awaitingVerify.items, ...inbound.rejected.items] }) },
+    { key: 'free', label: 'Free Stock', count: stock.free.count, tone: 'border-teal-200 bg-teal-50 text-teal-800', open: () => openMachines('Free Stock (FIFO)', stock.free) },
+    { key: 'planned', label: 'Planned', count: dispatch.toLoad.count, tone: 'border-violet-200 bg-violet-50 text-violet-800', open: () => openDispatch('Planned for dispatch', dispatch.toLoad) },
+    { key: 'fgout', label: 'Out of FG Yard', count: dispatch.awaitingMainGate.count, tone: dispatch.overdue.count > 0 ? 'border-red-200 bg-red-50 text-red-800' : 'border-sky-200 bg-sky-50 text-sky-800', open: () => openDispatch('Out of FG yard, awaiting main gate', dispatch.awaitingMainGate) },
+    { key: 'maingate', label: 'Main Gate Out Today', count: today.mainGateOut, tone: 'border-slate-200 bg-slate-50 text-slate-700', open: () => can('pdi') && onNavigate?.('pdi') },
+  ];
+
+  const maxBand = Math.max(1, ...stock.ageBands.map((b) => b.count));
+
+  const machineList = (list: Capped<YardMachine>, dot: string, wrapper: string, empty: string, renderSub: (m: YardMachine) => string) => (
+    list.count === 0 ? (
+      <p className="text-sm text-slate-500 text-center py-3">{empty}</p>
+    ) : (
+      <>
+        <div className="space-y-1.5 max-h-72 overflow-y-auto">
+          {list.items.slice(0, LIST_CAP).map((m) => (
+            <button type="button" key={m.id} onClick={() => handleViewDetails(m.id)} className={`w-full flex items-center justify-between gap-2 p-2 rounded-md text-left ${wrapper}`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-2 h-2 rounded-full ${dot} shrink-0`} />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium text-slate-900 truncate">{m.serialNumber}</p>
+                  <p className="text-xs text-slate-500 truncate">{renderSub(m)}</p>
                 </div>
-                <div className="shrink-0">{renderBadge(m)}</div>
               </div>
-            ))}
-          </div>
-          <MoreHint total={items.length} cap={LIST_CAP} label="machines not shown" />
-        </>
-      )}
-    </>
+              <div className="shrink-0"><ParkStatusBadge status={m.parkStatus} /></div>
+            </button>
+          ))}
+        </div>
+        <MoreHint total={list.count} cap={LIST_CAP} label="machines not shown" />
+      </>
+    )
   );
 
   return (
     <div className="space-y-4">
       <PageHeader
         title={`Welcome back, ${user?.name || 'User'}`}
-        description="Here's what's happening in your yard today."
+        description="FG yard at a glance: stock, inward and dispatch."
         actions={
           <>
-            <p className="text-xs text-slate-500 hidden sm:block tabular-nums">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-xs text-slate-500 hidden sm:block tabular-nums">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <button
               onClick={() => fetchDashboard(false)}
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
               title="Refresh now (also refreshes every minute)"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              {updatedAt ? `Updated ${updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Refresh'}
+              {`Updated ${new Date(data.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
             </button>
           </>
         }
@@ -392,22 +402,19 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
       {error && (
         <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
           <p className="text-xs text-amber-800 flex-1">{error}</p>
-          <button
-            onClick={() => fetchDashboard(false)}
-            className="flex items-center gap-1.5 text-xs font-medium text-amber-900 hover:underline"
-          >
+          <button onClick={() => fetchDashboard(false)} className="flex items-center gap-1.5 text-xs font-medium text-amber-900 hover:underline">
             <RefreshCw className="w-3.5 h-3.5" /> Retry
           </button>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        <StatCard label="Total Machines" value={machines.length} icon={<Truck className="w-4 h-4" />} color="blue" hint={`${inAssembly.length} in assembly · ${completedCount} completed`} onClick={() => openMachines('All Machines', machines)} />
-        <StatCard label="Available Slots" value={stats.availableSlots} icon={<MapPin className="w-4 h-4" />} color={stats.availableSlots === 0 ? 'red' : 'green'} hint={`of ${totalSlots} in ${yards.length} yard${yards.length === 1 ? '' : 's'}`} onClick={() => handleSlotCardClick('available')} />
-        <StatCard label="Reserved" value={stats.reservedSlots} icon={<Bookmark className="w-4 h-4" />} color="amber" hint="Held for incoming machines" onClick={() => handleSlotCardClick('reserved')} />
-        <StatCard label="Occupied" value={stats.occupiedSlots} icon={<Package className="w-4 h-4" />} color="red" hint="Machine in the slot" onClick={() => handleSlotCardClick('occupied')} />
-        <StatCard label="Ready to Move" value={readyToMove.length} icon={<CheckCircle2 className="w-4 h-4" />} color="indigo" hint="Waiting at the plant" onClick={() => openMachines('Ready to Move', readyToMove)} />
-        <StatCard label="Waiting for Slot" value={waitingMachines.length} icon={<Clock className="w-4 h-4" />} color={waitingMachines.length > 0 ? 'red' : 'slate'} hint="Stage 13+, no slot yet" onClick={() => openMachines('Waiting for a slot', waitingMachines)} />
+        <StatCard label="In FG Yard" value={stock.inYard.count} icon={<Package className="w-4 h-4" />} color="blue" hint={`${stock.byModelType.length} model-types`} onClick={() => openMachines('In FG Yard (FIFO)', stock.inYard)} />
+        <StatCard label="Free Stock" value={stock.free.count} icon={<Boxes className="w-4 h-4" />} color="green" hint="Verified, ready to plan" onClick={() => openMachines('Free Stock (FIFO)', stock.free)} />
+        <StatCard label="Planned" value={dispatch.toLoad.count} icon={<ClipboardList className="w-4 h-4" />} color="indigo" hint="In yard, awaiting FG gate-out" onClick={() => openDispatch('Planned for dispatch', dispatch.toLoad)} />
+        <StatCard label="Awaiting Main Gate" value={dispatch.awaitingMainGate.count} icon={<LogOut className="w-4 h-4" />} color={dispatch.overdue.count > 0 ? 'red' : 'amber'} hint={dispatch.overdue.count > 0 ? `${dispatch.overdue.count} overdue` : 'Out of FG yard'} onClick={() => openDispatch('Out of FG yard, awaiting main gate', dispatch.awaitingMainGate)} />
+        <StatCard label="Free Slots" value={slots.available} icon={<MapPin className="w-4 h-4" />} color={slots.available === 0 ? 'red' : 'green'} hint={`of ${slots.total} in ${data.yards.length} yard${data.yards.length === 1 ? '' : 's'}`} onClick={openFreeSlots} />
+        <StatCard label="Today" value={`${today.gateIn} in · ${today.gateOut} out`} icon={<CalendarDays className="w-4 h-4" />} color="slate" hint={`${today.mainGateOut} through main gate`} />
       </div>
 
       {/* Needs attention */}
@@ -431,13 +438,8 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
                 </span>
               </button>
               {can(a.tab) && onNavigate && (
-                <button
-                  type="button"
-                  onClick={() => onNavigate(a.tab)}
-                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold hover:underline"
-                >
-                  Open {a.tab === 'assembly' ? 'Assembly Line' : a.tab === 'yards' ? 'Yard Management' : a.tab === 'parked' ? 'Confirm Parking' : 'Exit Requests'}
-                  <ArrowRight className="w-3 h-3" />
+                <button type="button" onClick={() => onNavigate(a.tab)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold hover:underline">
+                  Open {tabName[a.tab]} <ArrowRight className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -445,17 +447,17 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
         </div>
       )}
 
-      {/* Machine flow: one count per lifecycle step, left to right */}
-      <SectionCard title="Machine Flow" description="Where every machine is in its journey from assembly to the yard">
+      {/* FG yard flow: one count per step, left to right */}
+      <SectionCard title="FG Yard Flow" description="From release to the yard, through dispatch, to the main gate">
         <div className="flex flex-wrap items-stretch gap-1.5">
           {flow.map((step, index) => (
             <div key={step.key} className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => openMachines(step.label, step.list)}
-                className={`min-w-[96px] rounded-lg border px-3 py-2 text-left transition-shadow hover:shadow-sm ${step.tone} ${step.list.length === 0 ? 'opacity-60' : ''}`}
+                onClick={step.open}
+                className={`min-w-[96px] rounded-lg border px-3 py-2 text-left transition-shadow hover:shadow-sm ${step.tone} ${step.count === 0 ? 'opacity-60' : ''}`}
               >
-                <p className="text-lg font-bold tabular-nums leading-tight">{step.list.length}</p>
+                <p className="text-lg font-bold tabular-nums leading-tight">{step.count}</p>
                 <p className="text-[11px] font-medium whitespace-nowrap">{step.label}</p>
               </button>
               {index < flow.length - 1 && <ChevronRight className="hidden sm:block w-4 h-4 text-slate-300 shrink-0" />}
@@ -466,12 +468,63 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <SectionCard title="Quick Search" description="Find machines by serial number, model, barcode or order number">
+          <SectionCard title="Stock by Model-Type" description="Machines in the FG yard; oldest free age is from first inward">
+            {stock.byModelType.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-3">No machines in the FG yard</p>
+            ) : (
+              <Table maxHeight={320}>
+                <TableHeader sticky>
+                  <TableHeaderCell>Model-Type</TableHeaderCell>
+                  <TableHeaderCell align="right">In Yard</TableHeaderCell>
+                  <TableHeaderCell align="right">Free</TableHeaderCell>
+                  <TableHeaderCell align="right">Planned</TableHeaderCell>
+                  <TableHeaderCell align="right">Oldest Free</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {stock.byModelType.map((g) => (
+                    <TableRow key={g.modelType} onClick={can('stock') ? () => onNavigate?.('stock') : undefined}>
+                      <TableCell className="text-[13px] font-medium text-slate-900">{g.modelType}</TableCell>
+                      <TableCell align="right" className="text-[13px] tabular-nums">{g.total}</TableCell>
+                      <TableCell align="right" className={`text-[13px] tabular-nums font-semibold ${g.free > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>{g.free}</TableCell>
+                      <TableCell align="right" className="text-[13px] tabular-nums text-indigo-700">{g.planned || '—'}</TableCell>
+                      <TableCell align="right" className={`text-[13px] tabular-nums ${g.oldestDays !== null && g.oldestDays > 30 ? 'text-red-700 font-semibold' : 'text-slate-600'}`}>
+                        {g.oldestDays === null ? '—' : `${g.oldestDays} d`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </SectionCard>
+        </div>
+
+        <SectionCard title="Stock Age" description="Days since first inward, all machines in the yard">
+          <div className="space-y-2.5">
+            {stock.ageBands.map((b, i) => (
+              <div key={b.label}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600">{b.label}</span>
+                  <span className="font-semibold tabular-nums text-slate-900">{b.count}</span>
+                </div>
+                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className={i === 3 ? 'h-full bg-red-400' : i === 2 ? 'h-full bg-amber-400' : 'h-full bg-teal-400'} style={{ width: `${(b.count / maxBand) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+            {stock.undated > 0 && <p className="text-[11px] text-slate-500">{stock.undated} machine{stock.undated === 1 ? '' : 's'} with no inward date</p>}
+            {stock.exitPending > 0 && <p className="text-[11px] text-slate-500">{stock.exitPending} on an open exit request</p>}
+          </div>
+        </SectionCard>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <SectionCard title="Quick Search" description="Find FG yard machines by serial number, model, model-type or barcode">
             <Input
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search by serial, model, barcode or order no..."
+              placeholder="Search by serial, model, model-type or barcode..."
               icon={<Search className="w-4 h-4" />}
             />
             {searchResults.length > 0 && (
@@ -484,14 +537,12 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
                       </div>
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-slate-900 truncate">{m.serialNumber}</p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {m.model || 'N/A'} — {machineLocation(m)}
-                        </p>
+                        <p className="text-xs text-slate-500 truncate">{m.model || 'N/A'} — {machineLocation(m)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="hidden sm:inline"><ParkStatusBadge status={m.parkStatus} /></span>
-                      <button onClick={() => handleViewDetails(m)} className="text-xs font-medium text-blue-700 hover:text-blue-900 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors">
+                      <button onClick={() => handleViewDetails(m.id)} className="text-xs font-medium text-blue-700 hover:text-blue-900 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors">
                         View
                       </button>
                     </div>
@@ -499,8 +550,8 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
                 ))}
               </div>
             )}
-            {searchQuery.length >= 2 && searchResults.length === 0 && (
-              <p className="text-xs text-slate-500 mt-2 text-center">No machines found for &quot;{searchQuery}&quot;</p>
+            {searchQuery.length >= 2 && searchPool && searchResults.length === 0 && (
+              <p className="text-xs text-slate-500 mt-2 text-center">No FG yard machines found for &quot;{searchQuery}&quot;</p>
             )}
             <MoreHint total={searchResults.length} cap={LIST_CAP} label="matches not shown — keep typing to narrow" />
           </SectionCard>
@@ -531,15 +582,15 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
       </div>
 
       {/* Yard capacity */}
-      {yards.length > 0 && (
+      {data.yards.length > 0 && (
         <SectionCard
           title="Yard Capacity"
-          description={`${stats.availableSlots} of ${totalSlots} slots free across ${yards.length} yard${yards.length === 1 ? '' : 's'}`}
+          description={`${slots.available} of ${slots.total} slots free across ${data.yards.length} yard${data.yards.length === 1 ? '' : 's'}`}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {yards.map((yard) => {
-              const total = yard.totalSlots ?? 0;
-              const counts = yard.slotCounts ?? {};
+            {data.yards.map((yard) => {
+              const total = yard.totalSlots;
+              const counts = yard.slotCounts;
               const segments = [
                 { key: 'OCCUPIED', label: 'Occupied', bar: 'bg-red-400', text: 'text-red-700' },
                 { key: 'RESERVED', label: 'Reserved', bar: 'bg-amber-400', text: 'text-amber-700' },
@@ -580,45 +631,40 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
         </SectionCard>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-        <SectionCard title="Awaiting Verification" description="Parked machines a guard still has to check">
-          {listCard(
-            awaitingVerify,
-            'bg-amber-500',
-            'bg-amber-50 border border-amber-200',
-            'All clear — nothing awaiting a guard',
-            (m) => (m.parkStatus === 'PARKED_REJECTED' ? 'Rejected, waiting to be re-parked' : 'Awaiting verification')
-          )}
-        </SectionCard>
-
-        <SectionCard title="Ready to Move" description="Released to the yard, waiting at the plant">
-          {listCard(
-            readyToMove,
-            'bg-indigo-500',
-            'bg-indigo-50 border border-indigo-200',
-            'Nothing released and waiting',
-            (m) => machineLocation(m)
-          )}
-        </SectionCard>
-
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <SectionCard title="In Transit" description="Checked in at the gate, not yet parked">
-          {listCard(
-            inTransit,
-            'bg-blue-500',
-            'bg-blue-50 border border-blue-200',
-            'Nothing on the road',
-            (m) => (m.driver ? `Driver ${m.driver.name}` : machineLocation(m))
+          {machineList(
+            inbound.inTransit, 'bg-blue-500', 'bg-blue-50 border border-blue-200 hover:border-blue-300', 'Nothing on the road',
+            (m) => [m.driver ? `Driver ${m.driver}` : location(m), m.since ? `${elapsed(m.since)} ago` : ''].filter(Boolean).join(' · ')
           )}
         </SectionCard>
 
-        <SectionCard title="Assembly Progress" description="Machines still on the line, stages 1–18">
-          {listCard(
-            [...inAssembly].sort((a: any, b: any) => b.assemblyStage - a.assemblyStage),
-            'bg-blue-500',
-            'bg-slate-50',
-            'No machines in assembly',
-            (m) => m.model,
-            (m) => <Badge variant="blue" size="sm">Stage {m.assemblyStage}/18</Badge>
+        <SectionCard title="Awaiting Verification" description="Parked machines a guard still has to check">
+          {machineList(
+            { count: inbound.awaitingVerify.count + inbound.rejected.count, items: [...inbound.rejected.items, ...inbound.awaitingVerify.items] },
+            'bg-amber-500', 'bg-amber-50 border border-amber-200 hover:border-amber-300', 'All clear — nothing awaiting a guard',
+            (m) => (m.parkStatus === 'PARKED_REJECTED' ? 'Rejected, waiting to be re-parked' : location(m))
+          )}
+        </SectionCard>
+
+        <SectionCard title="Awaiting Main Gate" description="Out of the FG yard, not yet out of the plant">
+          {dispatch.awaitingMainGate.count === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-3">Nothing between the FG yard and the main gate</p>
+          ) : (
+            <>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                {dispatch.awaitingMainGate.items.slice(0, LIST_CAP).map((i) => (
+                  <div key={i.id} className={`flex items-center justify-between gap-2 p-2 rounded-md border ${i.overdue ? 'bg-red-50 border-red-200' : 'bg-sky-50 border-sky-200'}`}>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-slate-900 truncate">{i.serialNumber}</p>
+                      <p className="text-xs text-slate-500 truncate">{i.planNo} · {i.modelType}</p>
+                    </div>
+                    <span className={`shrink-0 text-xs font-semibold tabular-nums ${i.overdue ? 'text-red-700' : 'text-slate-600'}`}>{elapsed(i.gateOutAt)}</span>
+                  </div>
+                ))}
+              </div>
+              <MoreHint total={dispatch.awaitingMainGate.count} cap={LIST_CAP} label="machines not shown" />
+            </>
           )}
         </SectionCard>
       </div>
@@ -628,141 +674,148 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
         onClose={closeModal}
         title={
           modalView?.type === 'machine' ? 'Machine Details' :
-          modalView?.type === 'machines' ? `${modalView.title} (${modalView.list.length})` :
-          modalView?.type === 'slots' ? detailTitles[modalView.slotType] : ''
+          modalView?.type === 'machines' || modalView?.type === 'dispatch' ? `${modalView.title} (${modalView.list.count})` :
+          modalView?.type === 'slots' ? 'Free Slots' : ''
         }
-        subtitle={modalView?.type === 'machine' ? modalView.data.serialNumber : undefined}
+        subtitle={modalView?.type === 'machine' ? modalView.data?.serialNumber : undefined}
         size="lg"
       >
         {modalView?.type === 'machine' && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                <Truck className="w-5 h-5 text-blue-600" />
+          !modalView.data ? (
+            <div className="flex items-center justify-center py-8"><div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-slate-500 uppercase tracking-wide">Serial Number</p>
+                  <p className="text-base font-bold text-slate-900">{modalView.data.serialNumber}</p>
+                  <p className="text-xs text-slate-500">Model: {modalView.data.model || 'N/A'}{modalView.data.modelType ? ` · ${modalView.data.modelType}` : ''}</p>
+                </div>
+                <div className="ml-auto shrink-0"><ParkStatusBadge status={modalView.data.parkStatus} /></div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] text-slate-500 uppercase tracking-wide">Serial Number</p>
-                <p className="text-base font-bold text-slate-900">{modalView.data.serialNumber}</p>
-                <p className="text-xs text-slate-500">Model: {modalView.data.model || 'N/A'}</p>
-              </div>
-              <div className="ml-auto shrink-0"><ParkStatusBadge status={modalView.data.parkStatus} /></div>
-            </div>
 
-            {modalView.data.currentSlot ? (
               <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-xs font-semibold text-slate-700 mb-1">Current Location</p>
-                <div className="flex gap-5">
-                  <div><p className="text-[11px] text-slate-500">Yard</p><p className="text-sm font-medium text-slate-900">{modalView.data.currentSlot.yard.name}</p></div>
-                  <div><p className="text-[11px] text-slate-500">Slot</p><p className="text-sm font-medium text-slate-900">{slotLabel(modalView.data.currentSlot.row, modalView.data.currentSlot.col)}</p></div>
-                </div>
+                <p className="text-xs font-semibold text-slate-700 mb-1">Location</p>
+                <p className="text-sm font-medium text-slate-900">{machineLocation(modalView.data)}</p>
               </div>
-            ) : modalView.data.plannedSlot ? (
-              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                <p className="text-xs font-semibold text-slate-700 mb-1">Reserved Slot</p>
-                <div className="flex gap-5">
-                  <div><p className="text-[11px] text-slate-500">Yard</p><p className="text-sm font-medium text-slate-900">{modalView.data.plannedSlot.yard.name}</p></div>
-                  <div><p className="text-[11px] text-slate-500">Slot</p><p className="text-sm font-medium text-slate-900">{slotLabel(modalView.data.plannedSlot.row, modalView.data.plannedSlot.col)}</p></div>
-                </div>
-                <p className="mt-1.5 text-[11px] text-amber-800">Held for this machine. It has not arrived in the slot yet.</p>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500">Not allocated to a slot.</p>
-            )}
 
-            {machineHistory.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-slate-700 mb-1.5">Movement History</p>
-                <Table maxHeight={220}>
-                  <TableHeader sticky>
-                    <TableHeaderCell>Date</TableHeaderCell>
-                    <TableHeaderCell>From</TableHeaderCell>
-                    <TableHeaderCell>To</TableHeaderCell>
-                    <TableHeaderCell>Reason</TableHeaderCell>
-                  </TableHeader>
-                  <TableBody>
-                    {machineHistory.map((m: any) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="text-xs text-slate-500">{formatDateTime(m.timestamp)}</TableCell>
-                        <TableCell className="text-xs text-slate-600">
-                          {m.fromSlot ? `${m.fromSlot.yard?.name || m.yard.name} (${slotLabel(m.fromSlot.row, m.fromSlot.col)})` : '—'}
-                        </TableCell>
-                        <TableCell className="text-xs text-slate-600">
-                          {m.toSlot ? `${m.toSlot.yard?.name || m.yard.name} (${slotLabel(m.toSlot.row, m.toSlot.col)})` : '—'}
-                        </TableCell>
-                        <TableCell><Badge variant="blue" size="sm">{m.reason}</Badge></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
+              {machineHistory.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-1.5">Movement History</p>
+                  <Table maxHeight={220}>
+                    <TableHeader sticky>
+                      <TableHeaderCell>Date</TableHeaderCell>
+                      <TableHeaderCell>From</TableHeaderCell>
+                      <TableHeaderCell>To</TableHeaderCell>
+                      <TableHeaderCell>Reason</TableHeaderCell>
+                    </TableHeader>
+                    <TableBody>
+                      {machineHistory.map((m: any) => (
+                        <TableRow key={m.id}>
+                          <TableCell className="text-xs text-slate-500">{formatDateTime(m.timestamp)}</TableCell>
+                          <TableCell className="text-xs text-slate-600">
+                            {m.fromSlot ? `${m.fromSlot.yard?.name || m.yard.name} (${slotLabel(m.fromSlot.row, m.fromSlot.col)})` : '—'}
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-600">
+                            {m.toSlot ? `${m.toSlot.yard?.name || m.yard.name} (${slotLabel(m.toSlot.row, m.toSlot.col)})` : '—'}
+                          </TableCell>
+                          <TableCell><Badge variant="blue" size="sm">{m.reason}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )
         )}
 
         {modalView?.type === 'machines' && (
           <div className="max-h-[420px] overflow-y-auto space-y-1.5">
-            {modalView.list.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center py-3">No machines found</p>
+            {modalView.list.count === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-3">No machines</p>
             ) : (
               <>
-                {modalView.list.slice(0, MODAL_CAP).map((m: any) => (
+                {modalView.list.items.map((m) => (
                   <button
                     type="button"
                     key={m.id}
-                    onClick={() => handleViewDetails(m)}
+                    onClick={() => handleViewDetails(m.id)}
                     className="w-full flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-md border border-slate-200 text-left hover:bg-blue-50 hover:border-blue-200 transition-colors"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 bg-blue-100 rounded-md flex items-center justify-center shrink-0">
-                        <Truck className="w-3.5 h-3.5 text-blue-600" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-slate-900 truncate">{m.serialNumber}</p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {m.model || 'N/A'} — {machineLocation(m)}
-                        </p>
-                      </div>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-slate-900 truncate">{m.serialNumber}</p>
+                      <p className="text-xs text-slate-500 truncate">{m.modelType} — {location(m)}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {m.parkStatus && <ParkStatusBadge status={m.parkStatus} />}
-                      {m.assemblyStage > 0 && !m.assemblyCompleted && <Badge variant="blue" size="sm">Stage {m.assemblyStage}</Badge>}
+                      {m.daysInYard != null && <span className="text-xs tabular-nums text-slate-500">{m.daysInYard} d</span>}
+                      <ParkStatusBadge status={m.parkStatus} />
                     </div>
                   </button>
                 ))}
-                <MoreHint total={modalView.list.length} cap={MODAL_CAP} label="machines not shown" />
+                <MoreHint total={modalView.list.count} cap={modalView.list.items.length} label="machines not shown — open Yard Stock for the full list" />
               </>
             )}
           </div>
         )}
 
+        {modalView?.type === 'dispatch' && (
+          modalView.list.count === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-3">No machines</p>
+          ) : (
+            <>
+              <Table maxHeight={380}>
+                <TableHeader sticky>
+                  <TableHeaderCell>Serial</TableHeaderCell>
+                  <TableHeaderCell>Model-Type</TableHeaderCell>
+                  <TableHeaderCell>Plan</TableHeaderCell>
+                  <TableHeaderCell>Driver</TableHeaderCell>
+                  <TableHeaderCell>FG Gate-Out</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {modalView.list.items.map((i) => (
+                    <TableRow key={i.id}>
+                      <TableCell className="text-[13px] font-medium text-slate-900">{i.serialNumber}</TableCell>
+                      <TableCell className="text-[13px] text-slate-700">{i.modelType}</TableCell>
+                      <TableCell className="text-[13px] text-slate-600">{i.planNo}</TableCell>
+                      <TableCell className="text-[13px] text-slate-600">{i.driver || '—'}</TableCell>
+                      <TableCell className={`text-[13px] ${i.overdue ? 'text-red-700 font-semibold' : 'text-slate-600'}`}>
+                        {i.gateOutAt ? `${formatDateTime(i.gateOutAt)} (${elapsed(i.gateOutAt)})` : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <MoreHint total={modalView.list.count} cap={modalView.list.items.length} label="machines not shown — open Dispatch Machine List" />
+            </>
+          )
+        )}
+
         {modalView?.type === 'slots' && (
           detailLoading ? (
             <div className="flex items-center justify-center py-8"><div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+          ) : modalView.list.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-3">No free slots</p>
           ) : (
-            <div>
-              {modalView.list.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-3">No slots found</p>
-              ) : (
-                <Table maxHeight={380}>
-                  <TableHeader sticky>
-                    <TableHeaderCell>Yard</TableHeaderCell>
-                    <TableHeaderCell>Slot</TableHeaderCell>
-                    <TableHeaderCell>{modalView.slotType === 'reserved' ? 'Reserved For' : 'Machine'}</TableHeaderCell>
-                    <TableHeaderCell>Status</TableHeaderCell>
-                  </TableHeader>
-                  <TableBody>
-                    {modalView.list.map((s: any) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="text-[13px] font-medium text-slate-900">{s.yardName}</TableCell>
-                        <TableCell className="text-[13px] text-slate-700">{slotLabel(s.row, s.col)}</TableCell>
-                        <TableCell className="text-[13px] text-slate-600">{slotMachine(s) || '—'}</TableCell>
-                        <TableCell><SlotStatusBadge status={s.status} /></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+            <Table maxHeight={380}>
+              <TableHeader sticky>
+                <TableHeaderCell>Yard</TableHeaderCell>
+                <TableHeaderCell>Slot</TableHeaderCell>
+                <TableHeaderCell>Status</TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {modalView.list.map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="text-[13px] font-medium text-slate-900">{s.yardName}</TableCell>
+                    <TableCell className="text-[13px] text-slate-700">{slotLabel(s.row, s.col)}</TableCell>
+                    <TableCell><SlotStatusBadge status={s.status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )
         )}
       </Modal>
