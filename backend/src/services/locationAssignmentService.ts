@@ -282,6 +282,14 @@ async function assignSlot(
 ): Promise<AssignmentResult> {
   try {
     await prisma.$transaction(async (tx) => {
+      // Callers only pass an AVAILABLE slot, so any other machine still pointing at it
+      // holds a leftover plan from an earlier visit or move. Clear it, or the unique
+      // plannedSlotId constraint rejects this assignment.
+      await tx.machine.updateMany({
+        where: { plannedSlotId: slotId, id: { not: machineId } },
+        data: { plannedSlotId: null },
+      });
+
       await tx.machine.update({
         where: { id: machineId },
         data: {

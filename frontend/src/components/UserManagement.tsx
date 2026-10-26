@@ -14,7 +14,7 @@ import { SectionCard } from '@/components/ui/Card';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from '@/components/ui/Table';
 
-type UserRole = 'ADMIN' | 'YARD_MANAGER' | 'OPERATOR' | 'SERVICE_TECHNICIAN' | 'SECURITY' | 'VIEW_ONLY' | 'PLANNER';
+type UserRole = 'ADMIN' | 'YARD_MANAGER' | 'OPERATOR' | 'SERVICE_TECHNICIAN' | 'SECURITY' | 'VIEW_ONLY' | 'PLANNER' | 'PDI' | 'MAIN_GATE';
 
 interface User {
   id: string;
@@ -41,6 +41,8 @@ const ROLE_OPTIONS: Array<{ value: UserRole; label: string }> = [
   { value: 'SECURITY', label: 'Security' },
   { value: 'VIEW_ONLY', label: 'View Only' },
   { value: 'PLANNER', label: 'Dispatch Planner' },
+  { value: 'PDI', label: 'PDI Team' },
+  { value: 'MAIN_GATE', label: 'Main Gate' },
 ];
 
 const emptyForm: UserForm = {

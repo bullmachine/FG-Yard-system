@@ -112,6 +112,14 @@ export const createExitRequest = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Machine is not parked in a slot' });
     }
 
+    const planned = await prisma.dispatchItem.findFirst({
+      where: { machineId, status: { in: ['PLANNED', 'DRIVER_ASSIGNED'] } },
+      select: { plan: { select: { planNo: true } } }
+    });
+    if (planned) {
+      return res.status(400).json({ error: `This machine is planned for dispatch (${planned.plan.planNo}). Cancel it from Dispatch Planning first.` });
+    }
+
     const active = await prisma.machineExitRequest.findFirst({
       where: { machineId, status: { in: ['PENDING', 'APPROVED'] } },
       select: { id: true }

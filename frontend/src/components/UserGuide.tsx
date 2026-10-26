@@ -33,6 +33,8 @@ const ROLE_LABELS: Record<string, string> = {
   VIEW_ONLY: 'View Only',
   DRIVER: 'Driver',
   PLANNER: 'Dispatch Planner',
+  PDI: 'PDI Team',
+  MAIN_GATE: 'Main Gate',
 };
 
 const ROLE_SUMMARY: Record<string, string> = {
@@ -43,7 +45,9 @@ const ROLE_SUMMARY: Record<string, string> = {
   SECURITY: 'Verifies parked machines and watches authorized exits at the gate.',
   VIEW_ONLY: 'Read-only view of the dashboard, yards and machines. Can raise exit requests.',
   DRIVER: 'Confirms when a machine has been parked in its slot.',
-  PLANNER: 'Checks yard stock and raises dispatch plans that reserve machines against a sales order.',
+  PLANNER: 'Checks yard stock and plans machines for dispatch.',
+  PDI: 'Assigns drivers to planned machines and prints the pick slip.',
+  MAIN_GATE: 'Marks dispatched machines out of the main gate.',
 };
 
 const QUICK_START = [
@@ -103,26 +107,38 @@ const SCREENS: ScreenGuide[] = [
     tab: 'stock', title: 'Yard Stock', roles: 'Administrator, Yard Manager, Dispatch Planner, Operator, View Only',
     purpose: 'How many machines of each model-type are in the yard, and which one should be dispatched first (FIFO).',
     steps: [
-      'Each row is a model-type with its free quantity (parked, verified and not reserved), machines reserved for dispatch plans, machines still awaiting verification, and the oldest inward date.',
+      'Each row is a model-type with its free quantity (parked, verified and not reserved), machines planned for dispatch, machines still awaiting verification, and the oldest inward date.',
       'Click a model-type to list its machines in dispatch order. FIFO 1 (green) is the oldest and should go out first.',
       'Filter by yard, or search a model-type or serial number.',
       'The badge next to the inward date shows where the date came from: Actual (entered by hand), Gate (first gate check-in) or Stage 18 (estimate).',
       'Administrators and Yard Managers can click the pencil icon to enter the real inward date of a machine that was in the yard before go-live.',
     ],
-    tips: ['Machines awaiting security verification, reserved for a dispatch plan or on an exit request are shown but not numbered: only free stock gets a FIFO number.'],
+    tips: ['Machines awaiting security verification, planned for dispatch or on an exit request are shown but not numbered: only free stock gets a FIFO number.'],
   },
   {
-    tab: 'dispatch', title: 'Dispatch Planning', roles: 'Dispatch Planner, Yard Manager, Administrator (Operator and View Only can view)',
-    purpose: 'Reserve yard stock against a sales order, oldest machine first (FIFO), for the Yard Manager to approve.',
+    tab: 'dispatch', title: 'Dispatch Planning', roles: 'Dispatch Planner, Yard Manager, Administrator',
+    purpose: 'Plan FG yard machines for dispatch. The system picks the oldest machines first (FIFO).',
     steps: [
-      'Click New Plan. Enter the sales order number, customer or dealer, destination and planned dispatch date.',
-      'Add one line per model-type with the quantity needed. The free stock for each model-type is shown as you type.',
-      'Save. The system reserves the oldest free machines of each model-type straight away. If stock is short, the plan keeps the shortfall.',
-      'Open the plan to see the reserved machines. To use a different machine, click Change and give a reason; the change is recorded as a FIFO override.',
-      'When more stock is parked and verified, click Reserve Shortfall to top the plan up.',
-      'The Yard Manager opens a plan waiting for approval and clicks Approve, or Reject with a reason. Rejecting or cancelling a plan frees its machines.',
+      'Click Plan Machines. Choose a model-type and the quantity; the free stock of each model-type is shown in the list.',
+      'Add more model-types if needed, then click Save Plan.',
+      'The quantity cannot be more than the free FG yard stock. If it is, the plan is not saved.',
+      'The oldest free machines are picked straight away and appear on the PDI Dispatch Machine List. No approval is needed.',
+      'Click a plan to see its machines and where each one is. Cancel removes a machine that is still in the FG yard and makes it free stock again.',
     ],
-    tips: ['A plan can only be changed while it waits for approval. An approved plan can only be cancelled by the Yard Manager.', 'Reserved machines show a Reserved badge with the plan number on the Yard Stock screen and do not count as free stock.'],
+    tips: ['Planned machines show a purple Planned badge on Yard Stock and are not counted as free stock.'],
+  },
+  {
+    tab: 'pdi', title: 'Dispatch Machine List', roles: 'PDI Team, Main Gate, Yard Manager, Administrator (Dispatch Planner, Operator and View Only can view)',
+    purpose: 'Follow planned machines from the FG yard to the main gate.',
+    steps: [
+      'In FG yard lists the planned machines with their yard and slot.',
+      'Choose a driver for a machine (optional).',
+      'Tick the machines and click Print Slip. The slip lists, for each driver, the machine serial, barcode, yard and slot to collect.',
+      'The driver takes the machine out through the normal FG gate-out with their badge and the machine barcode. No exit request is needed. The machine moves to Waiting main gate by itself.',
+      'Waiting main gate shows the time since FG gate-out. It turns amber at half the alert time and red after it (8 hours by default).',
+      'The Main Gate user clicks Main Gate Out when the machine leaves the plant. Later the main gate system will send this automatically. Undo corrects a wrong click.',
+    ],
+    tips: ['A machine still waiting after the alert time is e-mailed to the production manager, with a reminder while it is still waiting. The time and the e-mail address are set by the Administrator in Settings.', 'The Main Gate user sees only this list, and only machines that have left the FG yard.'],
   },
   {
     tab: 'machines', title: 'Machine Tracking', roles: 'Administrator, Yard Manager, Operator, Service Technician, View Only',
@@ -214,7 +230,7 @@ const SCREENS: ScreenGuide[] = [
     tips: [
       'Camera scanning needs the site opened over https (or on the same computer) and permission to use the camera. Tap Allow when the browser asks.',
       'If a barcode will not scan, use "or select machine manually".',
-      'Outward only lists machines whose exit request was approved.',
+      'Outward only lists machines whose exit request was approved, or that are planned for dispatch. A planned machine needs no exit request; its slot is freed when it is scanned out.',
       '"Recent Gate Logs" on the right shows every attempt, authorized or rejected.',
     ],
   },

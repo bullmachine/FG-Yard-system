@@ -8,6 +8,14 @@ import {
   findSlotForMachine,
   listAvailableSlots
 } from '../services/locationAssignmentService';
+import { findPlannedDispatch, releaseForDispatch, markDispatchGateOut } from './dispatchPlanController';
+
+const INWARD_BLOCKED: Record<string, string> = {
+  PARKED_PENDING: 'is already parked in the yard (waiting for security). It cannot come in again.',
+  PARKED_REJECTED: 'is already in the yard (security asked for a re-park). It cannot come in again.',
+  PARKED_VERIFIED: 'is already parked and verified in the yard. It cannot come in again.',
+  AT_GATE: 'is released for exit. Use Outward, not Inward.'
+};
 
 async function rejectGate(reason: string, context: { driverId?: string; barcode?: string }) {
   await notifyEvent({
@@ -86,7 +94,15 @@ export const authenticateGate = async (req: Request, res: Response) => {
       // Gate OUT - a machine leaving the yard. It must have been released for exit
       // (an approved exit request, or the manager's quick release) which set it to
       // AT_GATE. Any valid driver badge is accepted: the request governs the exit.
-      if (machine.parkStatus !== 'AT_GATE') {
+      // A machine planned for dispatch needs no exit request: the plan is the release,
+      // and its slot is freed here, when it actually leaves.
+      const dispatch = await findPlannedDispatch(machine.id);
+      if (dispatch && machine.parkStatus !== 'AT_GATE') {
+        if (machine.parkStatus !== 'PARKED_VERIFIED' || !machine.currentSlotId) {
+          return res.json(await rejectGate('Machine is planned for dispatch but is not parked and verified in the yard.', { barcode }));
+        }
+        await releaseForDispatch(machine.id, dispatch.plan.planNo, actorId);
+      } else if (machine.parkStatus !== 'AT_GATE') {
         return res.json(await rejectGate('Machine is not released for exit. Request and approval required.', { barcode }));
       }
 
@@ -113,6 +129,7 @@ export const authenticateGate = async (req: Request, res: Response) => {
         where: { machineId: machine.id, status: 'APPROVED' },
         data: { status: 'COMPLETED' }
       });
+      await markDispatchGateOut(machine.id);
       await pushExitRequestsChanged('completed', {
         machineId: machine.id,
         serialNumber: machine.serialNumber
@@ -148,6 +165,14 @@ export const authenticateGate = async (req: Request, res: Response) => {
     }
     if (!machine.barcode || machine.barcode.trim() === '') {
       return res.json(await rejectGate('Machine has no barcode. Cannot be checked in at the gate.', { barcode }));
+    }
+    // A machine already parked in the yard, or released and waiting to leave, must not
+    // come in again: a second IN would assign it a second slot while it still holds the
+    // first. IN_TRANSIT stays allowed so a wrong driver can be corrected; it keeps its
+    // reserved slot.
+    const inwardBlock = INWARD_BLOCKED[machine.parkStatus];
+    if (inwardBlock) {
+      return res.json(await rejectGate(`${machine.serialNumber} ${inwardBlock}`, { barcode }));
     }
 
     // The gate is where a slot is assigned. A machine either carries a live
@@ -234,10 +259,29 @@ export const authenticateGate = async (req: Request, res: Response) => {
     // owner for the rest of the lifecycle: the driver's parking confirmation
     // would be rejected as an unassigned machine, and the movement history could
     // not say who actually drove the load.
+    // A machine coming back ends the trip its sales status describes. Back from
+    // inspection or repair it is free stock again. Back from dispatch is not normal
+    // (rejection, damage, cancelled order), so it is held until someone checks it.
+    const returnedFromDispatch = machine.status === 'DISPATCHED';
+    const tripEnded = returnedFromDispatch || machine.status === 'UNDER_INSPECTION' || machine.status === 'IN_REPAIR';
     await prisma.machine.update({
       where: { id: machine.id },
-      data: { parkStatus: 'IN_TRANSIT', driverId: driver.id }
+      data: {
+        parkStatus: 'IN_TRANSIT',
+        driverId: driver.id,
+        ...(tripEnded ? { status: 'AVAILABLE' as const } : {}),
+        ...(returnedFromDispatch ? { returnHoldAt: new Date() } : {})
+      }
     });
+    if (returnedFromDispatch) {
+      await notifyEvent({
+        type: 'RETURN_HOLD',
+        severity: 'WARNING',
+        title: `${machine.serialNumber} returned after dispatch - on hold`,
+        message: `${machine.serialNumber} (${machine.model}) came back in through the gate after being dispatched. It is on hold and cannot be planned until it is checked and cleared in Yard Stock.`,
+        link: 'stock'
+      });
+    }
 
     res.json({
       result: 'AUTHORIZED',

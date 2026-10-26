@@ -7,13 +7,14 @@ import {
   LayoutDashboard, MapPin, Truck, Users, Shield,
   Clock, LogOut, Menu, X, Factory, Package, Fence, Database, Layers,
   PanelLeftClose, PanelLeftOpen, BookOpen, Bell, Settings, ParkingCircle, Send,
-  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList
+  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import DashboardV2 from '@/components/DashboardV2';
 import YardManagement from '@/components/YardManagement';
 import YardStock from '@/components/YardStock';
 import DispatchPlanning from '@/components/DispatchPlanning';
+import DispatchList from '@/components/DispatchList';
 import MachineTracking from '@/components/MachineTracking';
 import AssemblyLine from '@/components/AssemblyLine';
 import FertCategories from '@/components/FertCategories';
@@ -33,7 +34,7 @@ import SettingsPage from '@/components/SettingsPage';
 import UserGuide from '@/components/UserGuide';
 import { asset } from '@/lib/basePath';
 
-type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'notifications' | 'help';
+type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'notifications' | 'help';
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
@@ -41,6 +42,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   yards: <MapPin className="w-5 h-5" />,
   stock: <Boxes className="w-5 h-5" />,
   dispatch: <ClipboardList className="w-5 h-5" />,
+  pdi: <PackageCheck className="w-5 h-5" />,
   machines: <Truck className="w-5 h-5" />,
   assembly: <Factory className="w-5 h-5" />,
   fert: <Package className="w-5 h-5" />,
@@ -66,6 +68,7 @@ const TAB_LABELS: Record<Tab, string> = {
   yards: 'Yard Management',
   stock: 'Yard Stock',
   dispatch: 'Dispatch Planning',
+  pdi: 'Dispatch Machine List',
   machines: 'Machine Tracking',
   assembly: 'Assembly Line',
   fert: 'FERT Categories',
@@ -87,7 +90,7 @@ const TAB_LABELS: Record<Tab, string> = {
 
 const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
   { label: 'OVERVIEW', tabs: ['dashboard', 'dashboard2'] },
-  { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers'] },
+  { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers'] },
   { label: 'ADMINISTRATION', tabs: ['users', 'settings'] },
   { label: 'CONTROL', tabs: ['gate', 'parked', 'security', 'returns', 'requests', 'history'] },
   { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'notifications'] },
@@ -95,17 +98,21 @@ const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
 
 const ROLE_TABS: Record<string, Tab[]> = {
   // dashboard2 is the replacement dashboard under development; only its reviewers see it.
-  ADMIN: ['dashboard', 'dashboard2', 'yards', 'stock', 'dispatch', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'users', 'settings', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
-  YARD_MANAGER: ['dashboard', 'dashboard2', 'yards', 'stock', 'dispatch', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'returns', 'requests', 'history'],
-  OPERATOR: ['dashboard', 'yards', 'stock', 'dispatch', 'machines', 'assembly', 'gate', 'parked', 'returns', 'requests', 'history'],
+  ADMIN: ['dashboard', 'dashboard2', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'users', 'settings', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
+  YARD_MANAGER: ['dashboard', 'dashboard2', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'returns', 'requests', 'history'],
+  OPERATOR: ['dashboard', 'yards', 'stock', 'pdi', 'machines', 'assembly', 'gate', 'parked', 'returns', 'requests', 'history'],
   // No history: the movements endpoint does not admit this role.
   SERVICE_TECHNICIAN: ['dashboard', 'machines', 'returns', 'requests'],
   SECURITY: ['dashboard', 'security', 'returns', 'requests', 'history'],
-  VIEW_ONLY: ['dashboard', 'yards', 'stock', 'dispatch', 'machines', 'returns', 'requests'],
+  VIEW_ONLY: ['dashboard', 'yards', 'stock', 'pdi', 'machines', 'returns', 'requests'],
   // A driver only ever sees the parking confirmation, not the yard overview.
   DRIVER: ['dashboard', 'parked', 'requests'],
-  // Dispatch planning team: reads yard stock and raises dispatch plans.
-  PLANNER: ['dashboard', 'stock', 'dispatch'],
+  // Dispatch planning team: reads yard stock and plans machines for dispatch.
+  PLANNER: ['dashboard', 'stock', 'dispatch', 'pdi'],
+  // PDI team: assigns drivers and prints the pick slip for planned machines.
+  PDI: ['dashboard', 'pdi'],
+  // Main gate: only the dispatch list, to mark machines out of the plant.
+  MAIN_GATE: ['pdi'],
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -117,6 +124,8 @@ const ROLE_COLORS: Record<string, string> = {
   VIEW_ONLY: 'bg-slate-500',
   DRIVER: 'bg-cyan-600',
   PLANNER: 'bg-violet-600',
+  PDI: 'bg-teal-600',
+  MAIN_GATE: 'bg-rose-600',
 };
 
 interface SidebarUser {
@@ -247,7 +256,8 @@ export default function Home() {
     : isAuthenticated
       ? [...roleTabs, 'help', 'notifications']
       : [...roleTabs, 'help'];
-  const effectiveTab = allowedTabs.includes(activeTab) ? activeTab : 'dashboard';
+  // A role without the dashboard (the main gate) opens on its first screen instead.
+  const effectiveTab = allowedTabs.includes(activeTab) ? activeTab : allowedTabs[0];
 
   const toggleSidebar = () => {
     setCollapsed(c => {
@@ -270,6 +280,7 @@ export default function Home() {
       case 'yards': return <YardManagement />;
       case 'stock': return <YardStock />;
       case 'dispatch': return <DispatchPlanning />;
+      case 'pdi': return <DispatchList />;
       case 'machines': return <MachineTracking />;
       case 'assembly': return <AssemblyLine />;
       case 'fert': return <FertCategories />;

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import {
   getSettings,
   updateSettings,
@@ -8,6 +9,7 @@ import {
 } from '../services/settingsService';
 import { testProductionConnection } from '../services/productionApiService';
 import { testMaterialMasterConnection } from '../services/materialMasterService';
+import { sendMail } from '../services/mailService';
 
 type AuthenticatedRequest = Request & { userId?: string };
 
@@ -18,6 +20,48 @@ const MAX_DAYS = 31;
 const MIN_TIMEOUT_MS = 1000;
 const MAX_TIMEOUT_MS = 120000;
 const MAX_AUTO_CLOSE_SECONDS = 300;
+const MAX_ALERT_HOURS = 72;
+const EMAIL_RE = /^[^s@,;]+@[^s@,;]+.[^s@,;]+$/;
+
+function validateWholeNumber(value: unknown, field: string, min: number, max: number, errors: FieldErrors): number | undefined {
+  if (value === undefined) return undefined;
+  const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+  if (Number.isNaN(num) || !Number.isInteger(num) || num < min || num > max) {
+    errors[field] = `Must be a whole number from ${min} to ${max}`;
+    return undefined;
+  }
+  return num;
+}
+
+function validateEmail(value: unknown, field: string, errors: FieldErrors): string | undefined {
+  if (value === undefined) return undefined;
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  if (!EMAIL_RE.test(trimmed)) {
+    errors[field] = 'Not a valid e-mail address';
+    return undefined;
+  }
+  return trimmed;
+}
+
+/** Comma- or semicolon-separated list; stored comma-separated. Blank turns alerts off. */
+function validateEmailList(value: unknown, field: string, errors: FieldErrors): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string') {
+    errors[field] = 'Must be text';
+    return undefined;
+  }
+  const list = value.split(/[,;s]+/).map((v) => v.trim()).filter(Boolean);
+  const bad = list.filter((v) => !EMAIL_RE.test(v));
+  if (bad.length) {
+    errors[field] = `Not a valid e-mail address: ${bad.join(', ')}`;
+    return undefined;
+  }
+  if (list.join(', ').length > 500) {
+    errors[field] = 'Too many addresses (500 characters at most)';
+    return undefined;
+  }
+  return list.join(', ');
+}
 
 /**
  * Validates a URL when one is supplied. Omitted fields are left untouched, so a
@@ -245,6 +289,56 @@ export const updateSettingsHandler = async (req: Request, res: Response) => {
       }
     }
 
+    if (body.smtpHost !== undefined) {
+      if (typeof body.smtpHost !== 'string' || !body.smtpHost.trim()) {
+        errors.smtpHost = 'SMTP server is required';
+      } else {
+        update.smtpHost = body.smtpHost.trim();
+      }
+    }
+
+    const smtpPort = validateWholeNumber(body.smtpPort, 'smtpPort', 1, 65535, errors);
+    if (smtpPort !== undefined) update.smtpPort = smtpPort;
+
+    if (body.smtpSecure !== undefined) {
+      if (typeof body.smtpSecure !== 'boolean') errors.smtpSecure = 'Must be a boolean';
+      else update.smtpSecure = body.smtpSecure;
+    }
+
+    const smtpUser = validateEmail(body.smtpUser, 'smtpUser', errors);
+    if (smtpUser !== undefined) update.smtpUser = smtpUser;
+
+    const smtpFrom = validateEmail(body.smtpFrom, 'smtpFrom', errors);
+    if (smtpFrom !== undefined) update.smtpFrom = smtpFrom;
+
+    // Blank means "keep the stored password", as for the material master.
+    if (body.smtpPassword !== undefined && body.smtpPassword !== '') {
+      if (typeof body.smtpPassword !== 'string') errors.smtpPassword = 'Password must be text';
+      else update.smtpPassword = body.smtpPassword;
+    }
+
+    const dispatchAlertEmails = validateEmailList(body.dispatchAlertEmails, 'dispatchAlertEmails', errors);
+    if (dispatchAlertEmails !== undefined) update.dispatchAlertEmails = dispatchAlertEmails;
+
+    const dispatchAlertHours = validateWholeNumber(body.dispatchAlertHours, 'dispatchAlertHours', 1, MAX_ALERT_HOURS, errors);
+    if (dispatchAlertHours !== undefined) update.dispatchAlertHours = dispatchAlertHours;
+
+    const dispatchReminderHours = validateWholeNumber(body.dispatchReminderHours, 'dispatchReminderHours', 0, MAX_ALERT_HOURS, errors);
+    if (dispatchReminderHours !== undefined) update.dispatchReminderHours = dispatchReminderHours;
+
+    if (body.dispatchAlertEnabled !== undefined) {
+      if (typeof body.dispatchAlertEnabled !== 'boolean') errors.dispatchAlertEnabled = 'Must be a boolean';
+      else update.dispatchAlertEnabled = body.dispatchAlertEnabled;
+    }
+
+    if (body.securityVerifyRequired !== undefined) {
+      if (typeof body.securityVerifyRequired !== 'boolean') errors.securityVerifyRequired = 'Must be a boolean';
+      else update.securityVerifyRequired = body.securityVerifyRequired;
+    }
+
+    const inTransitAlertMinutes = validateWholeNumber(body.inTransitAlertMinutes, 'inTransitAlertMinutes', 0, 1440, errors);
+    if (inTransitAlertMinutes !== undefined) update.inTransitAlertMinutes = inTransitAlertMinutes;
+
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({ error: 'Validation failed', fieldErrors: errors });
     }
@@ -264,8 +358,23 @@ export const updateSettingsHandler = async (req: Request, res: Response) => {
 export const testConnectionHandler = async (req: Request, res: Response) => {
   const target = req.body?.target;
 
+  if (target === 'email') {
+    const to = typeof req.body?.to === 'string' ? req.body.to.trim() : '';
+    if (!EMAIL_RE.test(to)) return res.status(400).json({ target, ok: false, message: 'Enter a valid address to send the test to' });
+    try {
+      await sendMail({
+        to: [to],
+        subject: 'FG Yard System - test e-mail',
+        html: '<p>This is a test e-mail from the FG Yard System. E-mail alerts are working.</p>'
+      });
+      return res.json({ target, ok: true, message: `Test e-mail sent to ${to}` });
+    } catch (error) {
+      return res.json({ target, ok: false, message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
   if (target !== 'production' && target !== 'material') {
-    return res.status(400).json({ error: 'target must be "production" or "material"' });
+    return res.status(400).json({ error: 'target must be "production", "material" or "email"' });
   }
 
   try {
@@ -281,5 +390,20 @@ export const testConnectionHandler = async (req: Request, res: Response) => {
       ok: false,
       message: error instanceof Error ? error.message : String(error)
     });
+  }
+};
+
+/**
+ * Create a new key for the main gate system (or clear it with { clear: true }). The old
+ * key stops working at once, so the main gate team must be given the new one.
+ */
+export const rotateMainGateKeyHandler = async (req: Request, res: Response) => {
+  try {
+    const key = req.body?.clear === true ? '' : crypto.randomBytes(24).toString('hex');
+    const updated = await updateSettings({ mainGateApiKey: key }, (req as AuthenticatedRequest).userId);
+    res.json(toPublicSettings(updated));
+  } catch (error) {
+    console.error('Failed to rotate main gate key:', error);
+    res.status(500).json({ error: 'Failed to create the API key' });
   }
 };

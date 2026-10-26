@@ -30,6 +30,7 @@ interface Machine {
   barcode?: string;
   assemblyStage: number;
   parkStatus: string;
+  status?: string;
   // Where the machine is headed. currentSlot is null while it is still
   // READY_TO_MOVE, so plannedSlot is the one that matters at the gate.
   currentSlot?: SlotRef | null;
@@ -56,6 +57,19 @@ interface AuthResult {
   slotSource?: 'RESERVED' | 'AUTO' | 'MANUAL' | 'AUTO_FALLBACK';
   slotNotice?: string;
 }
+
+// Leaving OUT: released by an exit request (AT_GATE), or planned for dispatch, which
+// marks a parked machine RESERVED. The server makes the final check.
+const canGoOut = (m: Machine) => m.parkStatus === 'AT_GATE' || (m.status === 'RESERVED' && m.parkStatus === 'PARKED_VERIFIED');
+
+// Already in the yard, or released to leave: the server refuses these inward.
+const INWARD_BLOCKED: Record<string, string> = {
+  PARKED_PENDING: 'is already parked in the yard (waiting for security). It cannot come in again.',
+  PARKED_REJECTED: 'is already in the yard (security asked for a re-park). It cannot come in again.',
+  PARKED_VERIFIED: 'is already parked and verified in the yard. It cannot come in again.',
+  AT_GATE: 'is released for exit. Use Outward, not Inward.'
+};
+const canComeIn = (m: Machine) => m.assemblyStage >= 18 && !INWARD_BLOCKED[m.parkStatus];
 
 type DetectionState = 'none' | 'detecting' | 'ok' | 'notready' | 'missing';
 
@@ -160,7 +174,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
         }
         // Eligibility differs per direction: coming IN the machine only needs to be
         // stage 18+; leaving OUT it must already be released (AT_GATE).
-        const eligible = direction === 'OUT' ? match.parkStatus === 'AT_GATE' : match.assemblyStage >= 18;
+        const eligible = direction === 'OUT' ? canGoOut(match) : canComeIn(match);
         if (eligible) {
           setSelectedMachine(match.id);
           setDetection({ state: 'ok', machine: match });
@@ -370,8 +384,8 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const screenMachines = direction === 'IN'
     // A machine that left the yard (EXITED) can come back. No pre-reservation is
     // required - the gate will assign a slot at authentication time.
-    ? machines.filter(m => m.parkStatus !== 'PARKED_VERIFIED')
-    : machines.filter(m => m.parkStatus === 'AT_GATE');
+    ? machines.filter(canComeIn)
+    : machines.filter(canGoOut);
   const pickedLabel = screenMachines.find(m => m.id === selectedMachine);
 
   if (loading) return <PageSpinner />;
@@ -482,7 +496,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                     <div className="text-xs">
                       <span className="font-semibold text-emerald-800">Detected:</span>
                       <span className="text-emerald-800"> {detection.machine.serialNumber}</span>
-                      <span className="text-emerald-600"> · Released for exit · AT GATE</span>
+                      <span className="text-emerald-600"> · {detection.machine.parkStatus === 'AT_GATE' ? 'Released for exit · AT GATE' : 'Planned for dispatch'}</span>
                     </div>
                   </div>
                 );
@@ -540,7 +554,11 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                 <XCircle className="w-4 h-4 text-red-600 shrink-0" />
                 {direction === 'OUT' ? (
                   <p className="text-xs text-red-800">
-                    <span className="font-semibold">{detection.machine.serialNumber}</span> is not released for exit - a yard manager must approve the exit request first.
+                    <span className="font-semibold">{detection.machine.serialNumber}</span> is not released for exit - it needs an approved exit request or a dispatch plan.
+                  </p>
+                ) : INWARD_BLOCKED[detection.machine.parkStatus] ? (
+                  <p className="text-xs text-red-800">
+                    <span className="font-semibold">{detection.machine.serialNumber}</span> {INWARD_BLOCKED[detection.machine.parkStatus]}
                   </p>
                 ) : (
                   <p className="text-xs text-red-800">

@@ -19,6 +19,19 @@ export interface SystemSettings {
   barrierCloseUrl: string;
   barrierAutoCloseSeconds: number;
   barrierManualOpenEnabled: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPassword: string;
+  smtpFrom: string;
+  dispatchAlertEmails: string;
+  dispatchAlertHours: number;
+  dispatchReminderHours: number;
+  dispatchAlertEnabled: boolean;
+  mainGateApiKey: string;
+  securityVerifyRequired: boolean;
+  inTransitAlertMinutes: number;
 }
 
 /**
@@ -45,7 +58,21 @@ function bootstrapDefaults(): SystemSettings {
     barrierOpenUrl: '',
     barrierCloseUrl: '',
     barrierAutoCloseSeconds: 5,
-    barrierManualOpenEnabled: false
+    barrierManualOpenEnabled: false,
+    // Placeholders until IT provides the real mailbox; nothing is sent without a password.
+    smtpHost: 'smtp.gmail.com',
+    smtpPort: 587,
+    smtpSecure: false,
+    smtpUser: 'fgyard.alerts.dummy@gmail.com',
+    smtpPassword: '',
+    smtpFrom: 'fgyard.alerts.dummy@gmail.com',
+    dispatchAlertEmails: 'production.manager.dummy@gmail.com',
+    dispatchAlertHours: 8,
+    dispatchReminderHours: 8,
+    dispatchAlertEnabled: true,
+    mainGateApiKey: '',
+    securityVerifyRequired: true,
+    inTransitAlertMinutes: 30
   };
 }
 
@@ -76,6 +103,19 @@ function rowToSettings(row: {
   barrierCloseUrl: string;
   barrierAutoCloseSeconds: number;
   barrierManualOpenEnabled: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPassword: string;
+  smtpFrom: string;
+  dispatchAlertEmails: string;
+  dispatchAlertHours: number;
+  dispatchReminderHours: number;
+  dispatchAlertEnabled: boolean;
+  mainGateApiKey: string;
+  securityVerifyRequired: boolean;
+  inTransitAlertMinutes: number;
 }): SystemSettings {
   return {
     productionApiUrl: row.productionApiUrl,
@@ -92,7 +132,20 @@ function rowToSettings(row: {
     barrierOpenUrl: row.barrierOpenUrl,
     barrierCloseUrl: row.barrierCloseUrl,
     barrierAutoCloseSeconds: row.barrierAutoCloseSeconds,
-    barrierManualOpenEnabled: row.barrierManualOpenEnabled
+    barrierManualOpenEnabled: row.barrierManualOpenEnabled,
+    smtpHost: row.smtpHost,
+    smtpPort: row.smtpPort,
+    smtpSecure: row.smtpSecure,
+    smtpUser: row.smtpUser,
+    smtpPassword: row.smtpPassword,
+    smtpFrom: row.smtpFrom,
+    dispatchAlertEmails: row.dispatchAlertEmails,
+    dispatchAlertHours: row.dispatchAlertHours,
+    dispatchReminderHours: row.dispatchReminderHours,
+    dispatchAlertEnabled: row.dispatchAlertEnabled,
+    mainGateApiKey: row.mainGateApiKey,
+    securityVerifyRequired: row.securityVerifyRequired,
+    inTransitAlertMinutes: row.inTransitAlertMinutes
   };
 }
 
@@ -147,11 +200,24 @@ export interface SettingsUpdate {
   barrierCloseUrl?: string;
   barrierAutoCloseSeconds?: number;
   barrierManualOpenEnabled?: boolean;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPassword?: string;
+  smtpFrom?: string;
+  dispatchAlertEmails?: string;
+  dispatchAlertHours?: number;
+  dispatchReminderHours?: number;
+  dispatchAlertEnabled?: boolean;
+  mainGateApiKey?: string;
+  securityVerifyRequired?: boolean;
+  inTransitAlertMinutes?: number;
 }
 
 /**
- * Persist a partial settings change and refresh the cache. A blank material password is
- * ignored so the stored credential is never blanked out by an unrelated edit.
+ * Persist a partial settings change and refresh the cache. A blank material or SMTP
+ * password is ignored so the stored credential is never blanked out by an unrelated edit.
  */
 export async function updateSettings(
   update: SettingsUpdate,
@@ -175,7 +241,20 @@ export async function updateSettings(
     barrierOpenUrl: update.barrierOpenUrl ?? current.barrierOpenUrl,
     barrierCloseUrl: update.barrierCloseUrl ?? current.barrierCloseUrl,
     barrierAutoCloseSeconds: update.barrierAutoCloseSeconds ?? current.barrierAutoCloseSeconds,
-    barrierManualOpenEnabled: update.barrierManualOpenEnabled ?? current.barrierManualOpenEnabled
+    barrierManualOpenEnabled: update.barrierManualOpenEnabled ?? current.barrierManualOpenEnabled,
+    smtpHost: update.smtpHost ?? current.smtpHost,
+    smtpPort: update.smtpPort ?? current.smtpPort,
+    smtpSecure: update.smtpSecure ?? current.smtpSecure,
+    smtpUser: update.smtpUser ?? current.smtpUser,
+    smtpPassword: update.smtpPassword ? update.smtpPassword : current.smtpPassword,
+    smtpFrom: update.smtpFrom ?? current.smtpFrom,
+    dispatchAlertEmails: update.dispatchAlertEmails ?? current.dispatchAlertEmails,
+    dispatchAlertHours: update.dispatchAlertHours ?? current.dispatchAlertHours,
+    dispatchReminderHours: update.dispatchReminderHours ?? current.dispatchReminderHours,
+    dispatchAlertEnabled: update.dispatchAlertEnabled ?? current.dispatchAlertEnabled,
+    mainGateApiKey: update.mainGateApiKey ?? current.mainGateApiKey,
+    securityVerifyRequired: update.securityVerifyRequired ?? current.securityVerifyRequired,
+    inTransitAlertMinutes: update.inTransitAlertMinutes ?? current.inTransitAlertMinutes
   };
 
   await prisma.systemSetting.update({
@@ -198,7 +277,7 @@ export async function updateSettings(
 }
 
 /**
- * Settings without the stored credential, safe to send to a client.
+ * Settings without the stored passwords, safe to send to the admin's browser.
  */
 export function toPublicSettings(settings: SystemSettings) {
   return {
@@ -216,7 +295,21 @@ export function toPublicSettings(settings: SystemSettings) {
     barrierCloseUrl: settings.barrierCloseUrl,
     barrierAutoCloseSeconds: settings.barrierAutoCloseSeconds,
     barrierManualOpenEnabled: settings.barrierManualOpenEnabled,
-    hasMaterialPassword: Boolean(settings.materialPassword)
+    hasMaterialPassword: Boolean(settings.materialPassword),
+    smtpHost: settings.smtpHost,
+    smtpPort: settings.smtpPort,
+    smtpSecure: settings.smtpSecure,
+    smtpUser: settings.smtpUser,
+    smtpFrom: settings.smtpFrom,
+    hasSmtpPassword: Boolean(settings.smtpPassword),
+    dispatchAlertEmails: settings.dispatchAlertEmails,
+    dispatchAlertHours: settings.dispatchAlertHours,
+    dispatchReminderHours: settings.dispatchReminderHours,
+    dispatchAlertEnabled: settings.dispatchAlertEnabled,
+    // Admin-only endpoint: the admin needs to read the key to hand it to the main gate team.
+    mainGateApiKey: settings.mainGateApiKey,
+    securityVerifyRequired: settings.securityVerifyRequired,
+    inTransitAlertMinutes: settings.inTransitAlertMinutes
   };
 }
 

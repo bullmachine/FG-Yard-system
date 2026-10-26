@@ -3,6 +3,8 @@ import { syncProductionOrders, syncProductionOrderWindow } from './syncService';
 import { syncMaterialMaster } from './materialMasterService';
 import { notifyEvent } from './notificationService';
 import { getSettings, onSettingsChanged } from './settingsService';
+import { checkOverdueDispatch } from './dispatchAlertService';
+import { checkStuckInTransit } from './inTransitAlertService';
 
 const SYNC_LINKS: Record<string, string> = {
   'Production order': 'assembly',
@@ -125,6 +127,16 @@ export async function startScheduler(): Promise<void> {
 
   const settings = await getSettings();
   applySchedule(settings.productionCron, settings.materialCron);
+
+  // Overdue dispatch check: fixed 15-minute cadence; the thresholds live in Settings.
+  cron.schedule('*/15 * * * *', () => {
+    checkOverdueDispatch().catch((error) => console.error('Overdue dispatch check failed:', error));
+  });
+
+  // Stuck-in-transit check: every 5 minutes; the threshold lives in Settings.
+  cron.schedule('*/5 * * * *', () => {
+    checkStuckInTransit().catch((error) => console.error('In-transit check failed:', error));
+  });
 
   console.log('Scheduler started successfully');
 }

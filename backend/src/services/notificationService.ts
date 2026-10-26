@@ -18,8 +18,10 @@ export type NotificationEventType =
   | 'EXIT_APPROVED'
   | 'EXIT_REJECTED'
   | 'RETURN_SLOT_RESERVED'
-  | 'DISPATCH_PLAN_SUBMITTED'
-  | 'DISPATCH_PLAN_DECIDED';
+  | 'DISPATCH_PLANNED'
+  | 'DISPATCH_OVERDUE'
+  | 'IN_TRANSIT_STUCK'
+  | 'RETURN_HOLD';
 
 export interface NotificationEvent {
   type: NotificationEventType;
@@ -59,10 +61,15 @@ export const NOTIFICATION_RECIPIENTS: Record<NotificationEventType, UserRole[]> 
   // A slot was promised to a returning machine; the gate and the yard should know
   // it is expected so it is not parked twice or refused at the checkpoint.
   RETURN_SLOT_RESERVED: ['SECURITY', 'YARD_MANAGER', 'ADMIN'],
-  // A planner's dispatch plan waits for the yard manager's approval.
-  DISPATCH_PLAN_SUBMITTED: ['YARD_MANAGER', 'ADMIN'],
-  // The planner who raised the plan is notified directly (single user).
-  DISPATCH_PLAN_DECIDED: [],
+  // Machines planned for dispatch appear on the PDI team's list.
+  DISPATCH_PLANNED: ['PDI', 'YARD_MANAGER'],
+  // Out of the FG yard for too long without main gate-out (also e-mailed).
+  DISPATCH_OVERDUE: ['YARD_MANAGER', 'ADMIN', 'PDI', 'MAIN_GATE'],
+  // Through the gate but parking never confirmed, so security was never asked. The
+  // yard office can confirm on the driver's behalf; the driver is notified directly.
+  IN_TRANSIT_STUCK: ['YARD_MANAGER', 'ADMIN', 'OPERATOR'],
+  // A dispatched machine came back; it is held until a manager checks and clears it.
+  RETURN_HOLD: ['YARD_MANAGER', 'ADMIN', 'PLANNER'],
 };
 
 const DEDUPE_WINDOW_MINUTES = 15;

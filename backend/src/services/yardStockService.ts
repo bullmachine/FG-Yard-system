@@ -12,8 +12,8 @@ import prisma from '../lib/prisma';
  *   3. STAGE18 - completion of assembly stage 18, a stand-in for old stock
  * A machine with none of these sorts last and is reported as UNKNOWN.
  *
- * A machine is free for dispatch only when it is PARKED_VERIFIED, not reserved by a
- * dispatch plan and has no open exit request.
+ * A machine is free for dispatch only when it is PARKED_VERIFIED, not already planned
+ * for dispatch, has no open exit request and is not on a returned-after-dispatch hold.
  */
 
 export type InwardSource = 'ACTUAL' | 'GATE' | 'STAGE18' | 'UNKNOWN';
@@ -28,7 +28,7 @@ export interface StockRow {
   fertCategory: string | null;
   parkStatus: string;
   verified: boolean;
-  reservedFor: { planId: string; planNo: string; salesOrderNo: string } | null;
+  reservedFor: { planId: string; planNo: string } | null;
   exitPending: boolean;
   available: boolean;
   yard: { id: string; name: string } | null;
@@ -37,6 +37,11 @@ export interface StockRow {
   inwardAt: Date | null;
   inwardSource: InwardSource;
   daysInYard: number | null;
+  // Latest gate IN when the machine has left the yard before and come back; the FIFO
+  // date above stays the first inward, so this is shown alongside it, not instead.
+  returnedAt: Date | null;
+  // Came back after dispatch and not yet cleared: not free stock.
+  returnHoldAt: Date | null;
 }
 
 export function machineModelType(m: { modelType: string | null; modelMaster?: { modelType: string | null } | null }) {
@@ -59,11 +64,12 @@ export async function loadStock(opts: { yardId?: string | null; includeDemo?: bo
       fertCategory: true,
       parkStatus: true,
       yardInwardAt: true,
+      returnHoldAt: true,
       modelMaster: { select: { modelType: true } },
       currentSlot: { select: { row: true, col: true, yard: { select: { id: true, name: true } } } },
-      dispatchReservations: {
-        where: { status: 'ACTIVE' },
-        select: { plan: { select: { id: true, planNo: true, salesOrderNo: true } } },
+      dispatchItems: {
+        where: { status: { in: ['PLANNED', 'DRIVER_ASSIGNED'] } },
+        select: { plan: { select: { id: true, planNo: true } } },
         take: 1
       },
       exitRequests: { where: { status: { in: ['PENDING', 'APPROVED'] } }, select: { id: true }, take: 1 }
@@ -73,15 +79,22 @@ export async function loadStock(opts: { yardId?: string | null; includeDemo?: bo
   const scoped = opts.modelType ? machines.filter((m) => machineModelType(m) === opts.modelType) : machines;
   const ids = scoped.map((m) => m.id);
 
-  // First authorized check-in per machine.
+  // First and latest authorized check-in per machine, and its latest check-out.
   const gateRows = ids.length
     ? await prisma.gateLog.groupBy({
-        by: ['machineId'],
-        where: { machineId: { in: ids }, direction: 'IN', result: 'AUTHORIZED' },
-        _min: { createdAt: true }
+        by: ['machineId', 'direction'],
+        where: { machineId: { in: ids }, result: 'AUTHORIZED' },
+        _min: { createdAt: true },
+        _max: { createdAt: true }
       })
     : [];
-  const firstGate = new Map(gateRows.map((r) => [r.machineId, r._min.createdAt]));
+  const firstGate = new Map<string, Date | null>();
+  const lastIn = new Map<string, Date | null>();
+  const lastOut = new Map<string, Date | null>();
+  for (const r of gateRows) {
+    if (r.direction === 'IN') { firstGate.set(r.machineId, r._min.createdAt); lastIn.set(r.machineId, r._max.createdAt); }
+    else lastOut.set(r.machineId, r._max.createdAt);
+  }
 
   // Stage 18 is done when its last operation ended; fall back to its start.
   const stageRows = ids.length
@@ -101,9 +114,12 @@ export async function loadStock(opts: { yardId?: string | null; includeDemo?: bo
     else if (firstGate.get(m.id)) { inwardAt = firstGate.get(m.id)!; source = 'GATE'; }
     else if (stage18.get(m.id)) { inwardAt = stage18.get(m.id)!; source = 'STAGE18'; }
 
-    const plan = m.dispatchReservations[0]?.plan ?? null;
+    const plan = m.dispatchItems[0]?.plan ?? null;
     const verified = m.parkStatus === 'PARKED_VERIFIED';
     const exitPending = m.exitRequests.length > 0;
+    const inAt = lastIn.get(m.id);
+    const outAt = lastOut.get(m.id);
+    const returnedAt = inAt && outAt && inAt > outAt ? inAt : null;
 
     return {
       id: m.id,
@@ -113,15 +129,17 @@ export async function loadStock(opts: { yardId?: string | null; includeDemo?: bo
       fertCategory: m.fertCategory,
       parkStatus: m.parkStatus,
       verified,
-      reservedFor: plan ? { planId: plan.id, planNo: plan.planNo, salesOrderNo: plan.salesOrderNo } : null,
+      reservedFor: plan ? { planId: plan.id, planNo: plan.planNo } : null,
       exitPending,
-      available: verified && !plan && !exitPending,
+      available: verified && !plan && !exitPending && !m.returnHoldAt,
       yard: m.currentSlot?.yard ?? null,
       row: m.currentSlot?.row ?? null,
       col: m.currentSlot?.col ?? null,
       inwardAt,
       inwardSource: source,
-      daysInYard: inwardAt ? Math.max(0, Math.floor((now - inwardAt.getTime()) / 86_400_000)) : null
+      daysInYard: inwardAt ? Math.max(0, Math.floor((now - inwardAt.getTime()) / 86_400_000)) : null,
+      returnedAt,
+      returnHoldAt: m.returnHoldAt
     };
   });
 

@@ -18,8 +18,12 @@ enum UserRole {
   SECURITY
   VIEW_ONLY
   DRIVER
-  // Dispatch planning team: reserves yard stock against sales orders.
+  // Dispatch planning team: plans yard stock for dispatch.
   PLANNER
+  // PDI team: assigns drivers and takes planned machines out of the FG yard.
+  PDI
+  // Main gate: marks dispatched machines out of the plant (later via the main gate system's API).
+  MAIN_GATE
 }
 
 enum SlotStatus {
@@ -110,8 +114,8 @@ model User {
   driverProfile         Driver?
   requestedExits        MachineExitRequest[]   @relation("RequestedBy")
   approvedExits         MachineExitRequest[]   @relation("ApprovedBy")
-  createdDispatchPlans  DispatchPlan[]       @relation("PlanCreatedBy")
-  approvedDispatchPlans DispatchPlan[]       @relation("PlanApprovedBy")
+  createdDispatchPlans  DispatchPlan[]         @relation("PlanCreatedBy")
+  mainGateDispatchItems DispatchItem[]         @relation("ItemMainGateOutBy")
 }
 
 enum NotificationSeverity {
@@ -214,6 +218,16 @@ model Machine {
   // yard before this system went live. Optional: when empty, the yard-stock FIFO order
   // falls back to the first gate check-in, then to the stage-18 completion date.
   yardInwardAt      DateTime?
+  // Last "still in transit" alert. Compared with the latest gate IN, so each trip
+  // through the gate is alerted once.
+  inTransitAlertAt  DateTime?
+  // Set when a dispatched machine comes back in through the gate. While set, the
+  // machine is not free stock and cannot be planned until Admin / Yard Manager clears
+  // it. The last clearance (who, when, remark) is kept.
+  returnHoldAt          DateTime?
+  returnHoldClearedAt   DateTime?
+  returnHoldClearedById String?
+  returnHoldRemark      String?   @db.VarChar(500)
   // Marks throwaway demo rows created by prisma/seed-demo.ts so they can be
   // excluded from the assembly views and removed without touching real data.
   isDemo            Boolean       @default(false)
@@ -230,7 +244,7 @@ model Machine {
   securityVerifications SecurityVerification[]
   stageHistory          MachineStageHistory[]
   exitRequests          MachineExitRequest[]
-  dispatchReservations DispatchReservation[]
+  dispatchItems         DispatchItem[]
 
   @@index([serialNumber])
   @@index([status])
@@ -330,9 +344,10 @@ model Driver {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  machines Machine[]
-  gateLogs GateLog[]
-  user     User?     @relation(fields: [userId], references: [id])
+  machines      Machine[]
+  gateLogs      GateLog[]
+  dispatchItems DispatchItem[]
+  user          User?          @relation(fields: [userId], references: [id])
 }
 
 model Movement {
@@ -416,49 +431,30 @@ model MachineExitRequest {
   @@index([createdAt])
 }
 
-enum DispatchPlanStatus {
-  PENDING_APPROVAL
-  APPROVED
-  REJECTED
+enum DispatchItemStatus {
+  PLANNED
+  DRIVER_ASSIGNED
+  OUT_OF_YARD
+  MAIN_GATE_OUT
   CANCELLED
-  COMPLETED
 }
 
-enum ReservationStatus {
-  ACTIVE
-  RELEASED
-  DISPATCHED
-}
-
-// A planner's request to dispatch yard stock against one sales order. Each line asks
-// for a quantity of one model-type; machines are reserved oldest-first (FIFO) when the
-// plan is saved, and the yard manager approves or rejects the plan as a whole.
+// A planner's request to send yard stock for dispatch: one line per model-type with a
+// quantity. Machines are picked oldest-first (FIFO) when the plan is saved, and the
+// plan is refused if the FG yard does not hold enough free stock. No approval step.
 model DispatchPlan {
-  id           String             @id @default(uuid())
-  planNo       String             @unique
-  salesOrderNo String
-  customerName String
-  destination  String?
-  plannedDate  DateTime
-  notes        String?            @db.Text
-  status       DispatchPlanStatus @default(PENDING_APPROVAL)
-  createdById  String
-  approvedById String?
-  approvedAt   DateTime?
-  rejectReason String?
-  cancelReason String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id          String   @id @default(uuid())
+  planNo      String   @unique
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  createdBy    User                  @relation("PlanCreatedBy", fields: [createdById], references: [id])
-  approvedBy   User?                 @relation("PlanApprovedBy", fields: [approvedById], references: [id])
-  lines        DispatchPlanLine[]
-  reservations DispatchReservation[]
+  createdBy User               @relation("PlanCreatedBy", fields: [createdById], references: [id])
+  lines     DispatchPlanLine[]
+  items     DispatchItem[]
 
-  @@index([status])
-  @@index([salesOrderNo])
   @@index([createdById])
-  @@index([plannedDate])
+  @@index([createdAt])
 }
 
 model DispatchPlanLine {
@@ -467,33 +463,45 @@ model DispatchPlanLine {
   modelType    String
   requestedQty Int
 
-  plan         DispatchPlan          @relation(fields: [planId], references: [id], onDelete: Cascade)
-  reservations DispatchReservation[]
+  plan  DispatchPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  items DispatchItem[]
 
   @@index([planId])
 }
 
-// One machine held for a plan line. activeMachineId equals machineId while the
-// reservation is ACTIVE and is null otherwise; its unique index is what stops two
-// plans from holding the same machine, even when two planners save at once.
-model DispatchReservation {
-  id              String            @id @default(uuid())
-  planId          String
-  lineId          String
-  machineId       String
-  activeMachineId String?           @unique
-  status          ReservationStatus @default(ACTIVE)
-  // True when the planner chose this machine instead of the FIFO pick.
-  isOverride      Boolean           @default(false)
-  overrideReason  String?
-  // Inward date the FIFO decision was based on, kept for the audit trail.
-  inwardAt        DateTime?
-  releasedAt      DateTime?
-  createdAt       DateTime          @default(now())
+// One machine planned for dispatch, followed by the PDI team:
+// PLANNED -> DRIVER_ASSIGNED (optional) -> OUT_OF_YARD (FG gate-out) -> MAIN_GATE_OUT (left the plant).
+// activeMachineId equals machineId until the item is MAIN_GATE_OUT or CANCELLED; its unique
+// index stops two plans from taking the same machine, even when two planners save at once.
+model DispatchItem {
+  id               String             @id @default(uuid())
+  planId           String
+  lineId           String
+  machineId        String
+  activeMachineId  String?            @unique
+  status           DispatchItemStatus @default(PLANNED)
+  // Inward date the FIFO pick was based on, kept for the audit trail.
+  inwardAt         DateTime?
+  driverId         String?
+  driverAssignedAt DateTime?
+  gateOutAt        DateTime?
+  mainGateOutAt    DateTime?
+  mainGateOutById  String?
+  // MANUAL (main gate user) or API (main gate system), with the reference it sent.
+  mainGateSource   String?
+  mainGateRef      String?
+  // Last overdue e-mail that included this machine (out of the FG yard too long).
+  overdueAlertAt   DateTime?
+  cancelledAt      DateTime?
+  cancelledById    String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  plan    DispatchPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
-  line    DispatchPlanLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
-  machine Machine          @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  plan          DispatchPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  line          DispatchPlanLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  machine       Machine          @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  driver        Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  mainGateOutBy User?            @relation("ItemMainGateOutBy", fields: [mainGateOutById], references: [id])
 
   @@index([planId])
   @@index([lineId])
@@ -529,6 +537,29 @@ model SystemSetting {
   barrierCloseUrl          String  @default("")
   barrierAutoCloseSeconds  Int     @default(5)
   barrierManualOpenEnabled Boolean @default(false)
+
+  // Outgoing e-mail (SMTP). The password is never sent back to the browser.
+  smtpHost     String  @default("smtp.gmail.com")
+  smtpPort     Int     @default(587)
+  smtpSecure   Boolean @default(false)
+  smtpUser     String  @default("fgyard.alerts.dummy@gmail.com")
+  smtpPassword String  @default("")
+  smtpFrom     String  @default("fgyard.alerts.dummy@gmail.com")
+
+  // Dispatch overdue alert: machines out of the FG yard longer than dispatchAlertHours
+  // without main gate-out are e-mailed, then reminded every dispatchReminderHours (0 = once).
+  dispatchAlertEmails   String  @default("production.manager.dummy@gmail.com") @db.VarChar(500)
+  dispatchAlertHours    Int     @default(8)
+  dispatchReminderHours Int     @default(8)
+  dispatchAlertEnabled  Boolean @default(true)
+
+  // Key the main gate system sends in the x-api-key header. Empty = API disabled.
+  mainGateApiKey String @default("")
+
+  // Off = a confirmed park is verified automatically (recorded as auto-verified).
+  securityVerifyRequired Boolean @default(true)
+  // Alert when a machine stays IN_TRANSIT this long after gate IN (0 = off).
+  inTransitAlertMinutes  Int     @default(30)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

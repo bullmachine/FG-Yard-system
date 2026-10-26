@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Save, PlugZap, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Save, PlugZap, AlertCircle, CheckCircle2, Loader2, Mail, KeyRound, Copy } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { SectionCard } from '@/components/ui/Card';
@@ -26,6 +26,19 @@ interface Settings {
   barrierAutoCloseSeconds: number;
   barrierManualOpenEnabled: boolean;
   hasMaterialPassword: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpFrom: string;
+  hasSmtpPassword: boolean;
+  dispatchAlertEmails: string;
+  dispatchAlertHours: number;
+  dispatchReminderHours: number;
+  dispatchAlertEnabled: boolean;
+  mainGateApiKey: string;
+  securityVerifyRequired: boolean;
+  inTransitAlertMinutes: number;
 }
 
 interface ProbeResult {
@@ -48,7 +61,20 @@ const EMPTY: Settings = {
   barrierCloseUrl: '',
   barrierAutoCloseSeconds: 5,
   barrierManualOpenEnabled: false,
-  hasMaterialPassword: false
+  hasMaterialPassword: false,
+  smtpHost: 'smtp.gmail.com',
+  smtpPort: 587,
+  smtpSecure: false,
+  smtpUser: '',
+  smtpFrom: '',
+  hasSmtpPassword: false,
+  dispatchAlertEmails: '',
+  dispatchAlertHours: 8,
+  dispatchReminderHours: 8,
+  dispatchAlertEnabled: true,
+  mainGateApiKey: '',
+  securityVerifyRequired: true,
+  inTransitAlertMinutes: 30
 };
 
 export default function SettingsPage() {
@@ -57,6 +83,9 @@ export default function SettingsPage() {
 
   const [settings, setSettings] = useState<Settings>(EMPTY);
   const [password, setPassword] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
+  const [testTo, setTestTo] = useState('');
+  const [keyBusy, setKeyBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -95,13 +124,13 @@ export default function SettingsPage() {
     });
   };
 
-  const runProbe = async (target: 'production' | 'material') => {
+  const runProbe = async (target: 'production' | 'material' | 'email') => {
     setProbes((current) => ({ ...current, [target]: 'testing' }));
     try {
       const res = await fetch(`${API_URL}/api/settings/test`, {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ target })
+        body: JSON.stringify(target === 'email' ? { target, to: testTo } : { target })
       });
       const body = await res.json();
       setProbes((current) => ({ ...current, [target]: { ok: !!body.ok, message: body.message || 'No response' } }));
@@ -137,7 +166,19 @@ export default function SettingsPage() {
           barrierOpenUrl: settings.barrierOpenUrl,
           barrierCloseUrl: settings.barrierCloseUrl,
           barrierAutoCloseSeconds: Number(settings.barrierAutoCloseSeconds),
-          barrierManualOpenEnabled: settings.barrierManualOpenEnabled
+          barrierManualOpenEnabled: settings.barrierManualOpenEnabled,
+          smtpHost: settings.smtpHost,
+          smtpPort: Number(settings.smtpPort),
+          smtpSecure: settings.smtpSecure,
+          smtpUser: settings.smtpUser,
+          smtpFrom: settings.smtpFrom,
+          ...(smtpPassword ? { smtpPassword } : {}),
+          dispatchAlertEmails: settings.dispatchAlertEmails,
+          dispatchAlertHours: Number(settings.dispatchAlertHours),
+          dispatchReminderHours: Number(settings.dispatchReminderHours),
+          dispatchAlertEnabled: settings.dispatchAlertEnabled,
+          securityVerifyRequired: settings.securityVerifyRequired,
+          inTransitAlertMinutes: Number(settings.inTransitAlertMinutes)
         })
       });
 
@@ -155,6 +196,7 @@ export default function SettingsPage() {
 
       setSettings(body);
       setPassword('');
+      setSmtpPassword('');
       setNotice({ type: 'success', message: 'Settings saved. Schedules were re-registered immediately.' });
     } catch (error) {
       setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Save failed' });
@@ -163,7 +205,26 @@ export default function SettingsPage() {
     }
   };
 
-  const renderProbe = (target: 'production' | 'material') => {
+  const rotateKey = async (clear: boolean) => {
+    if (!window.confirm(clear
+      ? 'Switch off the main gate API? The main gate system will no longer be able to update machines.'
+      : 'Create a new API key? The old key stops working at once, so the main gate team must be given the new one.')) return;
+    setKeyBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch(`${API_URL}/api/settings/main-gate-key`, { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ clear }) });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) { setNotice({ type: 'error', message: body?.error || `Failed (${res.status})` }); return; }
+      setSettings((current) => ({ ...current, mainGateApiKey: body.mainGateApiKey }));
+      setNotice({ type: 'success', message: clear ? 'Main gate API switched off.' : 'New API key created. Give it to the main gate team.' });
+    } catch (error) {
+      setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Request failed' });
+    } finally {
+      setKeyBusy(false);
+    }
+  };
+
+  const renderProbe = (target: 'production' | 'material' | 'email') => {
     const result = probes[target];
     if (!result) return null;
 
@@ -185,7 +246,7 @@ export default function SettingsPage() {
           <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
         )}
         <span className="leading-relaxed">
-          {result === 'testing' ? 'Contacting upstream...' : result.message}
+          {result === 'testing' ? (target === 'email' ? 'Sending...' : 'Contacting upstream...') : result.message}
         </span>
       </div>
     );
@@ -411,6 +472,205 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      </SectionCard>
+
+      <SectionCard
+        title="E-mail (SMTP)"
+        description="Mailbox used to send alerts. For Gmail use smtp.gmail.com, port 587, and a Google App Password (not the normal password)."
+      >
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <Input
+            label="SMTP Server"
+            value={settings.smtpHost}
+            onChange={(e) => update('smtpHost', e.target.value)}
+            error={fieldErrors.smtpHost}
+            placeholder="smtp.gmail.com"
+          />
+          <Input
+            label="Port"
+            type="number"
+            value={settings.smtpPort}
+            onChange={(e) => update('smtpPort', e.target.value)}
+            error={fieldErrors.smtpPort}
+            hint="587 (STARTTLS) or 465 (SSL)"
+          />
+          <Input
+            label="Sender Mailbox (login)"
+            value={settings.smtpUser}
+            onChange={(e) => update('smtpUser', e.target.value)}
+            error={fieldErrors.smtpUser}
+            placeholder="alerts@example.com"
+          />
+          <Input
+            label="Password / App Password"
+            type="password"
+            value={smtpPassword}
+            onChange={(e) => setSmtpPassword(e.target.value)}
+            error={fieldErrors.smtpPassword}
+            placeholder={settings.hasSmtpPassword ? 'Unchanged - leave blank to keep' : 'Not set - no e-mail is sent until this is entered'}
+            hint="Stored on the server and never sent back to the browser"
+          />
+          <Input
+            label="From Address"
+            value={settings.smtpFrom}
+            onChange={(e) => update('smtpFrom', e.target.value)}
+            error={fieldErrors.smtpFrom}
+            hint="Usually the same as the sender mailbox"
+          />
+          <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <input
+              type="checkbox"
+              id="smtpSecure"
+              checked={settings.smtpSecure}
+              onChange={(e) => update('smtpSecure', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="smtpSecure" className="text-xs text-slate-700">
+              Use SSL from the start (port 465). Leave off for port 587.
+            </label>
+          </div>
+          <div className="sm:col-span-2 flex flex-wrap items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <Input label="Send a test e-mail to" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="you@example.com" />
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => runProbe('email')}
+              disabled={!testTo.trim()}
+              loading={probes.email === 'testing'}
+              icon={<Mail className="w-3.5 h-3.5" />}
+            >
+              Send Test
+            </Button>
+          </div>
+          <p className="sm:col-span-2 text-[11px] text-slate-500">Save Changes first; the test uses the saved settings.</p>
+        </div>
+        {renderProbe('email')}
+      </SectionCard>
+
+      <SectionCard
+        title="Parking & Security Check"
+        description="After the driver confirms parking, security verifies the machine in its slot. Only verified machines count as free stock and can be planned for dispatch."
+      >
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <input
+              type="checkbox"
+              id="securityVerifyRequired"
+              checked={settings.securityVerifyRequired}
+              onChange={(e) => update('securityVerifyRequired', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="securityVerifyRequired" className="text-xs text-slate-700">
+              Security must verify every parked machine (recommended).
+            </label>
+          </div>
+          {!settings.securityVerifyRequired && (
+            <p className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Security check is off. A confirmed park is verified automatically and recorded as &quot;Auto-verified&quot; in the security history.
+              Machines already waiting in the security queue still need a decision.
+            </p>
+          )}
+          <Input
+            label="Alert if not confirmed parked after (minutes)"
+            type="number"
+            min={0}
+            max={1440}
+            value={settings.inTransitAlertMinutes}
+            onChange={(e) => update('inTransitAlertMinutes', e.target.value)}
+            error={fieldErrors.inTransitAlertMinutes}
+            hint="Time from gate IN. Alerts the yard office and the driver. 0 = off"
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Dispatch Overdue Alert"
+        description="E-mail when a machine has gone out of the FG yard but not out of the main gate within the set time. Checked every 15 minutes."
+      >
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Input
+              label="Send to (production manager)"
+              value={settings.dispatchAlertEmails}
+              onChange={(e) => update('dispatchAlertEmails', e.target.value)}
+              error={fieldErrors.dispatchAlertEmails}
+              placeholder="manager@example.com, another@example.com"
+              hint="Separate several addresses with commas"
+            />
+          </div>
+          <Input
+            label="Alert after (hours)"
+            type="number"
+            min={1}
+            max={72}
+            value={settings.dispatchAlertHours}
+            onChange={(e) => update('dispatchAlertHours', e.target.value)}
+            error={fieldErrors.dispatchAlertHours}
+            hint="Time from FG gate-out without main gate-out"
+          />
+          <Input
+            label="Remind every (hours)"
+            type="number"
+            min={0}
+            max={72}
+            value={settings.dispatchReminderHours}
+            onChange={(e) => update('dispatchReminderHours', e.target.value)}
+            error={fieldErrors.dispatchReminderHours}
+            hint="0 = alert once only"
+          />
+          <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <input
+              type="checkbox"
+              id="dispatchAlertEnabled"
+              checked={settings.dispatchAlertEnabled}
+              onChange={(e) => update('dispatchAlertEnabled', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="dispatchAlertEnabled" className="text-xs text-slate-700">
+              Send overdue alerts. The in-app notification is shown even when the e-mail cannot be sent.
+            </label>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Main Gate Integration"
+        description="Lets the main gate software mark machines out of the plant automatically. It sends this key in the x-api-key header."
+        action={
+          <div className="flex gap-2">
+            {settings.mainGateApiKey && (
+              <Button size="sm" variant="ghost" onClick={() => rotateKey(true)} loading={keyBusy}>Switch Off</Button>
+            )}
+            <Button size="sm" variant="secondary" onClick={() => rotateKey(false)} loading={keyBusy} icon={<KeyRound className="w-3.5 h-3.5" />}>
+              {settings.mainGateApiKey ? 'New Key' : 'Create Key'}
+            </Button>
+          </div>
+        }
+      >
+        {settings.mainGateApiKey ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+              <code className="min-w-0 flex-1 break-all text-xs text-slate-800">{settings.mainGateApiKey}</code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => { navigator.clipboard?.writeText(settings.mainGateApiKey).catch(() => undefined); }}
+                icon={<Copy className="w-3.5 h-3.5" />}
+                aria-label="Copy API key"
+              />
+            </div>
+            <div className="rounded-md border border-slate-200 p-3 text-[11px] leading-relaxed text-slate-600">
+              <p className="font-semibold text-slate-800">For the main gate software team</p>
+              <p className="mt-1"><code>POST {API_URL}/api/integrations/main-gate/out</code></p>
+              <p>Header <code>x-api-key: &lt;key above&gt;</code>, JSON body <code>{'{ "serialNumber": "...", "reference": "..." }'}</code> (or <code>barcode</code> instead of <code>serialNumber</code>; <code>reference</code> is optional, e.g. invoice or gate pass number).</p>
+              <p className="mt-1"><code>GET {API_URL}/api/integrations/main-gate/pending</code> lists machines out of the FG yard that are waiting for main gate-out.</p>
+              <p className="mt-1">Sending the same machine twice is harmless.</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500">The API is switched off. Click Create Key when the main gate team is ready to connect.</p>
+        )}
       </SectionCard>
 
       <p className="text-[11px] leading-relaxed text-slate-500">

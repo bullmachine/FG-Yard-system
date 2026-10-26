@@ -5,7 +5,7 @@ import { hashPassword } from '../lib/auth';
 
 type AuthenticatedRequest = Request & { userId?: string };
 
-const USER_ROLES = ['ADMIN', 'YARD_MANAGER', 'OPERATOR', 'SERVICE_TECHNICIAN', 'SECURITY', 'VIEW_ONLY', 'PLANNER'] as const;
+const USER_ROLES = ['ADMIN', 'YARD_MANAGER', 'OPERATOR', 'SERVICE_TECHNICIAN', 'SECURITY', 'VIEW_ONLY', 'PLANNER', 'PDI', 'MAIN_GATE'] as const;
 type UserRole = (typeof USER_ROLES)[number];
 
 const userSelect = {

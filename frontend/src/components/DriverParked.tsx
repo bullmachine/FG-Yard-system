@@ -117,9 +117,11 @@ export default function DriverParked() {
         return;
       }
       setDone(
-        body.isRepark
-          ? `Re-confirmed. ${m.serialNumber} is back with security.`
-          : `Confirmed. ${m.serialNumber} is with security for checking.`
+        body.autoVerified
+          ? `Confirmed. ${m.serialNumber} is parked and verified.`
+          : body.isRepark
+            ? `Re-confirmed. ${m.serialNumber} is back with security.`
+            : `Confirmed. ${m.serialNumber} is with security for checking.`
       );
       fetchMine();
       fetchRecentParks();

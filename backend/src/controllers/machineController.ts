@@ -2,6 +2,27 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { notifyEvent, pushSecurityQueueChanged, pushExitRequestsChanged } from '../services/notificationService';
 import { EXIT_REASONS, releaseMachine } from './exitRequestController';
+import { getSettings } from '../services/settingsService';
+
+export const AUTO_VERIFY_NOTE = 'Auto-verified: security check is switched off in Settings';
+
+/**
+ * With the security check switched off in Settings, a park is verified on the spot.
+ * A SecurityVerification row is still written, marked as automatic, so the audit trail
+ * shows the check was skipped rather than passed. Returns true when auto-verified.
+ */
+async function autoVerifyIfCheckOff(machineId: string, slotId: string, actorId: string): Promise<boolean> {
+  const { securityVerifyRequired } = await getSettings();
+  if (securityVerifyRequired) return false;
+
+  await prisma.$transaction([
+    prisma.securityVerification.create({
+      data: { machineId, slotId, securityUserId: actorId, status: 'APPROVED', comments: AUTO_VERIFY_NOTE }
+    }),
+    prisma.machine.update({ where: { id: machineId }, data: { parkStatus: 'PARKED_VERIFIED' } })
+  ]);
+  return true;
+}
 
 export const getAllMachines = async (req: Request, res: Response) => {
   try {
@@ -331,14 +352,18 @@ export const allocateMachine = async (req: Request, res: Response) => {
       }
     });
 
-    await notifyEvent({
-      type: 'SECURITY_REVIEW',
-      severity: 'WARNING',
-      title: 'Security review needed',
-      message: `${machine.serialNumber} (${machine.model}) was parked in ${slot.row}-${slot.col} and is awaiting verification.`,
-      link: 'security'
-    });
-    
+    if (await autoVerifyIfCheckOff(machineId, slotId, actorId)) {
+      updatedMachine.parkStatus = 'PARKED_VERIFIED';
+    } else {
+      await notifyEvent({
+        type: 'SECURITY_REVIEW',
+        severity: 'WARNING',
+        title: 'Security review needed',
+        message: `${machine.serialNumber} (${machine.model}) was parked in ${slot.row}-${slot.col} and is awaiting verification.`,
+        link: 'security'
+      });
+    }
+
     // Update slot status
     await prisma.slot.update({
       where: { id: slotId },
@@ -506,24 +531,29 @@ export const confirmMachineParked = async (req: Request, res: Response) => {
       });
     }
 
-    await notifyEvent({
-      type: 'SECURITY_REVIEW',
-      severity: 'WARNING',
-      title: isRepark ? 'Security re-review needed' : 'Security review needed',
-      message: `${machine.serialNumber} (${machine.model}) was ${isRepark ? 're-parked' : 'parked'} in ${slot.row}-${slot.col} and is awaiting verification.`,
-      link: 'security'
-    });
+    const autoVerified = await autoVerifyIfCheckOff(machineId, slot.id, actorId);
+    if (!autoVerified) {
+      await notifyEvent({
+        type: 'SECURITY_REVIEW',
+        severity: 'WARNING',
+        title: isRepark ? 'Security re-review needed' : 'Security review needed',
+        message: `${machine.serialNumber} (${machine.model}) was ${isRepark ? 're-parked' : 'parked'} in ${slot.row}-${slot.col} and is awaiting verification.`,
+        link: 'security'
+      });
 
-    await pushSecurityQueueChanged(isRepark ? 'reparked' : 'parked', {
-      machineId: machine.id,
-      serialNumber: machine.serialNumber,
-      slotLabel: `${slot.row}-${slot.col}`
-    });
+      await pushSecurityQueueChanged(isRepark ? 'reparked' : 'parked', {
+        machineId: machine.id,
+        serialNumber: machine.serialNumber,
+        slotLabel: `${slot.row}-${slot.col}`
+      });
+    }
 
     res.json({
       ...updatedMachine,
+      ...(autoVerified ? { parkStatus: 'PARKED_VERIFIED' } : {}),
       slotLabel: `${slot.row}-${slot.col}`,
       isRepark,
+      autoVerified,
       adminOverride: isOperatorOverride
     });
   } catch (error) {

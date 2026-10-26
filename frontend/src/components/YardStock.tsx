@@ -12,9 +12,8 @@ import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '@/components/ui/Table';
-import { ParkStatusBadge } from '@/components/ui/StatusBadge';
 import { slotLabel, formatDateShort } from '@/lib/format';
-import { Boxes, ChevronDown, ChevronRight, ClipboardList, Clock, Pencil, RefreshCw, Search, ShieldAlert } from 'lucide-react';
+import { Boxes, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Clock, Pencil, RefreshCw, Search, ShieldAlert } from 'lucide-react';
 
 type InwardSource = 'ACTUAL' | 'GATE' | 'STAGE18' | 'UNKNOWN';
 
@@ -26,7 +25,7 @@ interface StockMachine {
   fertCategory: string | null;
   parkStatus: string;
   verified: boolean;
-  reservedFor: { planId: string; planNo: string; salesOrderNo: string } | null;
+  reservedFor: { planId: string; planNo: string } | null;
   exitPending: boolean;
   available: boolean;
   yard: { id: string; name: string } | null;
@@ -35,6 +34,8 @@ interface StockMachine {
   inwardAt: string | null;
   inwardSource: InwardSource;
   daysInYard: number | null;
+  returnedAt: string | null;
+  returnHoldAt: string | null;
   fifoRank: number | null;
 }
 
@@ -44,6 +45,7 @@ interface StockGroup {
   reserved: number;
   onHold: number;
   pendingVerify: number;
+  returnHold: number;
   total: number;
   oldestInwardAt: string | null;
   oldestDays: number | null;
@@ -52,7 +54,7 @@ interface StockGroup {
 
 interface StockResponse {
   generatedAt: string;
-  totals: { available: number; reserved: number; onHold: number; pendingVerify: number; total: number; modelTypes: number; undated: number; estimated: number };
+  totals: { available: number; reserved: number; onHold: number; pendingVerify: number; returnHold: number; total: number; modelTypes: number; undated: number; estimated: number };
   groups: StockGroup[];
 }
 
@@ -64,6 +66,21 @@ const SOURCE_META: Record<InwardSource, { label: string; variant: 'green' | 'blu
   STAGE18: { label: 'Stage 18', variant: 'amber', hint: 'Estimated from the stage 18 completion date' },
   UNKNOWN: { label: 'Unknown', variant: 'gray', hint: 'No date available' },
 };
+
+function location(m: { yard: { name: string } | null; row: number | null; col: number | null }) {
+  if (!m.yard) return '—';
+  return m.row !== null && m.col !== null ? `${m.yard.name} · ${slotLabel(m.row, m.col)}` : m.yard.name;
+}
+
+/** The machine's dispatch status in plain words. */
+function stockStatus(m: StockMachine): { label: string; variant: 'green' | 'purple' | 'orange' | 'amber' | 'red'; hint: string } {
+  if (m.reservedFor) return { label: `Planned · ${m.reservedFor.planNo}`, variant: 'purple', hint: 'Planned for dispatch; waiting to go out' };
+  if (m.exitPending) return { label: 'Exit request', variant: 'orange', hint: 'Has an open exit request (testing, repair, ...)' };
+  if (m.parkStatus === 'PARKED_REJECTED') return { label: 'Rejected by security', variant: 'red', hint: 'Security rejected the parking; the yard manager must sort it out' };
+  if (!m.verified) return { label: 'Waiting security check', variant: 'amber', hint: 'Parked but not yet verified by security' };
+  if (m.returnHoldAt) return { label: 'On hold · returned', variant: 'red', hint: 'Came back after dispatch; must be checked and cleared before it can be planned' };
+  return { label: 'Free', variant: 'green', hint: 'Parked, verified and ready to plan for dispatch' };
+}
 
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
@@ -91,10 +108,16 @@ export default function YardStock() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [detail, setDetail] = useState<StockMachine | null>(null);
   const [editing, setEditing] = useState<StockMachine | null>(null);
   const [editDate, setEditDate] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [clearing, setClearing] = useState<StockMachine | null>(null);
+  const [clearRemark, setClearRemark] = useState('');
+  const [clearError, setClearError] = useState<string | null>(null);
+  const [clearSaving, setClearSaving] = useState(false);
 
   const fetchStock = useCallback(async (): Promise<StockResponse> => {
     const qs = yardId ? `?yardId=${encodeURIComponent(yardId)}` : '';
@@ -175,6 +198,34 @@ export default function YardStock() {
     }
   };
 
+  const openClear = (m: StockMachine) => {
+    setClearing(m);
+    setClearRemark('');
+    setClearError(null);
+  };
+
+  const saveClear = async () => {
+    if (!clearing) return;
+    setClearSaving(true);
+    setClearError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/yard-stock/${clearing.id}/clear-hold`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ remark: clearRemark }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) { setClearError(body?.error || `Clear failed (${res.status})`); return; }
+      setClearing(null);
+      setRefreshing(true);
+      await load();
+    } catch {
+      setClearError('Connection error - try again');
+    } finally {
+      setClearSaving(false);
+    }
+  };
+
   if (loading) return <PageSpinner />;
 
   const totals = data?.totals;
@@ -197,8 +248,8 @@ export default function YardStock() {
 
       {totals && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Free stock" value={totals.available} icon={<Boxes className="w-4 h-4" />} color="green" hint={`Verified, not reserved · ${totals.modelTypes} model-types`} />
-          <StatCard label="Reserved" value={totals.reserved} icon={<ClipboardList className="w-4 h-4" />} color="purple" hint="Held for dispatch plans" />
+          <StatCard label="Free stock" value={totals.available} icon={<Boxes className="w-4 h-4" />} color="green" hint={`Verified, not planned · ${totals.modelTypes} model-types`} />
+          <StatCard label="Planned for dispatch" value={totals.reserved} icon={<ClipboardList className="w-4 h-4" />} color="purple" hint="Waiting to go out" />
           <StatCard label="Awaiting verification" value={totals.pendingVerify} icon={<ShieldAlert className="w-4 h-4" />} color="amber" hint="In a slot, not yet checked" />
           <StatCard
             label="Estimated dates"
@@ -208,6 +259,13 @@ export default function YardStock() {
             hint="Stage 18 or unknown date"
           />
         </div>
+      )}
+
+      {totals && totals.returnHold > 0 && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+          {totals.returnHold} machine{totals.returnHold === 1 ? '' : 's'} came back after dispatch and {totals.returnHold === 1 ? 'is' : 'are'} on hold, so not counted as free stock.
+          {canEditDate ? ' Check the machine, then open it and use Clear for Dispatch.' : ' A yard manager must check and clear it before it can be planned.'}
+        </p>
       )}
 
       {totals && totals.estimated + totals.undated > 0 && (
@@ -261,23 +319,59 @@ export default function YardStock() {
                     aria-expanded={expanded}
                     className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
                   >
-                    <span className="flex min-w-0 flex-1 items-center gap-2">
-                      {expanded ? <ChevronDown className="w-4 h-4 shrink-0 text-slate-400" /> : <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" />}
-                      <span className="truncate text-[13px] font-semibold text-slate-900">{g.modelType}</span>
+                    <span className="flex min-w-0 flex-1 items-start gap-2">
+                      {expanded ? <ChevronDown className="mt-0.5 w-4 h-4 shrink-0 text-slate-400" /> : <ChevronRight className="mt-0.5 w-4 h-4 shrink-0 text-slate-400" />}
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-semibold text-slate-900">{g.modelType}</span>
+                        {(() => {
+                          const next = g.machines.find((m) => m.fifoRank === 1);
+                          return next ? (
+                            <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-slate-500">
+                              <span className="rounded bg-emerald-600 px-1 font-bold text-white">Next out</span>
+                              <span className="font-medium text-slate-700">{next.serialNumber}</span>
+                              <span>· {location(next)} · {next.daysInYard ?? '—'} days since first inward{next.returnedAt ? ' · returned' : ''}</span>
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 block text-[11px] text-slate-400">No free machine</span>
+                          );
+                        })()}
+                      </span>
                     </span>
-                    <span className="flex items-center gap-4 text-xs tabular-nums">
-                      <span><span className="text-base font-bold text-emerald-700">{g.available}</span> <span className="text-slate-500">free</span></span>
-                      {g.reserved > 0 && <span className="text-violet-700">{g.reserved} reserved</span>}
-                      {g.onHold > 0 && <span className="text-orange-700">{g.onHold} on exit request</span>}
-                      {g.pendingVerify > 0 && <span className="text-amber-700">+{g.pendingVerify} awaiting verify</span>}
-                      <span className="text-slate-500">
-                        Oldest: {g.oldestInwardAt ? `${formatDateShort(g.oldestInwardAt)} (${g.oldestDays} d)` : '—'}
+                    <span className="flex w-full flex-col gap-1 sm:w-64">
+                      <span className="flex items-center justify-between text-xs tabular-nums">
+                        <span><span className="text-base font-bold text-emerald-700">{g.available}</span> <span className="text-slate-500">free of {g.total}</span></span>
+                        <span className="flex gap-2">
+                          {g.reserved > 0 && <span className="text-violet-700">{g.reserved} planned</span>}
+                          {g.onHold > 0 && <span className="text-orange-700">{g.onHold} exit req.</span>}
+                          {g.pendingVerify > 0 && <span className="text-amber-700">{g.pendingVerify} not verified</span>}
+                          {g.returnHold > 0 && <span className="text-red-700">{g.returnHold} on hold</span>}
+                        </span>
+                      </span>
+                      {/* One bar per model-type: free, planned, exit request, not verified. */}
+                      <span className="flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100" aria-hidden>
+                        {[
+                          [g.available, 'bg-emerald-500'],
+                          [g.reserved, 'bg-violet-400'],
+                          [g.onHold, 'bg-orange-400'],
+                          [g.pendingVerify, 'bg-amber-300'],
+                          [g.returnHold, 'bg-red-400'],
+                        ].map(([n, cls]) => (n as number) > 0 && (
+                          <span key={cls as string} className={cls as string} style={{ width: `${((n as number) / Math.max(1, g.total)) * 100}%` }} />
+                        ))}
                       </span>
                     </span>
                   </button>
 
                   {expanded && (
                     <div className="border-t border-slate-100 bg-slate-50/40">
+                      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pt-2 text-[11px] text-slate-500">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white">1</span>
+                          dispatch first (oldest free machine)
+                        </span>
+                        <span>— = not free, so not numbered</span>
+                        <span>Click a serial number for details</span>
+                      </p>
                       <Table>
                         <TableHeader>
                           <TableHeaderCell align="center">FIFO</TableHeaderCell>
@@ -285,7 +379,7 @@ export default function YardStock() {
                           <TableHeaderCell>Model</TableHeaderCell>
                           <TableHeaderCell>Location</TableHeaderCell>
                           <TableHeaderCell>Inward Date</TableHeaderCell>
-                          <TableHeaderCell align="right">Days</TableHeaderCell>
+                          <TableHeaderCell align="right">Age (first inward)</TableHeaderCell>
                           <TableHeaderCell>Status</TableHeaderCell>
                         </TableHeader>
                         <TableBody>
@@ -298,11 +392,18 @@ export default function YardStock() {
                                     ? <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${m.fifoRank === 1 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>{m.fifoRank}</span>
                                     : <span className="text-xs text-slate-400">—</span>}
                                 </TableCell>
-                                <TableCell><span className="font-medium text-slate-900">{m.serialNumber}</span></TableCell>
-                                <TableCell className="text-xs text-slate-600">{m.model}</TableCell>
-                                <TableCell className="text-[13px]">
-                                  {m.yard ? `${m.yard.name} · ${m.row !== null && m.col !== null ? slotLabel(m.row, m.col) : ''}` : '—'}
+                                <TableCell>
+                                  <button type="button" onClick={() => setDetail(m)} className="text-left font-semibold text-blue-700 hover:underline" title="View machine details">
+                                    {m.serialNumber}
+                                  </button>
+                                  {m.returnedAt && (
+                                    <span className="ml-1.5" title={`Left the yard and came back in on ${formatDateShort(m.returnedAt)}`}>
+                                      <Badge variant="blue">Returned {formatDateShort(m.returnedAt)}</Badge>
+                                    </span>
+                                  )}
                                 </TableCell>
+                                <TableCell className="text-xs text-slate-600">{m.model}</TableCell>
+                                <TableCell className="text-[13px] font-medium">{location(m)}</TableCell>
                                 <TableCell>
                                   <span className="inline-flex items-center gap-1.5">
                                     <span className="text-[13px]">{m.inwardAt ? formatDateShort(m.inwardAt) : '—'}</span>
@@ -322,11 +423,7 @@ export default function YardStock() {
                                 </TableCell>
                                 <TableCell align="right" className="tabular-nums">{m.daysInYard ?? '—'}</TableCell>
                                 <TableCell>
-                                  {m.reservedFor
-                                    ? <span title={`Sales order ${m.reservedFor.salesOrderNo}`}><Badge variant="purple">Reserved · {m.reservedFor.planNo}</Badge></span>
-                                    : m.exitPending
-                                      ? <Badge variant="orange">Exit request</Badge>
-                                      : <ParkStatusBadge status={m.parkStatus} />}
+                                  {(() => { const st = stockStatus(m); return <span title={st.hint}><Badge variant={st.variant}>{st.label}</Badge></span>; })()}
                                 </TableCell>
                               </TableRow>
                             );
@@ -344,8 +441,89 @@ export default function YardStock() {
 
       <p className="text-[11px] text-slate-500">
         FIFO order uses the real inward date when entered, otherwise the first gate check-in, otherwise the stage 18 completion date.
-        Only free machines (parked, verified, not reserved and not on an exit request) are counted and numbered for dispatch.
+        A machine that leaves the yard and comes back keeps its first inward date and is tagged Returned.
+        Only free machines (parked, verified, not planned for dispatch and not on an exit request) are counted and numbered for dispatch.
       </p>
+
+      <Modal
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        title={detail?.serialNumber}
+        subtitle={detail ? `${detail.modelType} · ${detail.model}` : undefined}
+        size="md"
+        footer={
+          <>
+            {detail && canEditDate && detail.returnHoldAt && (
+              <Button onClick={() => { const m = detail; setDetail(null); openClear(m); }} icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+                Clear for Dispatch
+              </Button>
+            )}
+            {detail && canEditDate && (
+              <Button variant="secondary" onClick={() => { const m = detail; setDetail(null); openEdit(m); }} icon={<Pencil className="w-3.5 h-3.5" />}>
+                Set Inward Date
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setDetail(null)}>Close</Button>
+          </>
+        }
+      >
+        {detail && (() => {
+          const st = stockStatus(detail);
+          const src = SOURCE_META[detail.inwardSource];
+          return (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={st.variant}>{st.label}</Badge>
+                <span className="text-xs text-slate-600">{st.hint}</span>
+              </div>
+              <div className="flex items-center gap-4 rounded-lg border-2 border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Location</p>
+                  <p className="text-sm text-slate-900">
+                    {detail.yard?.name ?? '—'}
+                    {detail.row !== null && detail.col !== null && <span className="ml-2 text-2xl font-bold">{slotLabel(detail.row, detail.col)}</span>}
+                  </p>
+                </div>
+                {detail.fifoRank && (
+                  <div className="text-center">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">FIFO</p>
+                    <p className={`text-2xl font-bold ${detail.fifoRank === 1 ? 'text-emerald-700' : 'text-slate-700'}`}>{detail.fifoRank}</p>
+                  </div>
+                )}
+              </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
+                {[
+                  ['Model-type', detail.modelType],
+                  ['Model', detail.model],
+                  ['FERT category', detail.fertCategory ?? '—'],
+                  ['Age (first inward)', detail.daysInYard !== null ? `${detail.daysInYard} days` : '—'],
+                  ['First inward date', detail.inwardAt ? formatDateShort(detail.inwardAt) : '—'],
+                  ['Date taken from', src.hint],
+                  ...(detail.returnedAt ? [['Returned to yard', formatDateShort(detail.returnedAt)]] : []),
+                ].map(([k, v]) => (
+                  <div key={k as string}>
+                    <dt className="text-[11px] text-slate-500">{k}</dt>
+                    <dd className="font-medium text-slate-900">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {detail.returnHoldAt && (
+                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                  Came back in on {formatDateShort(detail.returnHoldAt)} after being dispatched. Find out why it was returned and check it
+                  before it goes to another customer.
+                  {canEditDate ? ' Then use Clear for Dispatch.' : ' A yard manager must clear it.'}
+                </p>
+              )}
+              {(detail.inwardSource === 'STAGE18' || detail.inwardSource === 'UNKNOWN') && (
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  This date is an estimate, so the machine&apos;s FIFO place may be wrong.
+                  {canEditDate ? ' Use Set Inward Date to enter the real date.' : ' A yard manager can enter the real date.'}
+                </p>
+              )}
+            </div>
+          );
+        })()}
+      </Modal>
 
       <Modal
         open={!!editing}
@@ -382,6 +560,36 @@ export default function YardStock() {
             onChange={(e) => setEditDate(e.target.value)}
           />
           {editError && <p className="text-xs font-medium text-red-700">{editError}</p>}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!clearing}
+        onClose={() => setClearing(null)}
+        title="Clear for Dispatch"
+        subtitle={clearing ? `${clearing.serialNumber} · ${clearing.modelType}` : undefined}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setClearing(null)}>Cancel</Button>
+            <Button onClick={saveClear} disabled={clearRemark.trim().length < 3} loading={clearSaving}>Clear Hold</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-xs text-slate-600">
+            This machine came back after dispatch. Clearing it makes it free stock again, and it keeps its first inward date,
+            so it will be first in line for the next plan of its model-type.
+          </p>
+          <Input
+            label="Remark (required)"
+            value={clearRemark}
+            maxLength={500}
+            onChange={(e) => setClearRemark(e.target.value)}
+            placeholder="Why it came back and what was checked"
+          />
+          <p className="text-[11px] text-slate-500">Your name, the time and this remark are recorded.</p>
+          {clearError && <p className="text-xs font-medium text-red-700">{clearError}</p>}
         </div>
       </Modal>
     </div>
