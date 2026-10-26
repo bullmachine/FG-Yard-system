@@ -103,8 +103,26 @@ const machineFlow: FlowStep[] = [
   {
     title: 'Security verification',
     actor: 'Security / Admin',
-    description: 'Parked machines are reviewed and either approved or rejected based on the parking check.',
+    description: 'Parked machines are reviewed and either approved or rejected based on the parking check. If an Administrator switches the security check off in Settings, parking confirmation verifies the machine automatically and the auto-verification is recorded.',
     outcome: 'Machine becomes PARKED_VERIFIED or is returned to the yard',
+  },
+  {
+    title: 'Dispatch planning',
+    actor: 'Dispatch Planner / Yard Manager / Admin',
+    description: 'The planner enters a quantity per model-type. The oldest free machines (FIFO by first inward date) are picked when the plan is saved; a plan larger than the free stock is refused. There is no approval step.',
+    outcome: 'Machines appear on the Dispatch Machine List and stop counting as free stock',
+  },
+  {
+    title: 'PDI and FG gate-out',
+    actor: 'PDI Team / Operator',
+    description: 'The PDI team may assign a driver and prints the slip. The driver takes the machine out through the FG gate with no exit request; the slot is freed on scan-out.',
+    outcome: 'Machine is out of the FG yard and waiting for the main gate',
+  },
+  {
+    title: 'Main gate out',
+    actor: 'Main Gate (user, or the main gate system through the API)',
+    description: 'The main gate marks the machine out of the plant. A machine still waiting after the set hours is alerted and e-mailed to the production manager.',
+    outcome: 'Dispatch is complete',
   },
   {
     title: 'Movement history',
@@ -130,7 +148,7 @@ const userFlow: FlowStep[] = [
   {
     title: 'Admin creates an account',
     actor: 'Administrator',
-    description: 'An administrator creates a user and chooses the initial role from the six supported roles.',
+    description: 'An administrator creates a user and chooses the initial role from the supported roles.',
     outcome: 'The user appears in User Management',
   },
   {
@@ -206,6 +224,18 @@ const yardGuardrails: Guardrail[] = [
     description: 'Security can act on a Pending or Rejected machine; an in-transit machine has nothing to verify. Approval changes only the park status and never the commercial status, so it cannot un-sell a machine.',
   },
   {
+    title: 'A machine in the yard cannot come in again',
+    description: 'Gate inward refuses a machine that is already parked (pending, rejected or verified) or released for exit. A machine still in transit keeps its slot when scanned again.',
+  },
+  {
+    title: 'Only planned or approved machines go out',
+    description: 'FG gate outward accepts only machines planned for dispatch (parked and verified in a slot) or machines with an approved exit request.',
+  },
+  {
+    title: 'Returned after dispatch is held',
+    description: 'A machine that comes back after dispatch is put on hold and is not free stock until an Administrator or Yard Manager clears it with a remark. Machines back from inspection or repair return to stock directly. FIFO age always counts from the first inward.',
+  },
+  {
     title: 'The recorder is the signed-in user',
     description: 'Movements and security decisions take their author from the authenticated session rather than from the form, so the audit trail always names a real person.',
   },
@@ -213,12 +243,15 @@ const yardGuardrails: Guardrail[] = [
 
 const roleRows: RoleRow[] = [
   { role: 'Administrator', modules: 'All modules, including User Management and Settings', permissions: 'Manages users, assigns roles, activates or deactivates accounts, and configures upstream endpoints and sync schedules' },
-  { role: 'Yard Manager', modules: 'Yards, machines, assembly, masters, drivers, gate, confirm parking, history', permissions: 'Allocates locations and drivers, authenticates at the gate, records parking on a driver\u2019s behalf' },
+  { role: 'Yard Manager', modules: 'Yards, yard stock, dispatch, machines, assembly, masters, drivers, gate, confirm parking, history', permissions: 'Allocates locations and drivers, authenticates at the gate, records parking on a driver\u2019s behalf' },
   { role: 'Operator', modules: 'Dashboard, yards, machines, assembly, gate, confirm parking, history', permissions: 'Creates machines, advances assembly stages, records parking on a driver\u2019s behalf' },
   { role: 'Service Technician', modules: 'Dashboard, machines, history', permissions: 'Read-only machine tracking and history' },
   { role: 'Security', modules: 'Dashboard, security verification, history', permissions: 'Approves or rejects parked machines' },
   { role: 'View Only', modules: 'Dashboard, yards, machines', permissions: 'Read-only access' },
   { role: 'Driver', modules: 'Dashboard, confirm parking', permissions: 'Confirms that their own assigned machine is parked in its slot' },
+  { role: 'Dispatch Planner', modules: 'Dashboard, yard stock, dispatch planning, dispatch machine list', permissions: 'Plans machines for dispatch by model-type and cancels them until they leave the FG yard' },
+  { role: 'PDI Team', modules: 'Dashboard, dispatch machine list', permissions: 'Assigns drivers to planned machines and prints the slip' },
+  { role: 'Main Gate', modules: 'Dispatch machine list', permissions: 'Marks machines out of the main gate, or undoes a wrong mark' },
 ];
 
 const notificationRows: NotificationRow[] = [
@@ -270,6 +303,34 @@ const notificationRows: NotificationRow[] = [
     trigger: 'A machine is parked into a slot and is flagged Pending Verify',
     audience: 'Security',
     opens: 'Security Verification',
+  },
+  {
+    event: 'Parking not confirmed',
+    severity: 'WARNING',
+    trigger: 'A machine is still In Transit longer than the set minutes after gate in (30 by default). Fires once per trip',
+    audience: 'Yard Manager, Administrator, Operator, and the driver',
+    opens: 'Confirm Parking',
+  },
+  {
+    event: 'Returned after dispatch',
+    severity: 'WARNING',
+    trigger: 'A dispatched machine is checked in at the gate again and put on hold',
+    audience: 'Yard Manager, Administrator, Dispatch Planner',
+    opens: 'Yard Stock',
+  },
+  {
+    event: 'Dispatch planned',
+    severity: 'INFO',
+    trigger: 'A dispatch plan is saved',
+    audience: 'PDI Team, Yard Manager',
+    opens: 'Dispatch Machine List',
+  },
+  {
+    event: 'Dispatch overdue',
+    severity: 'WARNING',
+    trigger: 'A machine is out of the FG yard longer than the set hours without main gate out (8 by default). Also e-mailed to the production manager',
+    audience: 'Yard Manager, Administrator, PDI Team, Main Gate',
+    opens: 'Dispatch Machine List',
   },
 ];
 

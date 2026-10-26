@@ -53,7 +53,7 @@ const ROLE_SUMMARY: Record<string, string> = {
 const QUICK_START = [
   { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open the Yard Management System and sign in with your work email and password. New users can register, but start with View Only access until an Administrator changes the role.' },
   { icon: <PanelLeft className="w-4 h-4" />, title: 'Use the menu', text: 'The left menu lists only the screens your role can open. On a phone or tablet, tap the ☰ button at the top left to open it. On a computer, use the arrow at the top of the menu to collapse it.' },
-  { icon: <LayoutDashboard className="w-4 h-4" />, title: 'Start at the Dashboard', text: 'The Dashboard shows today’s position: machines, free slots, and a "Needs attention" list. Click any card to see the machines behind the number.' },
+  { icon: <LayoutDashboard className="w-4 h-4" />, title: 'Start at the Dashboard', text: 'The Dashboard shows the FG yard today: stock, free slots, dispatch and a "Needs attention" list. Click any card to see the machines behind the number.' },
   { icon: <Bell className="w-4 h-4" />, title: 'Watch the bell', text: 'The bell at the top right shows alerts for your role (yard full, gate rejected, sync failed and so on). Critical alerts also pop up on screen. Open Notifications for the full list.' },
   { icon: <LogOut className="w-4 h-4" />, title: 'Sign out', text: 'Use the exit icon next to your name at the bottom of the menu. Always sign out on a shared gate or yard device.' },
 ];
@@ -65,30 +65,23 @@ const JOURNEY = [
   { step: 'Gate In', status: 'IN TRANSIT', text: 'At the gate the driver badge and machine barcode are scanned. If authorized, the barrier opens and the driver is told which yard slot to go to.' },
   { step: 'Parked', status: 'PARKED PENDING', text: 'The driver (or the yard office) confirms the machine is in its slot.' },
   { step: 'Verified', status: 'PARKED VERIFIED', text: 'Security checks the machine is in the right slot and approves it. If rejected, the driver re-parks in the same slot and confirms again.' },
-  { step: 'Exit', status: 'AT GATE → EXITED', text: 'To take a machine out, an exit request is raised and approved by a Yard Manager. The gate then checks it out. Machines that left for testing or repair show under Returns until they come back.' },
+  { step: 'Dispatch', status: 'PLANNED → MAIN GATE OUT', text: 'The Dispatch Planner plans machines by model-type; the oldest free machines are picked (FIFO). The driver takes the machine out through FG gate-out, and the Main Gate marks it out of the plant.' },
+  { step: 'Exit', status: 'AT GATE → EXITED', text: 'For testing, repair and other purposes, an exit request is raised and approved by a Yard Manager. The gate then checks it out. Machines that left for testing or repair show under Returns until they come back.' },
 ];
 
 const SCREENS: ScreenGuide[] = [
   {
     tab: 'dashboard', title: 'Dashboard', roles: 'Everyone',
-    purpose: 'A live summary of the yard and every machine’s position in its journey.',
+    purpose: 'A live summary of the FG yard: stock, inward, dispatch and slots. Assembly is not shown here; use Assembly Line for that.',
     steps: [
-      'Read the top cards: total machines, available, reserved and occupied slots, ready to move, waiting for a slot.',
-      'Check "Needs attention" first. Each card names a problem (for example completed without barcode, yards full) and opens the list or the screen that fixes it.',
-      'Use "Machine Flow" to see how many machines are at each step. Click a step to list them.',
-      'Use "Quick Search" to find a machine by serial number, model, barcode or order number, then click View for its location and movement history.',
-      '"Yard Capacity" shows each yard’s free, reserved and occupied slots as a bar.',
+      'Read the top cards: machines in the FG yard, free stock, planned for dispatch, awaiting main gate, free slots, and today’s gate in, gate out and main gate out.',
+      'Check "Needs attention" first: dispatch overdue at the main gate, parking not confirmed in time, parking rejected, machines returned after dispatch (on hold), yards full and pending exit requests. Each card opens its list or the screen that fixes it.',
+      'Use "FG Yard Flow" to see how many machines are at each step, from Ready to Move to Main Gate Out. Click a step to list them.',
+      '"Stock by Model-Type" shows, per model-type, the machines in the yard, free, planned and the age of the oldest free machine (red after 30 days). "Stock Age" groups all yard machines by days since first inward.',
+      'Use "Quick Search" to find an FG yard machine by serial number, model, model-type or barcode, then click View for its location and movement history.',
+      '"Yard Capacity" shows each yard’s free, reserved and occupied slots as a bar. The lists at the bottom show machines in transit, awaiting verification and awaiting the main gate.',
     ],
-    tips: ['The page refreshes itself every minute and when new alerts arrive. The time of the last update is shown at the top right.'],
-  },
-  {
-    tab: 'dashboard2', title: 'Dashboard (New)', roles: 'Administrator, Yard Manager',
-    purpose: 'A second dashboard under review, with filters and full detail lists per card.',
-    steps: [
-      'Set the filters at the top (period and other options) to narrow the cards.',
-      'Each card shows its total, a breakdown by model type, and the full list of machines or slots behind it.',
-    ],
-    tips: ['This screen is still being reviewed alongside the main Dashboard. Report anything that does not match the main Dashboard.'],
+    tips: ['The page refreshes itself every minute and when new alerts arrive. The time of the last update is shown at the top right.', 'Overdue and parking alert times are the ones set by the Administrator in Settings.'],
   },
   {
     tab: 'yards', title: 'Yard Management', roles: 'Administrator, Yard Manager, Operator, View Only',
@@ -112,8 +105,10 @@ const SCREENS: ScreenGuide[] = [
       'Filter by yard, or search a model-type or serial number.',
       'The badge next to the inward date shows where the date came from: Actual (entered by hand), Gate (first gate check-in) or Stage 18 (estimate).',
       'Administrators and Yard Managers can click the pencil icon to enter the real inward date of a machine that was in the yard before go-live.',
+      'Age (first inward) counts from the first time the machine came into the yard. A machine that left and came back keeps that date and shows a blue Returned tag.',
+      'A machine that came back after dispatch shows "On hold · returned" and is not free stock. An Administrator or Yard Manager checks it, opens it and clicks Clear for Dispatch with a remark. Machines back from testing or repair are free stock again straight away.',
     ],
-    tips: ['Machines awaiting security verification, planned for dispatch or on an exit request are shown but not numbered: only free stock gets a FIFO number.'],
+    tips: ['Machines awaiting security verification, planned for dispatch, on an exit request or on hold are shown but not numbered: only free stock gets a FIFO number.'],
   },
   {
     tab: 'dispatch', title: 'Dispatch Planning', roles: 'Dispatch Planner, Yard Manager, Administrator',
@@ -205,14 +200,18 @@ const SCREENS: ScreenGuide[] = [
   },
   {
     tab: 'settings', title: 'Settings', roles: 'Administrator',
-    purpose: 'Connections to the plant production system, SAP material master and the gate barrier.',
+    purpose: 'Connections to the plant production system, SAP material master, the gate barrier, e-mail and the main gate, plus parking and dispatch alerts.',
     steps: [
       'Set each API URL, sync window (days), schedule (cron) and timeout.',
       'Press Test Connection before saving to confirm the server can reach the system.',
       'Gate Boom Barrier: set the Open and Close URLs and the auto-close time. Optionally enable the Manual Open button for the gate.',
+      'E-mail (SMTP): enter the sender mailbox and its app password, then press Send Test.',
+      'Parking & Security Check: choose whether Security must verify each parked machine, and the minutes after gate in before an alert is raised for parking that is not confirmed.',
+      'Dispatch Overdue Alert: set the hours a machine may wait between FG gate-out and main gate out, and the e-mail address that receives the alert.',
+      'Main Gate Integration: press Create Key only when the main gate system team is ready to connect.',
       'Press Save Changes. New schedules take effect immediately.',
     ],
-    tips: ['Schedule format is 5 fields: "30 6 * * *" means every day at 06:30.'],
+    tips: ['Schedule format is 5 fields: "30 6 * * *" means every day at 06:30.', 'Keep the security check switched on unless switching it off has been formally approved. When it is off, parked machines are verified automatically and this is recorded in the history.'],
   },
   {
     tab: 'gate', title: 'Gate Control', roles: 'Administrator, Yard Manager, Operator',
@@ -231,6 +230,8 @@ const SCREENS: ScreenGuide[] = [
       'Camera scanning needs the site opened over https (or on the same computer) and permission to use the camera. Tap Allow when the browser asks.',
       'If a barcode will not scan, use "or select machine manually".',
       'Outward only lists machines whose exit request was approved, or that are planned for dispatch. A planned machine needs no exit request; its slot is freed when it is scanned out.',
+      'Inward refuses a machine that is already parked in the yard or released for exit. A machine still in transit keeps its slot if it is scanned again.',
+      'A machine that comes back after dispatch is put on hold until a manager clears it in Yard Stock. Managers are notified.',
       '"Recent Gate Logs" on the right shows every attempt, authorized or rejected.',
     ],
   },
@@ -243,7 +244,11 @@ const SCREENS: ScreenGuide[] = [
       'The card changes to "Waiting for security to check it". You are notified when Security approves or rejects.',
       'If rejected, put the machine back in the same slot and press "I have parked it" again.',
     ],
-    tips: ['Drivers only see their own machines. Yard office staff can confirm on a driver’s behalf.'],
+    tips: [
+      'Drivers only see their own machines. Yard office staff can confirm on a driver’s behalf.',
+      'If the security check is switched off in Settings, the machine is verified as soon as parking is confirmed and the card says so.',
+      'If parking is not confirmed within the set time after gate in (30 minutes by default), the yard team and the driver are alerted.',
+    ],
   },
   {
     tab: 'security', title: 'Security Verification', roles: 'Administrator, Security',
@@ -255,7 +260,7 @@ const SCREENS: ScreenGuide[] = [
       '"Authorized Exits" lists machines approved to leave. They drop off once the gate checks them out.',
       '"Recent Verifications" keeps the last 8 decisions as a record.',
     ],
-    tips: ['New machines appear automatically. If "Live updates offline" is shown, press Refresh.'],
+    tips: ['New machines appear automatically. If "Live updates offline" is shown, press Refresh.', 'If an Administrator switches the security check off in Settings, no new machines arrive here; they are verified automatically.'],
   },
   {
     tab: 'returns', title: 'Returns', roles: 'Everyone except Drivers',
@@ -313,11 +318,16 @@ const GLOSSARY = [
   { term: 'Reservation', meaning: 'A slot held for a machine that has not arrived yet (yellow in the grid).' },
   { term: 'Sync', meaning: 'Reading the latest data from the plant production system or SAP. Runs every morning automatically.' },
   { term: 'Aging', meaning: 'How long a machine has been parked in its slot.' },
+  { term: 'FIFO', meaning: 'First in, first out: the machine that came into the yard first is dispatched first.' },
+  { term: 'Free stock', meaning: 'Machines parked and verified, not planned for dispatch, not on an exit request and not on hold.' },
+  { term: 'Age (first inward)', meaning: 'Days since the machine first came into the FG yard. It does not restart when a machine leaves and comes back.' },
+  { term: 'On hold · returned', meaning: 'A machine that came back after dispatch. It cannot be planned until a manager clears it.' },
+  { term: 'FG gate-out / Main gate out', meaning: 'FG gate-out is leaving the FG yard; main gate out is leaving the plant.' },
 ];
 
 const FAQ = [
   { q: 'I cannot see a screen my colleague can see.', a: 'The menu shows only the screens your role can open. Ask an Administrator to check your role in User Management.' },
-  { q: 'The gate rejected a machine. What now?', a: 'Read the red reason. Common causes: driver badge not found, machine not at stage 18, machine has no barcode, or no free slot in any yard. Fix the cause (for example free a slot or add the barcode in the plant system), then Reset and scan again.' },
+  { q: 'The gate rejected a machine. What now?', a: 'Read the red reason. Common causes: driver badge not found, machine not at stage 18, machine has no barcode, machine already parked in the yard, or no free slot in any yard. Fix the cause (for example free a slot or add the barcode in the plant system), then Reset and scan again.' },
   { q: 'A completed machine shows "No Barcode".', a: 'The barcode is missing in the plant system. The machine cannot be released until it is added there; the next sync updates it automatically.' },
   { q: 'The camera icon does not open the camera.', a: 'Tap Allow when the browser asks for the camera. Camera scanning only works over a secure (https) address or on the same computer. Otherwise use the barcode reader or type the code.' },
   { q: 'Numbers look out of date.', a: 'Press Refresh on the screen, or reload the page. The Dashboard also refreshes every minute.' },

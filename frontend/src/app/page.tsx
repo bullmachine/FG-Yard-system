@@ -97,9 +97,9 @@ const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
 ];
 
 const ROLE_TABS: Record<string, Tab[]> = {
-  // dashboard2 is the replacement dashboard under development; only its reviewers see it.
-  ADMIN: ['dashboard', 'dashboard2', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'users', 'settings', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
-  YARD_MANAGER: ['dashboard', 'dashboard2', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'returns', 'requests', 'history'],
+  // dashboard2 (DashboardV2) is hidden from every role; add it back to a role's list to show it again.
+  ADMIN: ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'users', 'settings', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
+  YARD_MANAGER: ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'returns', 'requests', 'history'],
   OPERATOR: ['dashboard', 'yards', 'stock', 'pdi', 'machines', 'assembly', 'gate', 'parked', 'returns', 'requests', 'history'],
   // No history: the movements endpoint does not admit this role.
   SERVICE_TECHNICIAN: ['dashboard', 'machines', 'returns', 'requests'],
