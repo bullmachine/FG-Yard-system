@@ -287,10 +287,11 @@ export default function SopDocument() {
         actions={
           <a
             href={asset('/fg-yard-gate-sop.pdf')}
-            download
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
           >
-            <Download className="w-4 h-4" /> Download PDF
+            <Download className="w-4 h-4" /> Open SOP PDF
           </a>
         }
       />
