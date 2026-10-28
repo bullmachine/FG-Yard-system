@@ -84,7 +84,7 @@ const SCREENS: ScreenGuide[] = [
     tips: ['The page refreshes itself every minute and when new alerts arrive. The time of the last update is shown at the top right.', 'Overdue and parking alert times are the ones set by the Administrator in Settings.'],
   },
   {
-    tab: 'yards', title: 'FG Yard', roles: 'Administrator, Yard Manager, Operator, View Only',
+    tab: 'yards', title: 'FG Yard', roles: 'Administrator, Yard Manager, Operator, View Only, Security (view only)',
     purpose: 'See every yard as a grid of slots, find a machine, and manage slots.',
     steps: [
       'Click a yard card to open its slot grid. Rows are letters (A, B, C…) and columns are numbers, so slot B5 is row B, column 5.',

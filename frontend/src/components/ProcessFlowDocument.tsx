@@ -246,7 +246,7 @@ const roleRows: RoleRow[] = [
   { role: 'Yard Manager', modules: 'Yards, yard stock, dispatch, machines, assembly, masters, drivers, gate, confirm parking, history', permissions: 'Allocates locations and drivers, authenticates at the gate, records parking on a driver\u2019s behalf' },
   { role: 'Operator', modules: 'Dashboard, yards, machines, assembly, gate, confirm parking, history', permissions: 'Creates machines, advances assembly stages, records parking on a driver\u2019s behalf' },
   { role: 'Service Technician', modules: 'Dashboard, machines, history', permissions: 'Read-only machine tracking and history' },
-  { role: 'Security', modules: 'Dashboard, gate control, security verification, history', permissions: 'Scans machines in and out at the FG yard gate, checks the dress code, approves or rejects parked machines' },
+  { role: 'Security', modules: 'Dashboard, FG yard (view only), gate control, security verification, history', permissions: 'Scans machines in and out at the FG yard gate, checks the dress code, approves or rejects parked machines' },
   { role: 'View Only', modules: 'Dashboard, yards, machines', permissions: 'Read-only access' },
   { role: 'Driver', modules: 'Dashboard, confirm parking', permissions: 'Confirms that their own assigned machine is parked in its slot' },
   { role: 'Dispatch Planner', modules: 'Dashboard, yard stock, dispatch planning, dispatch machine list', permissions: 'Plans machines for dispatch by model-type and cancels them until they leave the FG yard' },

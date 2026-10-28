@@ -130,7 +130,8 @@ export default function YardManagement() {
   // driver row, so it is held here and enriched by the modal with login + count.
   const [driverDetails, setDriverDetails] = useState<{ id: string; driver: DriverDetails } | null>(null);
   const { token, user, isAuthenticated } = useAuth();
-  const isViewOnly = !isAuthenticated || user?.role === 'VIEW_ONLY';
+  // Security sees the yard to find machines and slots, but does not move them.
+  const isViewOnly = !isAuthenticated || user?.role === 'VIEW_ONLY' || user?.role === 'SECURITY';
   const canRelease = isAuthenticated && (user?.role === 'YARD_MANAGER' || user?.role === 'ADMIN');
   const isAdmin = isAuthenticated && user?.role === 'ADMIN';
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
