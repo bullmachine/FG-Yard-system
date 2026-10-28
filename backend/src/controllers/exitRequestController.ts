@@ -105,6 +105,9 @@ export const createExitRequest = async (req: Request, res: Response) => {
     if (!(EXIT_REASONS as readonly string[]).includes(exitReason)) {
       return res.status(400).json({ error: 'Unsupported exit reason' });
     }
+    if (exitReason === 'DISPATCH') {
+      return res.status(400).json({ error: 'Dispatch goes through Dispatch Planning (FIFO and PDI check). Use exit only for testing, repair, relocation or maintenance.' });
+    }
 
     const machine = await prisma.machine.findUnique({ where: { id: machineId } });
     if (!machine) return res.status(404).json({ error: 'Machine not found' });
@@ -210,6 +213,10 @@ export const approveExitRequest = async (req: Request, res: Response) => {
     }
     if (!row.machine.currentSlotId) {
       return res.status(400).json({ error: 'Machine is not parked - nothing to release' });
+    }
+    // A dispatch request raised before dispatch planning existed: reject it instead.
+    if (row.reason === 'DISPATCH') {
+      return res.status(400).json({ error: 'Dispatch goes through Dispatch Planning (FIFO and PDI check). Use exit only for testing, repair, relocation or maintenance. Reject this request.' });
     }
 
     await releaseMachine(row.machineId, row.reason, user.id, row.notes);

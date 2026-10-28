@@ -122,7 +122,29 @@ export const getYardById = async (req: Request, res: Response) => {
             // machine is the machine actually parked here (CurrentSlot).
             // The full row plus its driver so the yard detail panel can show
             // barcode/order/park info and who is assigned to it.
-            machine: { include: { driver: true } },
+            // Plus why it is not free stock: its latest dispatch (planned, or the trip it
+            // came back from), an open exit request and the last security decision.
+            machine: {
+              include: {
+                driver: true,
+                dispatchItems: {
+                  orderBy: { createdAt: 'desc' },
+                  take: 1,
+                  select: { status: true, gateOutAt: true, mainGateOutAt: true, returnedAt: true, plan: { select: { planNo: true, soNumber: true } } }
+                },
+                exitRequests: {
+                  where: { status: { in: ['PENDING', 'APPROVED'] } },
+                  orderBy: { createdAt: 'desc' },
+                  take: 1,
+                  select: { reason: true, status: true, notes: true, createdAt: true, requestedBy: { select: { name: true } } }
+                },
+                securityVerifications: {
+                  orderBy: { verifiedAt: 'desc' },
+                  take: 1,
+                  select: { status: true, comments: true, verifiedAt: true, user: { select: { name: true } } }
+                }
+              }
+            },
             // plannedFor is the machine that holds this slot as a promise (PlannedSlot).
             // Without it a RESERVED slot is indistinguishable from an empty one.
             plannedFor: { select: plannedForSelect },

@@ -606,8 +606,11 @@ export const removeMachineFromSlot = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const exitReason =
-      typeof reason === 'string' && (EXIT_REASONS as readonly string[]).includes(reason) ? reason : 'DISPATCH';
+    // Dispatch is not a manual exit: it goes through Dispatch Planning (FIFO, PDI check).
+    const exitReason = typeof reason === 'string' ? reason : '';
+    if (!(EXIT_REASONS as readonly string[]).includes(exitReason) || exitReason === 'DISPATCH') {
+      return res.status(400).json({ error: 'Dispatch goes through Dispatch Planning (FIFO and PDI check). Use exit only for testing, repair, relocation or maintenance.' });
+    }
 
     const machine = await prisma.machine.findUnique({
       where: { id: machineId },
@@ -620,6 +623,14 @@ export const removeMachineFromSlot = async (req: Request, res: Response) => {
 
     if (!machine.currentSlotId) {
       return res.status(400).json({ error: 'Machine is not in any slot' });
+    }
+
+    const planned = await prisma.dispatchItem.findFirst({
+      where: { machineId, status: { in: ['PLANNED', 'DRIVER_ASSIGNED'] } },
+      select: { plan: { select: { planNo: true } } }
+    });
+    if (planned) {
+      return res.status(400).json({ error: `This machine is planned for dispatch (${planned.plan.planNo}). Cancel it from Dispatch Planning first.` });
     }
 
     // Manager quick-release: stamp an auto-approved exit ticket (so the audit trail

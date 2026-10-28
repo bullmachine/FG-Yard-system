@@ -12,7 +12,7 @@ import Select from '@/components/ui/Select';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from '@/components/ui/Table';
 import { formatDateTime } from '@/lib/format';
-import { EXIT_REASON_OPTIONS, exitReasonLabel } from '@/lib/exitReasons';
+import { MANUAL_EXIT_REASON_OPTIONS, exitReasonLabel } from '@/lib/exitReasons';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -48,7 +48,7 @@ interface MachineOption {
   slotLabel: string | null;
 }
 
-const REASON_OPTIONS = EXIT_REASON_OPTIONS;
+const REASON_OPTIONS = MANUAL_EXIT_REASON_OPTIONS;
 
 const STATUS_META: Record<ExitRequestStatus, { label: string; variant: 'amber' | 'blue' | 'red' | 'green' }> = {
   PENDING: { label: 'Pending', variant: 'amber' },

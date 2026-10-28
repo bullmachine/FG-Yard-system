@@ -14,7 +14,7 @@ import { AssemblyStageBadge, MachineStatusBadge, ParkStatusBadge } from '@/compo
 import MachineHistoryModal, { Movement } from '@/components/MachineHistoryModal';
 import DriverDetailsModal, { DriverDetails } from '@/components/DriverDetailsModal';
 import { slotLabel, formatDateShort, formatDateTime } from '@/lib/format';
-import { EXIT_REASON_OPTIONS } from '@/lib/exitReasons';
+import { MANUAL_EXIT_REASON_OPTIONS, exitReasonLabel } from '@/lib/exitReasons';
 import { asset } from '@/lib/basePath';
 import { Search, Plus, MapPin, Grid3X3, ExternalLink, Pencil } from 'lucide-react';
 
@@ -90,6 +90,78 @@ function parseDimensionInput(raw: string, fallback: number): number {
   return Math.min(n, MAX_DIMENSION);
 }
 
+interface SlotMachineInfo {
+  parkStatus: string;
+  returnHoldAt?: string | null;
+  dispatchItems?: { status: string; gateOutAt: string | null; mainGateOutAt: string | null; returnedAt: string | null; plan: { planNo: string; soNumber: string | null } }[];
+  exitRequests?: { reason: string; status: string; notes: string | null; createdAt: string; requestedBy: { name: string } }[];
+  securityVerifications?: { status: string; comments: string | null; verifiedAt: string; user: { name: string } }[];
+}
+
+function isPlannedForDispatch(m: SlotMachineInfo) {
+  const d = m.dispatchItems?.[0];
+  return !!d && (d.status === 'PLANNED' || d.status === 'DRIVER_ASSIGNED');
+}
+
+/**
+ * Why a parked machine is not free stock: return hold, security rejection or check,
+ * dispatch plan, or exit request. Shows nothing for a free machine.
+ */
+function MachineSlotStatus({ machine: m }: { machine: SlotMachineInfo }) {
+  const d = m.dispatchItems?.[0];
+  const exit = m.exitRequests?.[0];
+  const check = m.securityVerifications?.[0];
+  const so = d?.plan.soNumber ? ` · SO ${d.plan.soNumber}` : '';
+  const boxes: { tone: string; title: string; lines: string[] }[] = [];
+
+  if (m.returnHoldAt) {
+    const trip = d && (d.returnedAt || d.status === 'MAIN_GATE_OUT')
+      ? d.returnedAt
+        ? `Was on plan ${d.plan.planNo}${so}; came back before main gate-out (${formatDateTime(d.returnedAt)}), so it was taken off the plan.`
+        : `Was dispatched on plan ${d.plan.planNo}${so}; left the main gate ${d.mainGateOutAt ? formatDateTime(d.mainGateOutAt) : ''} and came back.`
+      : 'Came back in after leaving the yard for dispatch.';
+    boxes.push({
+      tone: 'border-red-200 bg-red-50 text-red-900',
+      title: `On hold · returned since ${formatDateTime(m.returnHoldAt)}`,
+      lines: [trip, 'Not free stock. Find out why it came back and check it, then Yard Stock > Clear for Dispatch.'],
+    });
+  }
+  if (m.parkStatus === 'PARKED_REJECTED') {
+    boxes.push({
+      tone: 'border-red-200 bg-red-50 text-red-900',
+      title: 'Rejected by security',
+      lines: [check?.comments ? `Reason: ${check.comments}` : 'No reason given.', check ? `${check.user.name}, ${formatDateTime(check.verifiedAt)}` : '', 'Re-park the machine in this slot and confirm parking again.'].filter(Boolean),
+    });
+  } else if (m.parkStatus === 'PARKED_PENDING') {
+    boxes.push({ tone: 'border-amber-200 bg-amber-50 text-amber-900', title: 'Waiting for the security check', lines: ['Not free stock until Security approves it in this slot.'] });
+  }
+  if (isPlannedForDispatch(m) && d) {
+    boxes.push({
+      tone: 'border-violet-200 bg-violet-50 text-violet-900',
+      title: `Planned for dispatch · ${d.plan.planNo}${so}`,
+      lines: [d.status === 'DRIVER_ASSIGNED' ? 'Driver assigned; waiting to go out through the FG gate.' : 'Waiting to go out through the FG gate.'],
+    });
+  }
+  if (exit) {
+    boxes.push({
+      tone: 'border-orange-200 bg-orange-50 text-orange-900',
+      title: `Exit request · ${exitReasonLabel(exit.reason)} (${exit.status.toLowerCase()})`,
+      lines: [`By ${exit.requestedBy.name}, ${formatDateTime(exit.createdAt)}`, exit.notes ? `Notes: ${exit.notes}` : ''].filter(Boolean),
+    });
+  }
+  if (boxes.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      {boxes.map((b) => (
+        <div key={b.title} className={`rounded-md border px-2.5 py-2 ${b.tone}`}>
+          <p className="text-[11px] font-semibold">{b.title}</p>
+          {b.lines.map((l) => <p key={l} className="mt-0.5 text-[11px] leading-snug">{l}</p>)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function YardManagement() {
   const [yards, setYards] = useState<Yard[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -116,7 +188,7 @@ export default function YardManagement() {
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const [dispatchTarget, setDispatchTarget] = useState<DispatchMachine | null>(null);
-  const [dispatchReason, setDispatchReason] = useState('DISPATCH');
+  const [dispatchReason, setDispatchReason] = useState('INSPECTION');
   const [dispatchNotes, setDispatchNotes] = useState('');
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const [dispatchSubmitting, setDispatchSubmitting] = useState(false);
@@ -218,7 +290,7 @@ export default function YardManagement() {
 
   const openDispatch = (machine: DispatchMachine) => {
     setDispatchTarget(machine);
-    setDispatchReason('DISPATCH');
+    setDispatchReason('INSPECTION');
     setDispatchNotes('');
     setDispatchError(null);
   };
@@ -680,7 +752,10 @@ export default function YardManagement() {
                           </div>
                         )}
                       </dl>
-                      {canRelease && <Button variant="danger" size="sm" className="w-full" onClick={() => openDispatch(selectedSlot.machine)}>Dispatch</Button>}
+                      <MachineSlotStatus machine={selectedSlot.machine} />
+                      {canRelease && !isPlannedForDispatch(selectedSlot.machine) && (
+                        <Button variant="secondary" size="sm" className="w-full" onClick={() => openDispatch(selectedSlot.machine)}>Release for exit</Button>
+                      )}
                     </div>
                   )}
                   {!selectedSlot.machine && selectedSlot.plannedFor && (
@@ -740,7 +815,7 @@ export default function YardManagement() {
       <Modal
         open={!!dispatchTarget}
         onClose={() => setDispatchTarget(null)}
-        title="Dispatch Machine"
+        title="Release for exit"
         subtitle={dispatchTarget ? `${dispatchTarget.serialNumber} will be released from its slot, marked AT GATE on the gate screen and shown to Security as an authorized exit.` : undefined}
         size="md"
         footer={
@@ -765,15 +840,16 @@ export default function YardManagement() {
             label="Exit purpose"
             value={dispatchReason}
             onChange={(e) => setDispatchReason(e.target.value)}
-            options={EXIT_REASON_OPTIONS}
+            options={MANUAL_EXIT_REASON_OPTIONS}
           />
+          <p className="text-[11px] text-slate-500">For testing, repair, relocation or maintenance. Dispatch to a customer goes through Dispatch Planning.</p>
           <div className="space-y-1">
             <label className="block text-xs font-medium text-slate-700">Notes (optional)</label>
             <textarea
               value={dispatchNotes}
               onChange={(e) => setDispatchNotes(e.target.value)}
               rows={2}
-              placeholder="e.g. moving to the customer yard for delivery"
+              placeholder="e.g. hydraulic leak, to service bay"
               className="w-full px-3 py-1.5 text-[13px] border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none placeholder:text-slate-400 resize-none"
             />
           </div>
