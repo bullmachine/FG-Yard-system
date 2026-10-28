@@ -199,7 +199,7 @@ export default function UserManagement() {
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="User Management"
         description="Manage accounts, roles, and access status"

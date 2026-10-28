@@ -43,7 +43,7 @@ app.use(express.json());
 app.use('/uploads', express.static(UPLOADS_ROOT, { dotfiles: 'deny', index: false }));
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Yard Management System API is running' });
+  res.json({ status: 'ok', message: 'FG Yard API is running' });
 });
 
 app.use('/api/auth', authRoutes);

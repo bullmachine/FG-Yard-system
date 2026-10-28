@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Yard Management System",
-  description: "FG Yard Management System — Track and manage backhoe loader inventory",
+  title: "FG Yard",
+  description: "FG Yard — Track and manage backhoe loader inventory",
 };
 
 export default function RootLayout({

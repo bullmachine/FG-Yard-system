@@ -138,7 +138,7 @@ export default function DriverParked() {
   const active = machines.filter(m => m.parkStatus !== 'PARKED_VERIFIED');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Confirm Parking"
         description="Tell the yard when the machine is physically in its slot"

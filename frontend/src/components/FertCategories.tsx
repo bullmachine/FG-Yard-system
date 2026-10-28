@@ -59,7 +59,7 @@ export default function FertCategories() {
   const paginated = categories.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="FERT Categories"
         description={`${categories.length} categories`}

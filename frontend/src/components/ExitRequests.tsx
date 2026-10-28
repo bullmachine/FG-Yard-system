@@ -203,7 +203,7 @@ export default function ExitRequests() {
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Exit Requests"
         description={

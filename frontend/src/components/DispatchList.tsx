@@ -13,7 +13,7 @@ import Modal from '@/components/ui/Modal';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '@/components/ui/Table';
 import { slotLabel, formatDateShort, formatDateTime } from '@/lib/format';
-import { AlertTriangle, Boxes, Check, DoorOpen, MapPin, Minus, PackageCheck, Phone, Printer, RefreshCw, Search, Truck, Undo2 } from 'lucide-react';
+import { AlertTriangle, Boxes, Check, ClipboardCheck, DoorOpen, MapPin, Minus, PackageCheck, Phone, Printer, RefreshCw, Search, Truck, Undo2 } from 'lucide-react';
 
 export type DispatchStatus = 'PLANNED' | 'DRIVER_ASSIGNED' | 'OUT_OF_YARD' | 'MAIN_GATE_OUT' | 'CANCELLED';
 
@@ -22,6 +22,7 @@ export interface DispatchItem {
   status: DispatchStatus;
   planId: string;
   planNo: string;
+  soNumber: string | null;
   plannedAt: string;
   plannedBy: { id: string; name: string };
   modelType: string;
@@ -33,6 +34,10 @@ export interface DispatchItem {
   mainGateOutBy: { id: string; name: string } | null;
   mainGateSource: 'MANUAL' | 'API' | null;
   mainGateRef: string | null;
+  pdiStatus: 'PASSED' | 'HOLD' | null;
+  pdiAt: string | null;
+  pdiBy: { id: string; name: string } | null;
+  pdiRemark: string | null;
   cancelledAt: string | null;
   machine: {
     id: string;
@@ -62,8 +67,9 @@ export function dispatchLocation(m: { yard: { name: string } | null; row: number
 type StepState = 'done' | 'current' | 'todo' | 'skipped';
 
 /**
- * The four steps of a dispatch: planned, driver (optional), FG gate-out, main gate-out.
- * A driver step left empty once the machine is out counts as skipped, not missing.
+ * The five steps of a dispatch: planned, driver (optional), FG gate-out, PDI final check,
+ * main gate-out. A driver step left empty once the machine is out counts as skipped, not
+ * missing.
  */
 export function dispatchSteps(i: DispatchItem): { label: string; at: string | null; state: StepState; note?: string }[] {
   const out = !!i.gateOutAt;
@@ -77,9 +83,17 @@ export function dispatchSteps(i: DispatchItem): { label: string; at: string | nu
     },
     { label: 'FG gate-out', at: i.gateOutAt, state: out ? 'done' : i.driver ? 'current' : 'todo' },
     {
+      label: 'PDI check',
+      at: i.pdiAt,
+      state: i.pdiStatus === 'PASSED' ? 'done' : out ? 'current' : 'todo',
+      note: i.pdiStatus === 'PASSED'
+        ? `Passed by ${i.pdiBy?.name ?? ''}${i.pdiRemark ? ` · ${i.pdiRemark}` : ''}`
+        : i.pdiStatus === 'HOLD' ? `On hold by ${i.pdiBy?.name ?? ''}: ${i.pdiRemark ?? ''}` : undefined,
+    },
+    {
       label: 'Main gate',
       at: i.mainGateOutAt,
-      state: i.mainGateOutAt ? 'done' : out ? 'current' : 'todo',
+      state: i.mainGateOutAt ? 'done' : i.pdiStatus === 'PASSED' ? 'current' : 'todo',
       note: i.mainGateOutAt
         ? `${i.mainGateSource === 'API' ? 'Main gate system' : i.mainGateOutBy?.name ?? ''}${i.mainGateRef ? ` · Ref ${i.mainGateRef}` : ''}`
         : undefined,
@@ -96,7 +110,18 @@ const STEP_DOT: Record<StepState, string> = {
   skipped: 'bg-slate-100 border-slate-300 text-slate-400',
 };
 
-/** Compact four-dot progress line for a table row. */
+/** PDI result of a machine that is out of the FG yard. */
+export const PDI_STATUS = {
+  PENDING: { label: 'PDI pending', variant: 'gray' as const },
+  PASSED: { label: 'PDI passed', variant: 'green' as const },
+  HOLD: { label: 'PDI hold', variant: 'red' as const },
+};
+
+export function pdiMeta(i: DispatchItem) {
+  return PDI_STATUS[i.pdiStatus ?? 'PENDING'];
+}
+
+/** Compact five-dot progress line for a table row. */
 export function DispatchProgress({ item }: { item: DispatchItem }) {
   const steps = dispatchSteps(item);
   return (
@@ -118,7 +143,10 @@ function nextStep(i: DispatchItem, isMainGate: boolean): string {
   switch (i.status) {
     case 'PLANNED': return 'Assign a driver (optional) and print the slip';
     case 'DRIVER_ASSIGNED': return 'Driver to collect it and go out through the FG gate';
-    case 'OUT_OF_YARD': return isMainGate ? 'Click Main Gate Out when it leaves' : 'Waiting for main gate-out';
+    case 'OUT_OF_YARD':
+      if (i.pdiStatus === 'HOLD') return `PDI hold: ${i.pdiRemark ?? ''} - re-check after rectification`;
+      if (i.pdiStatus !== 'PASSED') return isMainGate ? 'Waiting for the PDI final check' : 'Do the PDI final check';
+      return isMainGate ? 'PDI passed - click Main Gate Out when it leaves' : 'PDI passed - waiting for main gate-out';
     case 'MAIN_GATE_OUT': return 'Completed';
     default: return 'Cancelled by the planner';
   }
@@ -130,12 +158,14 @@ function sinceLabel(from: string | null, to: string | null) {
   return ms > 0 ? `+${formatWait(ms)}` : null;
 }
 
-type Filter = 'IN_YARD' | 'OUT_OF_YARD' | 'MAIN_GATE_OUT' | 'ALL';
+type Filter = 'IN_YARD' | 'AT_PDI' | 'READY_GATE' | 'MAIN_GATE_OUT' | 'ALL';
 
-const FILTERS: { value: Filter; label: string; match: (s: DispatchStatus) => boolean; tone: string }[] = [
-  { value: 'IN_YARD', label: 'In FG yard', match: (s) => s === 'PLANNED' || s === 'DRIVER_ASSIGNED', tone: 'bg-violet-50 text-violet-700' },
-  { value: 'OUT_OF_YARD', label: 'Waiting main gate', match: (s) => s === 'OUT_OF_YARD', tone: 'bg-amber-50 text-amber-700' },
-  { value: 'MAIN_GATE_OUT', label: 'Main gate out', match: (s) => s === 'MAIN_GATE_OUT', tone: 'bg-emerald-50 text-emerald-700' },
+// Out of the FG yard splits on the PDI result: not passed yet (pending or hold) or ready to leave.
+const FILTERS: { value: Filter; label: string; match: (i: DispatchItem) => boolean; tone: string }[] = [
+  { value: 'IN_YARD', label: 'In FG yard', match: (i) => i.status === 'PLANNED' || i.status === 'DRIVER_ASSIGNED', tone: 'bg-violet-50 text-violet-700' },
+  { value: 'AT_PDI', label: 'At PDI', match: (i) => i.status === 'OUT_OF_YARD' && i.pdiStatus !== 'PASSED', tone: 'bg-amber-50 text-amber-700' },
+  { value: 'READY_GATE', label: 'Ready for main gate', match: (i) => i.status === 'OUT_OF_YARD' && i.pdiStatus === 'PASSED', tone: 'bg-blue-50 text-blue-700' },
+  { value: 'MAIN_GATE_OUT', label: 'Main gate out', match: (i) => i.status === 'MAIN_GATE_OUT', tone: 'bg-emerald-50 text-emerald-700' },
   { value: 'ALL', label: 'All', match: () => true, tone: 'bg-slate-100 text-slate-700' },
 ];
 
@@ -185,7 +215,7 @@ function printSlip(items: DispatchItem[], printedBy: string) {
             <td class="serial">${esc(i.machine.serialNumber)}</td>
             <td>${esc(i.machine.barcode ?? '-')}</td>
             <td>${esc(i.modelType)}</td>
-            <td>${esc(i.planNo)}</td>
+            <td>${esc(i.planNo)}${i.soNumber ? `<br>SO ${esc(i.soNumber)}` : ''}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -222,16 +252,17 @@ export default function DispatchList() {
   const role = user?.role || '';
   const isMainGate = role === 'MAIN_GATE';
   const canAssign = role === 'ADMIN' || role === 'YARD_MANAGER' || role === 'PDI';
+  const canPdi = canAssign;
   const canGateOut = role === 'ADMIN' || role === 'YARD_MANAGER' || isMainGate;
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   // The main gate user only sees machines that have left the FG yard.
-  const filters = isMainGate ? FILTERS.filter((f) => f.value === 'OUT_OF_YARD' || f.value === 'MAIN_GATE_OUT') : FILTERS;
+  const filters = isMainGate ? FILTERS.filter((f) => f.value === 'AT_PDI' || f.value === 'READY_GATE' || f.value === 'MAIN_GATE_OUT') : FILTERS;
 
   const [items, setItems] = useState<DispatchItem[]>([]);
   const [alertHours, setAlertHours] = useState(8);
   const [drivers, setDrivers] = useState<{ id: string; name: string; employeeCode: string | null }[]>([]);
-  const [filterChoice, setFilter] = useState<Filter>(isMainGate ? 'OUT_OF_YARD' : 'IN_YARD');
+  const [filterChoice, setFilter] = useState<Filter>(isMainGate ? 'READY_GATE' : 'IN_YARD');
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [now, setNow] = useState(() => Date.now());
@@ -241,6 +272,10 @@ export default function DispatchList() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [pdiItem, setPdiItem] = useState<DispatchItem | null>(null);
+  const [pdiRemark, setPdiRemark] = useState('');
+  const [pdiError, setPdiError] = useState<string | null>(null);
+  const [pdiSaving, setPdiSaving] = useState(false);
 
   const fetchItems = useCallback(async (): Promise<{ alertHours: number; items: DispatchItem[] }> => {
     const res = await fetch(`${API_URL}/api/dispatch-plans/items`, { headers: authHeaders() });
@@ -289,9 +324,10 @@ export default function DispatchList() {
 
   const term = search.trim().toLowerCase();
   const filterMatch = FILTERS.find((f) => f.value === filter)!.match;
-  const visible = items.filter((i) => filterMatch(i.status) && (!term ||
+  const visible = items.filter((i) => filterMatch(i) && (!term ||
     i.machine.serialNumber.toLowerCase().includes(term) ||
     i.planNo.toLowerCase().includes(term) ||
+    (i.soNumber?.toLowerCase().includes(term) ?? false) ||
     i.modelType.toLowerCase().includes(term) ||
     (i.driver?.name.toLowerCase().includes(term) ?? false)));
   // In the FG yard, list by yard and slot so the driver's round is easy to follow.
@@ -335,22 +371,51 @@ export default function DispatchList() {
     return next;
   });
 
+  const openPdi = (i: DispatchItem) => {
+    setPdiItem(i);
+    setPdiRemark(i.pdiStatus === 'HOLD' ? '' : i.pdiRemark ?? '');
+    setPdiError(null);
+  };
+
+  const savePdi = async (result: 'PASS' | 'HOLD') => {
+    if (!pdiItem) return;
+    setPdiSaving(true);
+    setPdiError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/dispatch-plans/items/${pdiItem.id}/pdi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ result, remark: pdiRemark }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) { setPdiError(data?.error || `Save failed (${res.status})`); return; }
+      setItems((prev) => prev.map((i) => (i.id === pdiItem.id ? (data as DispatchItem) : i)));
+      setPdiItem(null);
+    } catch {
+      setPdiError('Connection error - try again');
+    } finally {
+      setPdiSaving(false);
+    }
+  };
+
   const markMainGateOut = (i: DispatchItem) => {
     if (window.confirm(`Mark ${i.machine.serialNumber} as gone out of the main gate?`)) send(i, 'POST', 'main-gate-out', {});
   };
 
   if (loading) return <PageSpinner />;
 
-  const count = (f: Filter) => items.filter((i) => FILTERS.find((x) => x.value === f)!.match(i.status)).length;
+  const count = (f: Filter) => items.filter((i) => FILTERS.find((x) => x.value === f)!.match(i)).length;
   const overdueCount = items.filter(overdue).length;
+  // Overdue machines can be waiting for PDI or for the main gate; open the tab that has them.
+  const overdueTab: Filter = items.some((i) => overdue(i) && i.pdiStatus !== 'PASSED') ? 'AT_PDI' : 'READY_GATE';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Dispatch Machine List"
         description={isMainGate
           ? 'Machines that have left the FG yard: mark them out when they pass the main gate'
-          : 'Machines planned for dispatch: assign a driver, print the pick slip, and follow them to the main gate'}
+          : 'Machines planned for dispatch: assign a driver, print the pick slip, do the PDI final check, and follow them to the main gate'}
         actions={
           <div className="flex gap-2">
             <Button variant="ghost" onClick={refresh} icon={<RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />}>Refresh</Button>
@@ -372,7 +437,7 @@ export default function DispatchList() {
       {overdueCount > 0 && (
         <button
           type="button"
-          onClick={() => setFilter('OUT_OF_YARD')}
+          onClick={() => setFilter(overdueTab)}
           className="flex w-full items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left text-xs text-red-800"
         >
           <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -380,12 +445,13 @@ export default function DispatchList() {
         </button>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
         {!isMainGate && (
           <StatCard label="In FG yard" value={count('IN_YARD')} icon={<Boxes className="w-4 h-4" />} color="purple" hint="To be taken out" onClick={() => setFilter('IN_YARD')} />
         )}
-        <StatCard label="Waiting main gate" value={count('OUT_OF_YARD')} icon={<PackageCheck className="w-4 h-4" />} color="amber" hint="Out of the FG yard" onClick={() => setFilter('OUT_OF_YARD')} />
-        <StatCard label={`Over ${alertHours} h`} value={overdueCount} icon={<AlertTriangle className="w-4 h-4" />} color={overdueCount ? 'red' : 'slate'} hint="Not yet out of main gate" onClick={() => setFilter('OUT_OF_YARD')} />
+        <StatCard label="At PDI" value={count('AT_PDI')} icon={<ClipboardCheck className="w-4 h-4" />} color="amber" hint="Check pending or on hold" onClick={() => setFilter('AT_PDI')} />
+        <StatCard label="Ready for main gate" value={count('READY_GATE')} icon={<PackageCheck className="w-4 h-4" />} color="blue" hint="PDI passed" onClick={() => setFilter('READY_GATE')} />
+        <StatCard label={`Over ${alertHours} h`} value={overdueCount} icon={<AlertTriangle className="w-4 h-4" />} color={overdueCount ? 'red' : 'slate'} hint="Not yet out of main gate" onClick={() => setFilter(overdueTab)} />
         <StatCard label="Main gate out" value={count('MAIN_GATE_OUT')} icon={<Truck className="w-4 h-4" />} color="green" onClick={() => setFilter('MAIN_GATE_OUT')} />
       </div>
 
@@ -395,7 +461,7 @@ export default function DispatchList() {
         noPadding
         action={
           <div className="w-full sm:w-64">
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Serial, plan, model-type, driver…" icon={<Search className="w-3.5 h-3.5" />} aria-label="Search dispatch list" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Serial, plan, SO, model-type, driver…" icon={<Search className="w-3.5 h-3.5" />} aria-label="Search dispatch list" />
           </div>
         }
       >
@@ -472,7 +538,7 @@ export default function DispatchList() {
                       >
                         {i.machine.serialNumber}
                       </button>
-                      <span className="block text-[11px] text-slate-500">{i.planNo} · {formatDateShort(i.plannedAt)}</span>
+                      <span className="block text-[11px] text-slate-500">{i.planNo}{i.soNumber ? ` · SO ${i.soNumber}` : ''} · {formatDateShort(i.plannedAt)}</span>
                     </TableCell>
                     <TableCell className="text-xs text-slate-700">
                       <span className="font-medium">{i.modelType}</span>
@@ -517,9 +583,10 @@ export default function DispatchList() {
                     <TableCell>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={meta.variant}>{meta.label}</Badge>
+                        {i.status === 'OUT_OF_YARD' && <Badge variant={pdiMeta(i).variant}>{pdiMeta(i).label}</Badge>}
                         <DispatchProgress item={i} />
                       </div>
-                      <span className={`mt-0.5 block text-[11px] ${late ? 'font-medium text-red-700' : 'text-slate-500'}`}>
+                      <span className={`mt-0.5 block text-[11px] ${late || (i.status === 'OUT_OF_YARD' && i.pdiStatus === 'HOLD') ? 'font-medium text-red-700' : 'text-slate-500'}`}>
                         {late ? `Overdue - over ${alertHours} h since FG gate-out` : nextStep(i, isMainGate)}
                       </span>
                     </TableCell>
@@ -528,7 +595,10 @@ export default function DispatchList() {
                         {!isMainGate && inYard(i) && (
                           <Button size="sm" variant="ghost" onClick={() => printSlip([i], user?.name || '')} icon={<Printer className="w-3.5 h-3.5" />} aria-label={`Print slip for ${i.machine.serialNumber}`} />
                         )}
-                        {canGateOut && i.status === 'OUT_OF_YARD' && (
+                        {canPdi && i.status === 'OUT_OF_YARD' && i.pdiStatus !== 'PASSED' && (
+                          <Button size="sm" variant="secondary" onClick={() => openPdi(i)} icon={<ClipboardCheck className="w-3.5 h-3.5" />}>PDI Check</Button>
+                        )}
+                        {canGateOut && i.status === 'OUT_OF_YARD' && i.pdiStatus === 'PASSED' && (
                           <Button size="sm" variant="success" onClick={() => markMainGateOut(i)} loading={busy} icon={<DoorOpen className="w-3.5 h-3.5" />}>Main Gate Out</Button>
                         )}
                         {canGateOut && i.status === 'MAIN_GATE_OUT' && (
@@ -555,7 +625,12 @@ export default function DispatchList() {
             {!isMainGate && inYard(detail) && (
               <Button variant="secondary" onClick={() => printSlip([detail], user?.name || '')} icon={<Printer className="w-4 h-4" />}>Print Slip</Button>
             )}
-            {canGateOut && detail.status === 'OUT_OF_YARD' && (
+            {canPdi && detail.status === 'OUT_OF_YARD' && (
+              <Button variant="secondary" onClick={() => openPdi(detail)} icon={<ClipboardCheck className="w-4 h-4" />}>
+                {detail.pdiStatus === 'PASSED' ? 'Change PDI Result' : 'PDI Check'}
+              </Button>
+            )}
+            {canGateOut && detail.status === 'OUT_OF_YARD' && detail.pdiStatus === 'PASSED' && (
               <Button variant="success" onClick={() => markMainGateOut(detail)} loading={busyId === detail.id} icon={<DoorOpen className="w-4 h-4" />}>Main Gate Out</Button>
             )}
             <Button variant="secondary" onClick={() => setDetailId(null)}>Close</Button>
@@ -570,6 +645,7 @@ export default function DispatchList() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={DISPATCH_STATUS[detail.status].variant}>{DISPATCH_STATUS[detail.status].label}</Badge>
+                {detail.status === 'OUT_OF_YARD' && <Badge variant={pdiMeta(detail).variant}>{pdiMeta(detail).label}</Badge>}
                 <span className={`text-xs ${late ? 'font-medium text-red-700' : 'text-slate-600'}`}>
                   {late ? `Overdue - over ${alertHours} h since FG gate-out` : nextStep(detail, isMainGate)}
                 </span>
@@ -604,6 +680,7 @@ export default function DispatchList() {
                   ['Model-type', detail.modelType],
                   ['Model', detail.machine.model],
                   ['Plan', detail.planNo],
+                  ['SO number', detail.soNumber ?? '—'],
                   ['Planned by', `${detail.plannedBy.name}, ${formatDateShort(detail.plannedAt)}`],
                   ['Yard inward date', detail.inwardAt ? formatDateShort(detail.inwardAt) : '—'],
                 ].map(([k, v]) => (
@@ -671,11 +748,48 @@ export default function DispatchList() {
         })()}
       </Modal>
 
+      {/* PDI final check. Rendered after the detail so it opens on top of it. */}
+      <Modal
+        open={!!pdiItem}
+        onClose={() => setPdiItem(null)}
+        title="PDI final check"
+        subtitle={pdiItem ? `${pdiItem.machine.serialNumber} · ${pdiItem.modelType} · ${pdiItem.planNo}${pdiItem.soNumber ? ` · SO ${pdiItem.soNumber}` : ''}` : undefined}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPdiItem(null)}>Cancel</Button>
+            <Button variant="danger" onClick={() => savePdi('HOLD')} disabled={pdiRemark.trim().length < 3} loading={pdiSaving}>Hold</Button>
+            <Button variant="success" onClick={() => savePdi('PASS')} loading={pdiSaving} icon={<Check className="w-4 h-4" />}>Pass</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          {pdiItem?.pdiStatus === 'HOLD' && (
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+              On hold since {pdiItem.pdiAt ? formatDateTime(pdiItem.pdiAt) : '—'} by {pdiItem.pdiBy?.name ?? '—'}: {pdiItem.pdiRemark}
+            </p>
+          )}
+          <p className="text-xs text-slate-600">
+            Pass lets the machine go out of the main gate. Hold keeps it here until it is rectified and checked again.
+          </p>
+          <Input
+            label="Remark (required for Hold)"
+            value={pdiRemark}
+            maxLength={500}
+            onChange={(e) => setPdiRemark(e.target.value)}
+            placeholder="What was checked, or what is wrong"
+          />
+          <p className="text-[11px] text-slate-500">Your name, the time and this remark are recorded.</p>
+          {pdiError && <p className="text-xs font-medium text-red-700">{pdiError}</p>}
+        </div>
+      </Modal>
+
       <p className="text-[11px] text-slate-500">
         Click a serial number to see the machine details and its progress.
         A planned machine leaves the FG yard through the normal FG gate-out (driver badge and machine barcode); no exit request is needed.
+        After FG gate-out, PDI does the final check: Pass, or Hold with a remark and check again after rectification.
+        Main gate-out is allowed only after PDI passes the machine; it can be marked here or sent automatically by the main gate system.
         The time since FG gate-out turns red after {alertHours} hours, and the production manager is e-mailed.
-        Main gate-out can be marked here or sent automatically by the main gate system.
       </p>
     </div>
   );

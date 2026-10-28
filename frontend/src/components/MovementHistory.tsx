@@ -163,7 +163,7 @@ export default function MovementHistory() {
   const emptyDescription = mode === 'movements' ? 'Movements will appear after machines are allocated' : mode === 'parking' ? 'Parking confirmations will appear after a machine is parked and checked in' : 'Security walk-down decisions will appear after a machine is verified';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader title={title} description={countLabel} />
 
       <SectionCard title={title} bodyClassName={(mode === 'verifications' ? verifications.items.length === 0 : mode === 'parking' ? parking.items.length === 0 : movements.items.length === 0) ? '' : 'p-0'}>

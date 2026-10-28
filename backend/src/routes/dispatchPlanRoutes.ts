@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import {
   listDispatchPlans,
+  getDispatchPlan,
   createDispatchPlan,
   cancelDispatchPlan,
   cancelDispatchItem,
   listDispatchItems,
   assignDispatchDriver,
+  recordPdiCheck,
   markMainGateOut
 } from '../controllers/dispatchPlanController';
 import { auth, requireRole } from '../middleware/auth';
@@ -22,10 +24,12 @@ const VIEWERS = ['ADMIN', 'YARD_MANAGER', 'PLANNER', 'PDI', 'MAIN_GATE', 'OPERAT
 // Dispatch list. Declared before /:id so "items" is not read as a plan id.
 router.get('/items', auth, requireRole(VIEWERS), listDispatchItems);
 router.put('/items/:itemId/driver', auth, requireRole(PDI_TEAM), assignDispatchDriver);
+router.post('/items/:itemId/pdi', auth, requireRole(PDI_TEAM), recordPdiCheck);
 router.post('/items/:itemId/main-gate-out', auth, requireRole(MAIN_GATE), markMainGateOut);
 router.post('/items/:itemId/cancel', auth, requireRole(PLANNERS), cancelDispatchItem);
 
 router.get('/', auth, requireRole(VIEWERS.filter((r) => r !== 'MAIN_GATE')), listDispatchPlans);
+router.get('/:id', auth, requireRole(VIEWERS.filter((r) => r !== 'MAIN_GATE')), getDispatchPlan);
 router.post('/', auth, requireRole(PLANNERS), createDispatchPlan);
 router.post('/:id/cancel', auth, requireRole(PLANNERS), cancelDispatchPlan);
 

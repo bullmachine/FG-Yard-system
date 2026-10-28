@@ -231,7 +231,7 @@ export default function MachineHistoryModal({
       {tabIcon(id)}
       {label}
       {count !== null && (
-        <span className={`rounded-full px-1.5 py-px text-[9px] font-bold tabular-nums ${
+        <span className={`rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums ${
           tab === id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'
         }`}>
           {count}

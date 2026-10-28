@@ -159,7 +159,7 @@ export default function MachineReturns() {
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Returns"
         description="Machines that left for testing, inspection, repair, relocation or maintenance and are expected back. Reserve a slot first, then they can check in through the gate."

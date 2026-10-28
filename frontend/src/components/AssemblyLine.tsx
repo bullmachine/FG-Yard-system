@@ -206,7 +206,7 @@ export default function AssemblyLine() {
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Assembly Line"
         description="Track machines through stages 1–18"
@@ -237,7 +237,7 @@ export default function AssemblyLine() {
       {/* Counts come from the stage-stats endpoint, so they render for every
           authenticated user. The sync cards stay behind syncStatus, which is
           admin-only. */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
         <StatCard label="In Assembly" value={inAssembly.length} icon={<Factory className="w-4 h-4" />} color="indigo" hint={`${completed.length} completed`} />
         <StatCard
           label="Started Today"
@@ -270,7 +270,7 @@ export default function AssemblyLine() {
       {demoAvailable && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2.5">
           <span className="inline-flex items-center gap-2 text-[11px] text-purple-800">
-            <span className="inline-flex items-center rounded-full bg-purple-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            <span className="inline-flex items-center rounded-full bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
               Demo
             </span>
             <span>
@@ -305,7 +305,7 @@ export default function AssemblyLine() {
             return (
               <button key={s} onClick={() => setSelectedStage(s)} className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${selectedStage === s ? 'bg-indigo-600 text-white shadow-sm' : count > 0 ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
                 {s}
-                {count > 0 && <span className={`text-[9px] px-1 py-0 rounded-full ${selectedStage === s ? 'bg-white/20' : 'bg-blue-200 text-blue-800'}`}>{count}</span>}
+                {count > 0 && <span className={`text-[10px] px-1 py-0 rounded-full ${selectedStage === s ? 'bg-white/20' : 'bg-blue-200 text-blue-800'}`}>{count}</span>}
               </button>
             );
           })}
@@ -315,7 +315,7 @@ export default function AssemblyLine() {
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             Completed
-            <span className={`text-[9px] px-1 py-0 rounded-full ${showingCompleted ? 'bg-white/20' : 'bg-emerald-200 text-emerald-800'}`}>{completed.length}</span>
+            <span className={`text-[10px] px-1 py-0 rounded-full ${showingCompleted ? 'bg-white/20' : 'bg-emerald-200 text-emerald-800'}`}>{completed.length}</span>
           </button>
         </div>
 
@@ -406,12 +406,12 @@ export default function AssemblyLine() {
                       <span className="font-medium text-slate-900">{m.serialNumber}</span>
                       {m.barcode && <span className="block text-[10px] text-slate-400">BC: {m.barcode}</span>}
                       {m.isDemo && (
-                        <span className="mt-0.5 inline-block rounded bg-purple-100 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-purple-700">
+                        <span className="mt-0.5 inline-block rounded bg-purple-100 px-1 py-px text-[10px] font-bold uppercase tracking-wide text-purple-700">
                           Demo
                         </span>
                       )}
                       {m.assemblyStage >= 18 && !m.barcode && (
-                        <span className="mt-0.5 inline-block rounded bg-amber-100 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-amber-700">
+                        <span className="mt-0.5 inline-block rounded bg-amber-100 px-1 py-px text-[10px] font-bold uppercase tracking-wide text-amber-700">
                           No barcode
                         </span>
                       )}

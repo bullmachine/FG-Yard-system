@@ -82,6 +82,16 @@ function stockStatus(m: StockMachine): { label: string; variant: 'green' | 'purp
   return { label: 'Free', variant: 'green', hint: 'Parked, verified and ready to plan for dispatch' };
 }
 
+// What each summary card lists. Each filter matches how the backend counts that total.
+type CardKey = 'FREE' | 'PLANNED' | 'UNVERIFIED' | 'ESTIMATED' | 'RETURN_HOLD';
+const CARD_LISTS: Record<CardKey, { title: string; subtitle: string; match: (m: StockMachine) => boolean }> = {
+  FREE: { title: 'Free stock', subtitle: 'Verified, not planned, no exit request · dispatch order', match: (m) => m.available },
+  PLANNED: { title: 'Planned for dispatch', subtitle: 'Reserved on a dispatch plan, still in the yard', match: (m) => !!m.reservedFor },
+  UNVERIFIED: { title: 'Awaiting verification', subtitle: 'In a slot, not yet checked by security', match: (m) => !m.verified && !m.reservedFor },
+  ESTIMATED: { title: 'Estimated dates', subtitle: 'FIFO date taken from stage 18 or unknown', match: (m) => m.inwardSource === 'STAGE18' || m.inwardSource === 'UNKNOWN' },
+  RETURN_HOLD: { title: 'On hold · returned', subtitle: 'Came back after dispatch; must be cleared before planning', match: (m) => m.verified && !m.reservedFor && !m.exitPending && !!m.returnHoldAt },
+};
+
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -109,6 +119,7 @@ export default function YardStock() {
   const [error, setError] = useState<string | null>(null);
 
   const [detail, setDetail] = useState<StockMachine | null>(null);
+  const [cardList, setCardList] = useState<CardKey | null>(null);
   const [editing, setEditing] = useState<StockMachine | null>(null);
   const [editDate, setEditDate] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
@@ -163,6 +174,17 @@ export default function YardStock() {
       g.machines.some((m) => m.serialNumber.toLowerCase().includes(term) || m.model?.toLowerCase().includes(term))
     );
   }, [data, term]);
+
+  // Machines behind the clicked card, across all model-types. Free stock keeps FIFO
+  // order per model-type; the other lists show the oldest first.
+  const cardMachines = useMemo(() => {
+    if (!data || !cardList) return [];
+    const { match } = CARD_LISTS[cardList];
+    const list = data.groups.flatMap((g) => g.machines.filter(match));
+    return cardList === 'FREE'
+      ? list.sort((a, b) => a.modelType.localeCompare(b.modelType) || (a.fifoRank ?? 0) - (b.fifoRank ?? 0))
+      : list.sort((a, b) => (b.daysInYard ?? -1) - (a.daysInYard ?? -1));
+  }, [data, cardList]);
 
   const toggle = (key: string) => setOpen((prev) => {
     const next = new Set(prev);
@@ -231,7 +253,7 @@ export default function YardStock() {
   const totals = data?.totals;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Yard Stock"
         description="Machines in the yard by model-type, oldest first (FIFO)"
@@ -247,29 +269,31 @@ export default function YardStock() {
       )}
 
       {totals && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Free stock" value={totals.available} icon={<Boxes className="w-4 h-4" />} color="green" hint={`Verified, not planned · ${totals.modelTypes} model-types`} />
-          <StatCard label="Planned for dispatch" value={totals.reserved} icon={<ClipboardList className="w-4 h-4" />} color="purple" hint="Waiting to go out" />
-          <StatCard label="Awaiting verification" value={totals.pendingVerify} icon={<ShieldAlert className="w-4 h-4" />} color="amber" hint="In a slot, not yet checked" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <StatCard label="Free stock" value={totals.available} icon={<Boxes />} color="green" hint={`${totals.modelTypes} model-types`} onClick={() => setCardList('FREE')} />
+          <StatCard label="Planned for dispatch" value={totals.reserved} icon={<ClipboardList />} color="purple" hint="Waiting to go out" onClick={() => setCardList('PLANNED')} />
+          <StatCard label="Awaiting verification" value={totals.pendingVerify} icon={<ShieldAlert />} color="amber" hint="In a slot, not yet checked" onClick={() => setCardList('UNVERIFIED')} />
           <StatCard
             label="Estimated dates"
             value={totals.estimated + totals.undated}
-            icon={<Clock className="w-4 h-4" />}
+            icon={<Clock />}
             color={totals.estimated + totals.undated > 0 ? 'red' : 'slate'}
             hint="Stage 18 or unknown date"
+            onClick={() => setCardList('ESTIMATED')}
           />
         </div>
       )}
 
       {totals && totals.returnHold > 0 && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-800">
           {totals.returnHold} machine{totals.returnHold === 1 ? '' : 's'} came back after dispatch and {totals.returnHold === 1 ? 'is' : 'are'} on hold, so not counted as free stock.
           {canEditDate ? ' Check the machine, then open it and use Clear for Dispatch.' : ' A yard manager must check and clear it before it can be planned.'}
+          {' '}<button type="button" onClick={() => setCardList('RETURN_HOLD')} className="font-semibold underline hover:text-red-900">View list</button>
         </p>
       )}
 
       {totals && totals.estimated + totals.undated > 0 && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
           {totals.estimated + totals.undated} machine{totals.estimated + totals.undated === 1 ? '' : 's'} have no gate check-in, so their place in the FIFO order is
           estimated from the stage 18 date{totals.undated > 0 ? ' or unknown' : ''}.
           {canEditDate ? ' Enter the real inward date with the pencil icon to correct the order.' : ' A yard manager can enter the real inward date.'}
@@ -278,7 +302,6 @@ export default function YardStock() {
 
       <SectionCard
         title={`Stock by model-type (${groups.length})`}
-        description="Click a model-type to see its machines in dispatch order"
         noPadding
         action={
           <div className="flex w-full flex-wrap gap-2 sm:w-auto">
@@ -444,6 +467,60 @@ export default function YardStock() {
         A machine that leaves the yard and comes back keeps its first inward date and is tagged Returned.
         Only free machines (parked, verified, not planned for dispatch and not on an exit request) are counted and numbered for dispatch.
       </p>
+
+      <Modal
+        open={!!cardList}
+        onClose={() => setCardList(null)}
+        title={cardList ? `${CARD_LISTS[cardList].title} (${cardMachines.length})` : undefined}
+        subtitle={cardList ? `${CARD_LISTS[cardList].subtitle}${yardId ? ` · ${yards.find((y) => y.id === yardId)?.name ?? ''}` : ''}` : undefined}
+        size="xl"
+        footer={<Button variant="secondary" onClick={() => setCardList(null)}>Close</Button>}
+      >
+        {cardMachines.length === 0 ? (
+          <EmptyState icon={<Boxes className="w-6 h-6 text-slate-400" />} title="No machines" description="Nothing in the yard matches this card" />
+        ) : (
+          <Table>
+            <TableHeader>
+              {cardList === 'FREE' && <TableHeaderCell align="center">FIFO</TableHeaderCell>}
+              <TableHeaderCell>Serial Number</TableHeaderCell>
+              <TableHeaderCell>Model-type</TableHeaderCell>
+              <TableHeaderCell>Location</TableHeaderCell>
+              <TableHeaderCell>Inward Date</TableHeaderCell>
+              <TableHeaderCell align="right">Age (days)</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
+            </TableHeader>
+            <TableBody>
+              {cardMachines.map((m) => {
+                const st = stockStatus(m);
+                const meta = SOURCE_META[m.inwardSource];
+                return (
+                  <TableRow key={m.id}>
+                    {cardList === 'FREE' && (
+                      <TableCell align="center" className="tabular-nums text-xs">{m.fifoRank ?? '—'}</TableCell>
+                    )}
+                    <TableCell>
+                      <button type="button" onClick={() => setDetail(m)} className="text-left font-semibold text-blue-700 hover:underline" title="View machine details">
+                        {m.serialNumber}
+                      </button>
+                      <span className="block text-[11px] text-slate-400">{m.model}</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600">{m.modelType}</TableCell>
+                    <TableCell className="text-[13px] font-medium">{location(m)}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="text-[13px]">{m.inwardAt ? formatDateShort(m.inwardAt) : '—'}</span>
+                        <span title={meta.hint}><Badge variant={meta.variant}>{meta.label}</Badge></span>
+                      </span>
+                    </TableCell>
+                    <TableCell align="right" className="tabular-nums">{m.daysInYard ?? '—'}</TableCell>
+                    <TableCell><span title={st.hint}><Badge variant={st.variant}>{st.label}</Badge></span></TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </Modal>
 
       <Modal
         open={!!detail}

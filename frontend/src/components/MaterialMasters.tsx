@@ -96,7 +96,7 @@ export default function MaterialMasters() {
   const paginated = materials.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Material Master"
         description="SAP FERT_API — item code to CONF_MATERIAL mapping"
@@ -110,7 +110,7 @@ export default function MaterialMasters() {
       )}
 
       {status && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           <StatCard label="Synced Records" value={status.totalRecords} icon={<Package className="w-4 h-4" />} color="blue" />
           <StatCard label="Last Sync" value={status.lastSyncedAt ? formatDateTime(status.lastSyncedAt) : 'Never'} icon={<Clock className="w-4 h-4" />} color="slate" />
           <StatCard label="Plant" value={status.plant} icon={<Factory className="w-4 h-4" />} color="indigo" />

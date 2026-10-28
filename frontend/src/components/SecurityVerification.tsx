@@ -175,7 +175,7 @@ export default function SecurityVerification() {
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Security Verification"
         description={`${pending.length} awaiting verification`}

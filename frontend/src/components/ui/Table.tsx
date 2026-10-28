@@ -41,7 +41,7 @@ export function TableHeaderCell({ children, className = '', align = 'left' }: Ta
     right: 'text-right',
   };
   return (
-    <th className={`px-3 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap ${alignClasses[align]} ${className}`}>
+    <th className={`px-3 py-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap ${alignClasses[align]} ${className}`}>
       {children}
     </th>
   );
@@ -91,7 +91,7 @@ export function TableCell({ children, className = '', align = 'left' }: TableCel
     right: 'text-right',
   };
   return (
-    <td className={`px-3 py-2 text-[13px] text-slate-700 whitespace-nowrap ${alignClasses[align]} ${className}`}>
+    <td className={`px-3 py-1.5 text-[13px] text-slate-700 whitespace-nowrap ${alignClasses[align]} ${className}`}>
       {children}
     </td>
   );

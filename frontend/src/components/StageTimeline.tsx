@@ -72,7 +72,7 @@ interface StageTimelineProps {
 
 export default function StageTimeline({ summary, stages }: StageTimelineProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Progress summary */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Progress</span>

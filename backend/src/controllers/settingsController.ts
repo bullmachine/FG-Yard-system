@@ -364,8 +364,8 @@ export const testConnectionHandler = async (req: Request, res: Response) => {
     try {
       await sendMail({
         to: [to],
-        subject: 'FG Yard System - test e-mail',
-        html: '<p>This is a test e-mail from the FG Yard System. E-mail alerts are working.</p>'
+        subject: 'FG Yard - test e-mail',
+        html: '<p>This is a test e-mail from FG Yard. E-mail alerts are working.</p>'
       });
       return res.json({ target, ok: true, message: `Test e-mail sent to ${to}` });
     } catch (error) {

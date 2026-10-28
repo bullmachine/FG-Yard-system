@@ -411,9 +411,9 @@ export default function YardManagement() {
   const gridMinWidth = selectedYard ? 22 + selectedYard.cols * 42 : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
-        title="Yard Management"
+        title="FG Yard"
         description={`${yards.length} yard${yards.length !== 1 ? 's' : ''} configured`}
         actions={canRelease ? <Button icon={<Plus className="w-4 h-4" />} onClick={openCreateYard}>Create Yard</Button> : undefined}
       />
@@ -522,11 +522,11 @@ export default function YardManagement() {
               <div className="space-y-1.5" style={{ minWidth: gridMinWidth }}>
                 <div className="grid gap-1.5 mb-1" style={{ gridTemplateColumns: gridTemplate }}>
                   <span />
-                  {Array.from({ length: selectedYard.cols }, (_, i) => <span key={i} className="text-center text-[9px] font-bold text-slate-500">{i + 1}</span>)}
+                  {Array.from({ length: selectedYard.cols }, (_, i) => <span key={i} className="text-center text-[10px] font-bold text-slate-500">{i + 1}</span>)}
                 </div>
                 {Array.from({ length: selectedYard.rows }, (_, ri) => (
                   <div key={ri} className="grid gap-1.5" style={{ gridTemplateColumns: gridTemplate }}>
-                    <div className="aspect-square flex items-center justify-center text-[9px] font-bold text-slate-500 bg-slate-200 rounded">{String.fromCharCode(64 + ri + 1)}</div>
+                    <div className="aspect-square flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-200 rounded">{String.fromCharCode(64 + ri + 1)}</div>
                     {/* Every row emits exactly `cols` cells. The old code mapped over the
                         slots that existed, so one removed slot shifted every slot after it
                         leftwards and the header stopped lining up with the grid. */}

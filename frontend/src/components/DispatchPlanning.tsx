@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { StatCard, SectionCard } from '@/components/ui/Card';
+import { StatCard } from '@/components/ui/Card';
 import PageHeader from '@/components/ui/PageHeader';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
+import Pagination from '@/components/ui/Pagination';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '@/components/ui/Table';
 import { formatDateShort, formatDateTime } from '@/lib/format';
@@ -19,12 +20,24 @@ import { Boxes, ClipboardList, PackageCheck, Plus, RefreshCw, Search, Trash2, Tr
 interface Plan {
   id: string;
   planNo: string;
+  soNumber: string | null;
   createdAt: string;
   createdBy: { id: string; name: string };
   lines: { id: string; modelType: string; requestedQty: number }[];
   totalQty: number;
   counts: { planned: number; outOfYard: number; mainGateOut: number; cancelled: number };
   items: DispatchItem[];
+}
+
+type PlanView = 'open' | 'completed' | 'cancelled' | 'all';
+
+interface PlansResponse {
+  plans: Plan[];
+  total: number;
+  page: number;
+  pageSize: number;
+  views: Record<PlanView, number>;
+  summary: { openPlans: number; inYard: number; outOfYard: number; mainGateOutToday: number };
 }
 
 interface StockMachine {
@@ -44,6 +57,57 @@ interface StockGroup { modelType: string; available: number; machines: StockMach
 
 interface DraftLine { modelType: string; qty: string }
 
+const VIEWS: { value: PlanView; label: string; hint: string; tone: string }[] = [
+  { value: 'open', label: 'Open', hint: 'Some machines not yet out of the main gate', tone: 'bg-violet-50 text-violet-700' },
+  { value: 'completed', label: 'Completed', hint: 'Every machine out of the main gate', tone: 'bg-emerald-50 text-emerald-700' },
+  { value: 'cancelled', label: 'Cancelled', hint: 'Every machine cancelled', tone: 'bg-slate-100 text-slate-600' },
+  { value: 'all', label: 'All', hint: 'Every plan', tone: 'bg-slate-100 text-slate-700' },
+];
+
+// What each summary card lists. The statuses match the card counts from the backend.
+type CardKey = 'IN_YARD' | 'OUT_OF_YARD' | 'MAIN_GATE_OUT';
+const CARD_LISTS: Record<CardKey, { title: string; subtitle: string; statuses: DispatchItem['status'][] }> = {
+  IN_YARD: { title: 'Waiting in FG yard', subtitle: 'Planned, not yet out of the FG yard', statuses: ['PLANNED', 'DRIVER_ASSIGNED'] },
+  OUT_OF_YARD: { title: 'Waiting main gate', subtitle: 'Out of the FG yard, not yet out of the main gate', statuses: ['OUT_OF_YARD'] },
+  MAIN_GATE_OUT: { title: 'Out of plant today', subtitle: 'Out of the main gate since midnight', statuses: ['MAIN_GATE_OUT'] },
+};
+
+// Machines still to move come first in a plan.
+const STATUS_ORDER: Record<DispatchItem['status'], number> = { PLANNED: 0, DRIVER_ASSIGNED: 0, OUT_OF_YARD: 1, MAIN_GATE_OUT: 2, CANCELLED: 3 };
+
+/** Where the plan stands, from the step its slowest machine is at. */
+function planState(p: Plan): { label: string; variant: 'purple' | 'amber' | 'green' | 'gray'; hint: string } {
+  if (p.counts.planned > 0) return { label: 'In FG yard', variant: 'purple', hint: `${p.counts.planned} machine${p.counts.planned === 1 ? '' : 's'} still to leave the FG yard` };
+  if (p.counts.outOfYard > 0) return { label: 'At PDI / main gate', variant: 'amber', hint: `${p.counts.outOfYard} machine${p.counts.outOfYard === 1 ? '' : 's'} out of the FG yard, at PDI or waiting at the main gate` };
+  if (p.counts.mainGateOut > 0) return { label: 'Completed', variant: 'green', hint: 'Every machine is out of the main gate' };
+  return { label: 'Cancelled', variant: 'gray', hint: 'Every machine was cancelled' };
+}
+
+/** One bar per plan: out of plant, waiting main gate, still in the FG yard. Cancelled machines are left out. */
+function PlanProgress({ plan }: { plan: Plan }) {
+  const { planned, outOfYard, mainGateOut, cancelled } = plan.counts;
+  const live = plan.totalQty - cancelled;
+  if (live === 0) return <span className="text-xs text-slate-400">All {cancelled} cancelled</span>;
+  return (
+    <div className="w-40 space-y-1">
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100" aria-hidden>
+        {[[mainGateOut, 'bg-emerald-500'], [outOfYard, 'bg-amber-400'], [planned, 'bg-violet-400']].map(([n, cls]) => (n as number) > 0 && (
+          <span key={cls as string} className={cls as string} style={{ width: `${((n as number) / live) * 100}%` }} />
+        ))}
+      </div>
+      <p className="text-[11px] text-slate-600 tabular-nums">
+        <span className="font-semibold text-slate-900">{mainGateOut}</span> of {live} out of plant
+        {cancelled > 0 && <span className="text-slate-400"> · {cancelled} cancelled</span>}
+      </p>
+    </div>
+  );
+}
+
+function daysAgo(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  return days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`;
+}
+
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -55,31 +119,58 @@ export default function DispatchPlanning() {
   const canPlan = role === 'ADMIN' || role === 'YARD_MANAGER' || role === 'PLANNER';
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [data, setData] = useState<PlansResponse | null>(null);
+  const [view, setView] = useState<PlanView>('open');
   const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const [stock, setStock] = useState<StockGroup[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Plan | null>(null);
+  const [cardList, setCardList] = useState<CardKey | null>(null);
+  const [cardItems, setCardItems] = useState<DispatchItem[] | null>(null);
   const [creating, setCreating] = useState(false);
   const [lines, setLines] = useState<DraftLine[]>([{ modelType: '', qty: '1' }]);
+  const [soNumber, setSoNumber] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const fetchPlans = useCallback(async (): Promise<Plan[]> => {
-    const res = await fetch(`${API_URL}/api/dispatch-plans`, { headers: authHeaders() });
+  // Search runs on the server, so wait for the user to stop typing. Any new filter
+  // starts again from the first page.
+  useEffect(() => {
+    const next = search.trim();
+    if (next === query) return;
+    const t = setTimeout(() => { setQuery(next); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [search, query]);
+
+  const changeView = (v: PlanView) => { setView(v); setPage(1); };
+  const changeFrom = (v: string) => { setFrom(v); setPage(1); };
+  const changeTo = (v: string) => { setTo(v); setPage(1); };
+  const changePageSize = (n: number) => { setPageSize(n); setPage(1); };
+
+  const fetchPlans = useCallback(async (): Promise<PlansResponse> => {
+    const qs = new URLSearchParams({ view, page: String(page), pageSize: String(pageSize) });
+    if (query) qs.set('q', query);
+    if (from) qs.set('from', from);
+    if (to) qs.set('to', to);
+    const res = await fetch(`${API_URL}/api/dispatch-plans?${qs}`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`GET /api/dispatch-plans -> ${res.status}`);
     return res.json();
-  }, [API_URL]);
+  }, [API_URL, view, page, pageSize, query, from, to]);
 
-  // State is only set from the promise callbacks, and a late response after the page
-  // has closed is dropped.
+  // State is only set from the promise callbacks, and a response for filters that have
+  // since changed is dropped.
   const load = useCallback((isCurrent: () => boolean = () => true) =>
     fetchPlans()
-      .then((d) => { if (isCurrent()) { setPlans(d); setError(null); } })
+      .then((d) => { if (isCurrent()) { setData(d); setError(null); } })
       .catch((err) => {
         console.error('Failed to load dispatch plans:', err);
         if (isCurrent()) setError('Could not load dispatch plans. Check that the backend is running, then refresh.');
@@ -95,19 +186,50 @@ export default function DispatchPlanning() {
 
   const refresh = () => { setRefreshing(true); load(); };
 
-  const term = search.trim().toLowerCase();
-  const visible = useMemo(() => plans.filter((p) => !term ||
-    p.planNo.toLowerCase().includes(term) ||
-    p.lines.some((l) => l.modelType.toLowerCase().includes(term)) ||
-    p.items.some((i) => i.machine.serialNumber.toLowerCase().includes(term))), [plans, term]);
+  const openPlan = async (id: string) => {
+    setActionError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/dispatch-plans/${id}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`GET /api/dispatch-plans/${id} -> ${res.status}`);
+      setSelected(await res.json());
+    } catch (err) {
+      console.error('Failed to load dispatch plan:', err);
+      setError('Could not open the plan. Refresh and try again.');
+    }
+  };
 
-  const selected = plans.find((p) => p.id === selectedId) ?? null;
+  const openCard = (key: CardKey) => {
+    setCardList(key);
+    setCardItems(null);
+    const qs = new URLSearchParams({ status: CARD_LISTS[key].statuses.join(',') });
+    if (key === 'MAIN_GATE_OUT') {
+      const midnight = new Date();
+      midnight.setHours(0, 0, 0, 0);
+      qs.set('outSince', midnight.toISOString());
+    }
+    fetch(`${API_URL}/api/dispatch-plans/items?${qs}`, { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setCardItems(Array.isArray(d?.items) ? d.items : []))
+      .catch(() => setCardItems([]));
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setQuery('');
+    changeFrom('');
+    changeTo('');
+  };
+
+  const showView = (v: PlanView) => {
+    changeView(v);
+    clearFilters();
+  };
+
+  const filtered = !!(query || from || to);
+  const summary = data?.summary;
+  const plans = data?.plans ?? [];
   const freeByType = useMemo(() => new Map(stock.map((g) => [g.modelType, g.available])), [stock]);
-  const totals = plans.reduce((t, p) => ({
-    planned: t.planned + p.counts.planned,
-    outOfYard: t.outOfYard + p.counts.outOfYard,
-    mainGateOut: t.mainGateOut + p.counts.mainGateOut,
-  }), { planned: 0, outOfYard: 0, mainGateOut: 0 });
+  const selectedItems = useMemo(() => (selected ? [...selected.items].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) : []), [selected]);
 
   const post = async (path: string, body?: unknown): Promise<unknown | null> => {
     setBusy(true);
@@ -131,6 +253,7 @@ export default function DispatchPlanning() {
 
   const openCreate = () => {
     setLines([{ modelType: '', qty: '1' }]);
+    setSoNumber('');
     setActionError(null);
     setCreating(true);
     fetch(`${API_URL}/api/yard-stock`, { headers: authHeaders() })
@@ -140,17 +263,23 @@ export default function DispatchPlanning() {
   };
 
   const submitCreate = async () => {
-    const data = await post('', { lines: lines.filter((l) => l.modelType).map((l) => ({ modelType: l.modelType, qty: Number(l.qty) })) }) as Plan | null;
+    const data = await post('', {
+      soNumber: soNumber.trim() || undefined,
+      lines: lines.filter((l) => l.modelType).map((l) => ({ modelType: l.modelType, qty: Number(l.qty) })),
+    }) as Plan | null;
     if (!data) return;
-    setPlans((prev) => [data, ...prev]);
     setCreating(false);
-    setSelectedId(data.id);
-    setNotice(`${data.planNo} saved. ${data.totalQty} machine${data.totalQty === 1 ? '' : 's'} planned (oldest first) and sent to the PDI dispatch list.`);
+    setSelected(data);
+    setNotice(`${data.planNo}${data.soNumber ? ` (SO ${data.soNumber})` : ''} saved. ${data.totalQty} machine${data.totalQty === 1 ? '' : 's'} planned (oldest first) and sent to the PDI dispatch list.`);
+    showView('open');
+    setRefreshing(true);
+    load();
   };
 
   const cancelItem = async (item: DispatchItem) => {
     if (!window.confirm(`Remove ${item.machine.serialNumber} from the dispatch plan? It goes back to free stock.`)) return;
     if (!(await post(`/items/${item.id}/cancel`))) return;
+    await openPlan(item.planId);
     setRefreshing(true);
     await load();
   };
@@ -159,8 +288,10 @@ export default function DispatchPlanning() {
     if (!window.confirm(`Cancel every machine of ${plan.planNo} that is still in the FG yard? They go back to free stock.`)) return;
     const data = await post(`/${plan.id}/cancel`) as { cancelled: number; plan: Plan } | null;
     if (!data) return;
-    setPlans((prev) => prev.map((p) => (p.id === data.plan.id ? data.plan : p)));
+    setSelected(data.plan);
     setNotice(`${data.cancelled} machine${data.cancelled === 1 ? '' : 's'} of ${plan.planNo} cancelled.`);
+    setRefreshing(true);
+    await load();
   };
 
   // A line may not ask for more than the free stock; the server refuses it anyway.
@@ -184,8 +315,9 @@ export default function DispatchPlanning() {
 
   if (loading) return <PageSpinner />;
 
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Dispatch Planning"
         description="Plan FG yard machines for dispatch. The oldest machines are picked first (FIFO)."
@@ -205,113 +337,224 @@ export default function DispatchPlanning() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Plans" value={plans.length} icon={<ClipboardList className="w-4 h-4" />} color="indigo" hint="Last 200" />
-        <StatCard label="Waiting in FG yard" value={totals.planned} icon={<Boxes className="w-4 h-4" />} color="purple" hint="Planned, not yet out" />
-        <StatCard label="Waiting main gate" value={totals.outOfYard} icon={<PackageCheck className="w-4 h-4" />} color="amber" hint="Out of the FG yard" />
-        <StatCard label="Main gate out" value={totals.mainGateOut} icon={<Truck className="w-4 h-4" />} color="green" hint="Left the plant" />
-      </div>
+      {summary && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <StatCard label="Open plans" value={summary.openPlans} icon={<ClipboardList />} color="indigo" hint="Not all out yet" onClick={() => showView('open')} />
+          <StatCard label="Waiting in FG yard" value={summary.inYard} icon={<Boxes />} color="purple" hint="Not yet out of FG yard" onClick={() => openCard('IN_YARD')} />
+          <StatCard label="Waiting main gate" value={summary.outOfYard} icon={<PackageCheck />} color="amber" hint="Not yet out of main gate" onClick={() => openCard('OUT_OF_YARD')} />
+          <StatCard label="Out of plant today" value={summary.mainGateOutToday} icon={<Truck />} color="green" hint="Since midnight" onClick={() => openCard('MAIN_GATE_OUT')} />
+        </div>
+      )}
 
-      <SectionCard
-        title={`Plans (${visible.length})`}
-        description="Click a plan to see its machines"
-        noPadding
-        action={
-          <div className="w-full sm:w-64">
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Plan, model-type, serial…" icon={<Search className="w-3.5 h-3.5" />} aria-label="Search plans" />
+      {/* Tabs and filters share one toolbar so most of the screen is left for the list. */}
+      <div className="bg-white rounded-lg border border-slate-200 shadow-[0_1px_2px_0_rgb(2_6_23_/_0.05)]">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {VIEWS.map((v) => {
+              const n = data?.views[v.value] ?? 0;
+              const active = view === v.value;
+              return (
+                <button
+                  key={v.value}
+                  type="button"
+                  onClick={() => changeView(v.value)}
+                  title={v.hint}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${active ? 'bg-slate-900 text-white shadow-sm' : `${v.tone} hover:opacity-80`} ${n === 0 && !active ? 'opacity-50' : ''}`}
+                >
+                  {v.label}
+                  <span className={`text-[10px] tabular-nums ${active ? 'text-white/70' : ''}`}>{n}</span>
+                </button>
+              );
+            })}
           </div>
-        }
-      >
-        {visible.length === 0 ? (
+          <div className="ml-auto flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
+            <div className="w-full sm:w-52">
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Plan, SO, model-type, serial…" icon={<Search className="w-3.5 h-3.5" />} aria-label="Search plans" />
+            </div>
+            <div className="w-36"><Input type="date" value={from} max={to || undefined} onChange={(e) => changeFrom(e.target.value)} aria-label="Planned from" title="Planned from" /></div>
+            <span className="text-xs text-slate-400">to</span>
+            <div className="w-36"><Input type="date" value={to} min={from || undefined} onChange={(e) => changeTo(e.target.value)} aria-label="Planned to" title="Planned to" /></div>
+            {filtered && <Button variant="ghost" size="sm" onClick={clearFilters} icon={<X className="w-3.5 h-3.5" />}>Clear</Button>}
+          </div>
+        </div>
+
+        {plans.length === 0 ? (
           <EmptyState
             icon={<ClipboardList className="w-6 h-6 text-slate-400" />}
-            title={term ? 'Nothing matches your search' : 'No dispatch plans yet'}
-            description={canPlan ? 'Click Plan Machines to pick machines for dispatch' : 'Plans from the planning team appear here'}
+            title={filtered ? 'Nothing matches your search' : view === 'open' ? 'No open plans' : 'No plans here'}
+            description={filtered ? 'Try another plan, model-type, serial or date' : view === 'open' && canPlan ? 'Click Plan Machines to pick machines for dispatch' : 'Plans appear here as machines move'}
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableHeaderCell>Plan</TableHeaderCell>
-              <TableHeaderCell>Model-types</TableHeaderCell>
-              <TableHeaderCell align="right">In FG yard</TableHeaderCell>
-              <TableHeaderCell align="right">Waiting main gate</TableHeaderCell>
-              <TableHeaderCell align="right">Main gate out</TableHeaderCell>
-              <TableHeaderCell align="right">Cancelled</TableHeaderCell>
-            </TableHeader>
-            <TableBody>
-              {visible.map((p) => (
-                <TableRow key={p.id} onClick={() => { setSelectedId(p.id); setActionError(null); }} className="cursor-pointer">
-                  <TableCell>
-                    <span className="font-medium text-slate-900">{p.planNo}</span>
-                    <span className="block text-[11px] text-slate-500">{p.createdBy.name} · {formatDateShort(p.createdAt)}</span>
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-600">{p.lines.map((l) => `${l.modelType} × ${l.requestedQty}`).join(', ')}</TableCell>
-                  <TableCell align="right" className="tabular-nums font-semibold text-violet-700">{p.counts.planned || '—'}</TableCell>
-                  <TableCell align="right" className="tabular-nums">{p.counts.outOfYard || '—'}</TableCell>
-                  <TableCell align="right" className="tabular-nums text-emerald-700">{p.counts.mainGateOut || '—'}</TableCell>
-                  <TableCell align="right" className="tabular-nums text-slate-500">{p.counts.cancelled || '—'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </SectionCard>
-
-      {/* Plan detail */}
-      <Modal
-        open={!!selected}
-        onClose={() => setSelectedId(null)}
-        title={selected ? selected.planNo : undefined}
-        subtitle={selected ? `Planned by ${selected.createdBy.name} on ${formatDateTime(selected.createdAt)}` : undefined}
-        size="xl"
-        footer={selected && canPlan && selected.counts.planned > 0 && (
-          <Button variant="danger" onClick={() => cancelPlan(selected)} loading={busy}>Cancel Machines Still in Yard</Button>
-        )}
-      >
-        {selected && (
-          <div className="space-y-3">
+          <>
             <Table>
               <TableHeader>
-                <TableHeaderCell>Serial Number</TableHeaderCell>
-                <TableHeaderCell>Model-type</TableHeaderCell>
-                <TableHeaderCell>Location</TableHeaderCell>
-                <TableHeaderCell>Inward Date</TableHeaderCell>
-                <TableHeaderCell>Driver</TableHeaderCell>
+                <TableHeaderCell>Plan</TableHeaderCell>
+                <TableHeaderCell>Model-types</TableHeaderCell>
+                <TableHeaderCell><span title="Bar: green = out of plant, amber = waiting main gate, violet = still in FG yard">Progress</span></TableHeaderCell>
                 <TableHeaderCell>Status</TableHeaderCell>
-                {canPlan && <TableHeaderCell align="right"> </TableHeaderCell>}
               </TableHeader>
               <TableBody>
-                {selected.items.map((i) => {
-                  const meta = DISPATCH_STATUS[i.status];
-                  const inYard = i.status === 'PLANNED' || i.status === 'DRIVER_ASSIGNED';
+                {plans.map((p) => {
+                  const st = planState(p);
                   return (
-                    <TableRow key={i.id} className={i.status === 'CANCELLED' ? 'opacity-60' : ''}>
-                      <TableCell><span className="font-medium text-slate-900">{i.machine.serialNumber}</span></TableCell>
-                      <TableCell className="text-xs text-slate-600">{i.modelType}</TableCell>
-                      <TableCell className="text-[13px]">{inYard ? dispatchLocation(i.machine) : '—'}</TableCell>
-                      <TableCell className="text-[13px]">{i.inwardAt ? formatDateShort(i.inwardAt) : '—'}</TableCell>
-                      <TableCell className="text-[13px]">{i.driver?.name ?? '—'}</TableCell>
+                    <TableRow key={p.id} onClick={() => { setSelected(p); setActionError(null); }} className="cursor-pointer">
                       <TableCell>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={meta.variant}>{meta.label}</Badge>
-                          {i.status !== 'CANCELLED' && <DispatchProgress item={i} />}
+                        <span className="font-semibold text-slate-900">{p.planNo}</span>
+                        {p.soNumber && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700">SO {p.soNumber}</span>}
+                        <span className="block text-[11px] text-slate-500">{p.createdBy.name} · {formatDateShort(p.createdAt)} · {daysAgo(p.createdAt)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex max-w-xs flex-wrap gap-1">
+                          {p.lines.map((l) => (
+                            <span key={l.id} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700">
+                              {l.modelType} <span className="text-slate-500">× {l.requestedQty}</span>
+                            </span>
+                          ))}
                         </div>
                       </TableCell>
-                      {canPlan && (
-                        <TableCell align="right">
-                          {inYard && (
-                            <Button size="sm" variant="ghost" onClick={() => cancelItem(i)} disabled={busy} icon={<X className="w-3.5 h-3.5" />}>Cancel</Button>
-                          )}
-                        </TableCell>
-                      )}
+                      <TableCell><PlanProgress plan={p} /></TableCell>
+                      <TableCell><span title={st.hint}><Badge variant={st.variant}>{st.label}</Badge></span></TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-            {actionError && <p className="text-xs font-medium text-red-700">{actionError}</p>}
-          </div>
+            <Pagination total={data?.total ?? 0} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={changePageSize} pageSizes={[25, 50, 100]} />
+          </>
         )}
+      </div>
+
+      {/* Card list. Rendered before the plan detail so a plan opened from it shows on top. */}
+      <Modal
+        open={!!cardList}
+        onClose={() => setCardList(null)}
+        title={cardList ? `${CARD_LISTS[cardList].title}${cardItems ? ` (${cardItems.length})` : ''}` : undefined}
+        subtitle={cardList ? `${CARD_LISTS[cardList].subtitle} · click a row to open its plan` : undefined}
+        size="xl"
+        footer={<Button variant="secondary" onClick={() => setCardList(null)}>Close</Button>}
+      >
+        {cardItems === null ? (
+          <p className="py-6 text-center text-xs text-slate-500">Loading…</p>
+        ) : cardItems.length === 0 ? (
+          <EmptyState icon={<Boxes className="w-6 h-6 text-slate-400" />} title="No machines" description="Nothing matches this card right now" />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableHeaderCell>Serial Number</TableHeaderCell>
+              <TableHeaderCell>Plan</TableHeaderCell>
+              <TableHeaderCell>Model-type</TableHeaderCell>
+              <TableHeaderCell>Location</TableHeaderCell>
+              <TableHeaderCell>Driver</TableHeaderCell>
+              <TableHeaderCell>{cardList === 'IN_YARD' ? 'Planned' : cardList === 'OUT_OF_YARD' ? 'FG gate-out' : 'Main gate-out'}</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
+            </TableHeader>
+            <TableBody>
+              {cardItems.map((i) => {
+                const meta = DISPATCH_STATUS[i.status];
+                const at = cardList === 'IN_YARD' ? i.plannedAt : cardList === 'OUT_OF_YARD' ? i.gateOutAt : i.mainGateOutAt;
+                return (
+                  <TableRow key={i.id} onClick={() => openPlan(i.planId)} className="cursor-pointer">
+                    <TableCell>
+                      <span className="font-medium text-slate-900">{i.machine.serialNumber}</span>
+                      <span className="block text-[11px] text-slate-400">{i.machine.model}</span>
+                    </TableCell>
+                    <TableCell className="text-[13px]">{i.planNo}</TableCell>
+                    <TableCell className="text-xs text-slate-600">{i.modelType}</TableCell>
+                    <TableCell className="text-[13px]">{cardList === 'IN_YARD' ? dispatchLocation(i.machine) : '—'}</TableCell>
+                    <TableCell className="text-[13px]">{i.driver?.name ?? '—'}</TableCell>
+                    <TableCell className="text-[13px]">{at ? formatDateTime(at) : '—'}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={meta.variant}>{meta.label}</Badge>
+                        <DispatchProgress item={i} />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </Modal>
+
+      {/* Plan detail */}
+      <Modal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected ? selected.planNo : undefined}
+        subtitle={selected ? `${selected.soNumber ? `SO ${selected.soNumber} · ` : ''}Planned by ${selected.createdBy.name} on ${formatDateTime(selected.createdAt)}` : undefined}
+        size="xl"
+        footer={selected && canPlan && selected.counts.planned > 0 && (
+          <Button variant="danger" onClick={() => cancelPlan(selected)} loading={busy}>Cancel Machines Still in Yard</Button>
+        )}
+      >
+        {selected && (() => {
+          const st = planState(selected);
+          return (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={st.variant}>{st.label}</Badge>
+                <span className="text-xs text-slate-600">{st.hint}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  ['In FG yard', selected.counts.planned, 'text-violet-700'],
+                  ['Waiting main gate', selected.counts.outOfYard, 'text-amber-700'],
+                  ['Out of plant', selected.counts.mainGateOut, 'text-emerald-700'],
+                  ['Cancelled', selected.counts.cancelled, 'text-slate-500'],
+                ].map(([label, n, cls]) => (
+                  <div key={label as string} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+                    <p className={`text-lg font-bold tabular-nums ${cls}`}>{n}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-slate-600">
+                Requested: {selected.lines.map((l) => `${l.modelType} × ${l.requestedQty}`).join(', ')}
+              </p>
+              <Table>
+                <TableHeader>
+                  <TableHeaderCell>Serial Number</TableHeaderCell>
+                  <TableHeaderCell>Model-type</TableHeaderCell>
+                  <TableHeaderCell>Location</TableHeaderCell>
+                  <TableHeaderCell>Inward Date</TableHeaderCell>
+                  <TableHeaderCell>Driver</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
+                  {canPlan && <TableHeaderCell align="right"> </TableHeaderCell>}
+                </TableHeader>
+                <TableBody>
+                  {selectedItems.map((i) => {
+                    const meta = DISPATCH_STATUS[i.status];
+                    const inYard = i.status === 'PLANNED' || i.status === 'DRIVER_ASSIGNED';
+                    return (
+                      <TableRow key={i.id} className={i.status === 'CANCELLED' ? 'opacity-60' : ''}>
+                        <TableCell><span className="font-medium text-slate-900">{i.machine.serialNumber}</span></TableCell>
+                        <TableCell className="text-xs text-slate-600">{i.modelType}</TableCell>
+                        <TableCell className="text-[13px]">{inYard ? dispatchLocation(i.machine) : '—'}</TableCell>
+                        <TableCell className="text-[13px]">{i.inwardAt ? formatDateShort(i.inwardAt) : '—'}</TableCell>
+                        <TableCell className="text-[13px]">{i.driver?.name ?? '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={meta.variant}>{meta.label}</Badge>
+                            {i.status !== 'CANCELLED' && <DispatchProgress item={i} />}
+                          </div>
+                        </TableCell>
+                        {canPlan && (
+                          <TableCell align="right">
+                            {inYard && (
+                              <Button size="sm" variant="ghost" onClick={() => cancelItem(i)} disabled={busy} icon={<X className="w-3.5 h-3.5" />}>Cancel</Button>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {actionError && <p className="text-xs font-medium text-red-700">{actionError}</p>}
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* New plan */}
@@ -329,6 +572,13 @@ export default function DispatchPlanning() {
         }
       >
         <div className="space-y-2">
+          <Input
+            label="SO number (optional)"
+            value={soNumber}
+            maxLength={50}
+            onChange={(e) => setSoNumber(e.target.value)}
+            placeholder="Sales Order this plan is for"
+          />
           {stock.length === 0 && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">There is no free stock in the FG yard to plan.</p>
           )}

@@ -188,7 +188,7 @@ export default function NotificationCenter() {
   }, [refresh]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <SectionCard
         title={`Notifications (${notifications.length})`}
         description="Role-based alerts raised by the yard automation"

@@ -260,7 +260,7 @@ const notificationRows: NotificationRow[] = [
     severity: 'CRITICAL',
     trigger: 'Stage 13 auto-assignment finds no free slot in the preferred yard and none in any yard',
     audience: 'Yard Manager, Administrator',
-    opens: 'Yard Management',
+    opens: 'FG Yard',
   },
   {
     event: 'Sync failed',
@@ -379,13 +379,13 @@ function GuardrailGrid({ items }: { items: Guardrail[] }) {
 
 export default function ProcessFlowDocument() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Process Flow"
-        description="How machines and user accounts move through the Yard Management System"
+        description="How machines and user accounts move through FG Yard"
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <StatCard label="Assembly stages" value={18} icon={<Factory className="w-4 h-4" />} color="indigo" hint="Machine lifecycle" />
         <StatCard label="Account roles" value={7} icon={<UserCog className="w-4 h-4" />} color="blue" hint="Least-privilege access" />
         <StatCard label="Docs audience" value="All signed-in" icon={<BookOpen className="w-4 h-4" />} color="slate" hint="Read-only reference" />

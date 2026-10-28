@@ -260,7 +260,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
   const closeModal = () => { setModalView(null); setMachineHistory([]); };
 
   const quickActions = [
-    { tab: 'yards', label: 'Yard Management', hint: 'View and manage yard slots', icon: <Map className="w-3.5 h-3.5 text-blue-600" />, iconWrap: 'bg-blue-100 group-hover:bg-blue-200', hover: 'hover:bg-blue-50 hover:border-blue-200', arrow: 'group-hover:text-blue-600' },
+    { tab: 'yards', label: 'FG Yard', hint: 'View and manage yard slots', icon: <Map className="w-3.5 h-3.5 text-blue-600" />, iconWrap: 'bg-blue-100 group-hover:bg-blue-200', hover: 'hover:bg-blue-50 hover:border-blue-200', arrow: 'group-hover:text-blue-600' },
     { tab: 'stock', label: 'Yard Stock', hint: 'Stock by model-type in FIFO order', icon: <Boxes className="w-3.5 h-3.5 text-teal-600" />, iconWrap: 'bg-teal-100 group-hover:bg-teal-200', hover: 'hover:bg-teal-50 hover:border-teal-200', arrow: 'group-hover:text-teal-600' },
     { tab: 'dispatch', label: 'Dispatch Planning', hint: 'Plan machines for dispatch', icon: <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />, iconWrap: 'bg-indigo-100 group-hover:bg-indigo-200', hover: 'hover:bg-indigo-50 hover:border-indigo-200', arrow: 'group-hover:text-indigo-600' },
     { tab: 'pdi', label: 'Dispatch Machine List', hint: 'Drivers, slip and main gate out', icon: <Truck className="w-3.5 h-3.5 text-emerald-600" />, iconWrap: 'bg-emerald-100 group-hover:bg-emerald-200', hover: 'hover:bg-emerald-50 hover:border-emerald-200', arrow: 'group-hover:text-emerald-600' },
@@ -288,7 +288,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
 
   const { inbound, stock, dispatch, slots, today } = data;
   const tabName: Record<string, string> = {
-    yards: 'Yard Management', parked: 'Confirm Parking', security: 'Security Verification',
+    yards: 'FG Yard', parked: 'Confirm Parking', security: 'Security Verification',
     stock: 'Yard Stock', pdi: 'Dispatch Machine List', requests: 'Exit Requests',
   };
 
@@ -380,7 +380,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title={`Welcome back, ${user?.name || 'User'}`}
         description="FG yard at a glance: stock, inward and dispatch."
@@ -408,13 +408,13 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
         <StatCard label="In FG Yard" value={stock.inYard.count} icon={<Package className="w-4 h-4" />} color="blue" hint={`${stock.byModelType.length} model-types`} onClick={() => openMachines('In FG Yard (FIFO)', stock.inYard)} />
-        <StatCard label="Free Stock" value={stock.free.count} icon={<Boxes className="w-4 h-4" />} color="green" hint="Verified, ready to plan" onClick={() => openMachines('Free Stock (FIFO)', stock.free)} />
-        <StatCard label="Planned" value={dispatch.toLoad.count} icon={<ClipboardList className="w-4 h-4" />} color="indigo" hint="In yard, awaiting FG gate-out" onClick={() => openDispatch('Planned for dispatch', dispatch.toLoad)} />
-        <StatCard label="Awaiting Main Gate" value={dispatch.awaitingMainGate.count} icon={<LogOut className="w-4 h-4" />} color={dispatch.overdue.count > 0 ? 'red' : 'amber'} hint={dispatch.overdue.count > 0 ? `${dispatch.overdue.count} overdue` : 'Out of FG yard'} onClick={() => openDispatch('Out of FG yard, awaiting main gate', dispatch.awaitingMainGate)} />
+        <StatCard label="Free Stock" value={stock.free.count} icon={<Boxes className="w-4 h-4" />} color="green" hint="Ready to plan" onClick={() => openMachines('Free Stock (FIFO)', stock.free)} />
+        <StatCard label="Planned" value={dispatch.toLoad.count} icon={<ClipboardList className="w-4 h-4" />} color="indigo" hint="To leave FG yard" onClick={() => openDispatch('Planned for dispatch', dispatch.toLoad)} />
+        <StatCard label="At Main Gate" value={dispatch.awaitingMainGate.count} icon={<LogOut className="w-4 h-4" />} color={dispatch.overdue.count > 0 ? 'red' : 'amber'} hint={dispatch.overdue.count > 0 ? `${dispatch.overdue.count} overdue` : 'Out of FG yard'} onClick={() => openDispatch('Out of FG yard, awaiting main gate', dispatch.awaitingMainGate)} />
         <StatCard label="Free Slots" value={slots.available} icon={<MapPin className="w-4 h-4" />} color={slots.available === 0 ? 'red' : 'green'} hint={`of ${slots.total} in ${data.yards.length} yard${data.yards.length === 1 ? '' : 's'}`} onClick={openFreeSlots} />
-        <StatCard label="Today" value={`${today.gateIn} in · ${today.gateOut} out`} icon={<CalendarDays className="w-4 h-4" />} color="slate" hint={`${today.mainGateOut} through main gate`} />
+        <StatCard label="Today In/Out" value={`${today.gateIn} / ${today.gateOut}`} icon={<CalendarDays className="w-4 h-4" />} color="slate" hint={`Main gate: ${today.mainGateOut}`} />
       </div>
 
       {/* Needs attention */}

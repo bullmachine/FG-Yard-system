@@ -15,8 +15,10 @@ import { getSettings } from '../services/settingsService';
  *
  * Each picked machine is a DispatchItem:
  *   PLANNED -> DRIVER_ASSIGNED (optional, PDI) -> OUT_OF_YARD (FG gate-out)
+ *           -> PDI final check (PASSED, or HOLD with a remark and re-checked)
  *           -> MAIN_GATE_OUT (main gate user, or the main gate system through the API)
- * The planner can cancel an item until it leaves the FG yard.
+ * Main gate-out is refused until PDI has passed the machine. The planner can cancel an
+ * item until it leaves the FG yard. A plan may carry the Sales Order number it is for.
  */
 
 const IN_YARD = ['PLANNED', 'DRIVER_ASSIGNED'] as const;
@@ -25,10 +27,11 @@ const ITEM_STATUSES = ['PLANNED', 'DRIVER_ASSIGNED', 'OUT_OF_YARD', 'MAIN_GATE_O
 const MAIN_GATE_STATUSES = ['OUT_OF_YARD', 'MAIN_GATE_OUT'];
 
 const itemInclude = {
-  plan: { select: { id: true, planNo: true, createdAt: true, createdBy: { select: { id: true, name: true } } } },
+  plan: { select: { id: true, planNo: true, soNumber: true, createdAt: true, createdBy: { select: { id: true, name: true } } } },
   line: { select: { modelType: true } },
   driver: { select: { id: true, name: true, employeeCode: true, phone: true } },
   mainGateOutBy: { select: { id: true, name: true } },
+  pdiBy: { select: { id: true, name: true } },
   machine: {
     select: {
       id: true,
@@ -72,6 +75,7 @@ function serializeItem(i: ItemRow) {
     status: i.status,
     planId: i.plan.id,
     planNo: i.plan.planNo,
+    soNumber: i.plan.soNumber,
     plannedAt: i.plan.createdAt.toISOString(),
     plannedBy: i.plan.createdBy,
     modelType: i.line.modelType,
@@ -83,6 +87,10 @@ function serializeItem(i: ItemRow) {
     mainGateOutBy: i.mainGateOutBy,
     mainGateSource: i.mainGateSource,
     mainGateRef: i.mainGateRef,
+    pdiStatus: i.pdiStatus,
+    pdiAt: iso(i.pdiAt),
+    pdiBy: i.pdiBy,
+    pdiRemark: i.pdiRemark,
     cancelledAt: iso(i.cancelledAt),
     machine: {
       id: i.machine.id,
@@ -103,6 +111,7 @@ function serializePlan(p: PlanRow) {
   return {
     id: p.id,
     planNo: p.planNo,
+    soNumber: p.soNumber,
     createdAt: p.createdAt.toISOString(),
     createdBy: p.createdBy,
     lines: p.lines.map((l) => ({ id: l.id, modelType: l.modelType, requestedQty: l.requestedQty })),
@@ -149,17 +158,97 @@ async function nextPlanNo(): Promise<string> {
 // Planner
 // ---------------------------------------------------------------------------
 
+// A plan is open while any machine has not yet left the main gate, completed once every
+// machine that was not cancelled is out of the main gate, and cancelled when all are.
+const NOT_DONE = ['PLANNED', 'DRIVER_ASSIGNED', 'OUT_OF_YARD'] as const;
+const PLAN_VIEWS = ['open', 'completed', 'cancelled', 'all'] as const;
+type PlanView = (typeof PLAN_VIEWS)[number];
+
+function viewWhere(view: PlanView): Prisma.DispatchPlanWhereInput {
+  switch (view) {
+    case 'open': return { items: { some: { status: { in: [...NOT_DONE] } } } };
+    case 'completed': return { AND: [{ items: { none: { status: { in: [...NOT_DONE] } } } }, { items: { some: { status: 'MAIN_GATE_OUT' } } }] };
+    case 'cancelled': return { items: { every: { status: 'CANCELLED' } } };
+    default: return {};
+  }
+}
+
+/** Parse YYYY-MM-DD as a local date; `endOfDay` makes the "to" date inclusive. */
+function parseDay(raw: unknown, endOfDay: boolean): Date | null {
+  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const d = new Date(`${raw}T${endOfDay ? '23:59:59.999' : '00:00:00'}`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Query: view=open|completed|cancelled|all (default open), q (plan no, model-type or
+ * serial), from/to (YYYY-MM-DD, plan date), page, pageSize. Returns one page of plans,
+ * the plan count per view for the same search, and the machine counts for the cards.
+ */
 export const listDispatchPlans = async (req: Request, res: Response) => {
   try {
-    const plans = await prisma.dispatchPlan.findMany({ include: planInclude, orderBy: { createdAt: 'desc' }, take: 200 });
-    res.json(plans.map(serializePlan));
+    const view: PlanView = (PLAN_VIEWS as readonly string[]).includes(String(req.query.view)) ? req.query.view as PlanView : 'open';
+    const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? '25'), 10) || 25));
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const from = parseDay(req.query.from, false);
+    const to = parseDay(req.query.to, true);
+
+    const filters: Prisma.DispatchPlanWhereInput[] = [];
+    if (q) {
+      filters.push({ OR: [
+        { planNo: { contains: q } },
+        { soNumber: { contains: q } },
+        { lines: { some: { modelType: { contains: q } } } },
+        { items: { some: { machine: { serialNumber: { contains: q } } } } }
+      ] });
+    }
+    if (from || to) filters.push({ createdAt: { ...(from && { gte: from }), ...(to && { lte: to }) } });
+    const where = (v: PlanView): Prisma.DispatchPlanWhereInput => ({ AND: [...filters, viewWhere(v)] });
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [plans, total, open, completed, cancelled, all, openPlans, inYard, outOfYard, outToday] = await prisma.$transaction([
+      prisma.dispatchPlan.findMany({ where: where(view), include: planInclude, orderBy: { createdAt: 'desc' }, skip: (page - 1) * pageSize, take: pageSize }),
+      prisma.dispatchPlan.count({ where: where(view) }),
+      prisma.dispatchPlan.count({ where: where('open') }),
+      prisma.dispatchPlan.count({ where: where('completed') }),
+      prisma.dispatchPlan.count({ where: where('cancelled') }),
+      prisma.dispatchPlan.count({ where: where('all') }),
+      // Card counts cover every plan, not just this page or search.
+      prisma.dispatchPlan.count({ where: viewWhere('open') }),
+      prisma.dispatchItem.count({ where: { status: { in: [...IN_YARD] } } }),
+      prisma.dispatchItem.count({ where: { status: 'OUT_OF_YARD' } }),
+      prisma.dispatchItem.count({ where: { status: 'MAIN_GATE_OUT', mainGateOutAt: { gte: startOfToday } } })
+    ]);
+
+    res.json({
+      plans: plans.map(serializePlan),
+      total,
+      page,
+      pageSize,
+      views: { open, completed, cancelled, all },
+      summary: { openPlans, inYard, outOfYard, mainGateOutToday: outToday }
+    });
   } catch (error) {
     console.error('listDispatchPlans error:', error);
     res.status(500).json({ error: 'Failed to load dispatch plans' });
   }
 };
 
-/** Body: { lines: [{ modelType, qty }] } */
+export const getDispatchPlan = async (req: Request, res: Response) => {
+  try {
+    const plan = await prisma.dispatchPlan.findUnique({ where: { id: param(req, 'id') }, include: planInclude });
+    if (!plan) return res.status(404).json({ error: 'Dispatch plan not found' });
+    res.json(serializePlan(plan));
+  } catch (error) {
+    console.error('getDispatchPlan error:', error);
+    res.status(500).json({ error: 'Failed to load dispatch plan' });
+  }
+};
+
+/** Body: { lines: [{ modelType, qty }], soNumber? } */
 export const createDispatchPlan = async (req: Request, res: Response) => {
   try {
     const user = actor(req);
@@ -178,6 +267,9 @@ export const createDispatchPlan = async (req: Request, res: Response) => {
       qtyByType.set(modelType, (qtyByType.get(modelType) ?? 0) + qty);
     }
     if (qtyByType.size === 0) return res.status(400).json({ error: 'Add at least one model-type' });
+
+    const soNumber = typeof req.body?.soNumber === 'string' ? req.body.soNumber.trim() || null : null;
+    if (soNumber && soNumber.length > 50) return res.status(400).json({ error: 'The SO number can be at most 50 characters' });
 
     // FIFO pick per model-type, refused as a whole if any model-type is short.
     const stock = (await loadStock()).filter((r) => r.available);
@@ -199,6 +291,7 @@ export const createDispatchPlan = async (req: Request, res: Response) => {
         plan = await prisma.dispatchPlan.create({
           data: {
             planNo: await nextPlanNo(),
+            soNumber,
             createdById: user.id,
             lines: { create: [...qtyByType].map(([modelType, requestedQty]) => ({ modelType, requestedQty })) }
           },
@@ -304,8 +397,9 @@ export const cancelDispatchItem = async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 
 /**
- * Query: status=PLANNED,DRIVER_ASSIGNED,... (optional). Newest plans first. Also returns
- * the overdue threshold so the list can colour the hours since FG gate-out.
+ * Query: status=PLANNED,DRIVER_ASSIGNED,... (optional), outSince=ISO date (optional, only
+ * machines out of the main gate since then). Newest plans first. Also returns the overdue
+ * threshold so the list can colour the hours since FG gate-out.
  */
 export const listDispatchItems = async (req: Request, res: Response) => {
   try {
@@ -313,8 +407,12 @@ export const listDispatchItems = async (req: Request, res: Response) => {
     const allowed = actor(req)?.role === 'MAIN_GATE' ? MAIN_GATE_STATUSES : ITEM_STATUSES;
     const requested = raw.filter((s) => allowed.includes(s));
     const statuses = requested.length ? requested : allowed.filter((s) => s !== 'CANCELLED');
+    const outSince = typeof req.query.outSince === 'string' ? new Date(req.query.outSince) : null;
     const items = await prisma.dispatchItem.findMany({
-      where: { status: { in: statuses as never } },
+      where: {
+        status: { in: statuses as never },
+        ...(outSince && !Number.isNaN(outSince.getTime()) && { mainGateOutAt: { gte: outSince } })
+      },
       include: itemInclude,
       orderBy: [{ createdAt: 'desc' }, { inwardAt: 'asc' }],
       take: 500
@@ -356,6 +454,38 @@ export const assignDispatchDriver = async (req: Request, res: Response) => {
 };
 
 /**
+ * PDI final check after FG gate-out. Body: { result: 'PASS' | 'HOLD', remark }. A HOLD
+ * needs a remark; a machine on HOLD is passed by checking it again.
+ */
+export const recordPdiCheck = async (req: Request, res: Response) => {
+  try {
+    const user = actor(req);
+    if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+
+    const result = req.body?.result;
+    if (result !== 'PASS' && result !== 'HOLD') return res.status(400).json({ error: 'Result must be PASS or HOLD' });
+    const remark = typeof req.body?.remark === 'string' ? req.body.remark.trim().slice(0, 500) : '';
+    if (result === 'HOLD' && remark.length < 3) return res.status(400).json({ error: 'Write what is wrong (at least 3 characters)' });
+
+    const item = await prisma.dispatchItem.findUnique({ where: { id: param(req, 'itemId') } });
+    if (!item) return res.status(404).json({ error: 'Dispatch machine not found' });
+    if (item.status !== 'OUT_OF_YARD') {
+      return res.status(400).json({ error: 'PDI is checked after the machine leaves the FG yard and before main gate-out' });
+    }
+
+    const saved = await prisma.dispatchItem.update({
+      where: { id: item.id },
+      data: { pdiStatus: result === 'PASS' ? 'PASSED' : 'HOLD', pdiAt: new Date(), pdiById: user.id, pdiRemark: remark || null },
+      include: itemInclude
+    });
+    res.json(serializeItem(saved));
+  } catch (error) {
+    console.error('recordPdiCheck error:', error);
+    res.status(500).json({ error: 'Failed to save the PDI check' });
+  }
+};
+
+/**
  * Mark a machine out of the plant, or undo it. Shared by the main gate user's button
  * and the main gate system's API call.
  */
@@ -373,6 +503,8 @@ async function setMainGateOut(
     return { item: (await prisma.dispatchItem.findUnique({ where: { id: item.id }, include: itemInclude }))!, already: true };
   } else if (item.status !== 'OUT_OF_YARD') {
     return { status: 400, error: 'Only a machine that has gone out of the FG gate can be marked main gate out' };
+  } else if (item.pdiStatus !== 'PASSED') {
+    return { status: 400, error: item.pdiStatus === 'HOLD' ? 'PDI has put this machine on hold; it cannot leave until PDI passes it' : 'PDI has not passed this machine yet' };
   }
 
   try {
@@ -416,17 +548,19 @@ export const markMainGateOut = async (req: Request, res: Response) => {
 // Main gate system API (x-api-key header, no user login)
 // ---------------------------------------------------------------------------
 
-/** Machines out of the FG yard and waiting for main gate-out, oldest first. */
+/** Machines PDI has passed and that are waiting for main gate-out, oldest first. */
 export const apiPendingMainGate = async (_req: Request, res: Response) => {
   try {
-    const items = await prisma.dispatchItem.findMany({ where: { status: 'OUT_OF_YARD' }, include: itemInclude, orderBy: { gateOutAt: 'asc' } });
+    const items = await prisma.dispatchItem.findMany({ where: { status: 'OUT_OF_YARD', pdiStatus: 'PASSED' }, include: itemInclude, orderBy: { gateOutAt: 'asc' } });
     res.json(items.map((i) => ({
       serialNumber: i.machine.serialNumber,
       barcode: i.machine.barcode,
       model: i.machine.model,
       modelType: i.line.modelType,
       planNo: i.plan.planNo,
-      fgGateOutAt: iso(i.gateOutAt)
+      soNumber: i.plan.soNumber,
+      fgGateOutAt: iso(i.gateOutAt),
+      pdiPassedAt: iso(i.pdiAt)
     })));
   } catch (error) {
     console.error('apiPendingMainGate error:', error);

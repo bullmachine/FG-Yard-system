@@ -141,7 +141,7 @@ export async function sendMail(message: MailMessage): Promise<void> {
 
     const body = Buffer.from(message.html, 'utf8').toString('base64').replace(/.{1,76}/g, '$&\r\n');
     const data = [
-      `From: FG Yard System <${from}>`,
+      `From: FG Yard <${from}>`,
       `To: ${to.join(', ')}`,
       `Subject: ${encodeHeader(message.subject)}`,
       `Date: ${new Date().toUTCString()}`,

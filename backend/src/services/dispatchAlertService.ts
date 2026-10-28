@@ -69,7 +69,7 @@ export async function checkOverdueDispatch(): Promise<{ overdue: number; emailed
         ${rows}
       </table>
       <p style="font-size:12px;color:#555">${s.dispatchReminderHours > 0 ? `A reminder is sent every ${s.dispatchReminderHours} hours while any machine is still waiting.` : 'No further reminders will be sent for these machines.'}</p>
-      <p style="font-size:12px;color:#555">This is an automatic message from the FG Yard System.</p>`;
+      <p style="font-size:12px;color:#555">This is an automatic message from FG Yard.</p>`;
 
     const to = s.dispatchAlertEmails.split(/[,;\s]+/).filter(Boolean);
     let emailed = false;

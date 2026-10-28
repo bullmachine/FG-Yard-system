@@ -182,7 +182,7 @@ export default function Drivers() {
   const previewUrl = photoPreview ?? (editing?.photoUrl ? `${API_URL}${editing.photoUrl}` : null);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Drivers"
         description={`${drivers.length} drivers`}
@@ -321,7 +321,7 @@ export default function Drivers() {
         <div id="driver-barcodes" className="hidden print-area">
           <div className="px-6 py-4 border-b border-slate-300 flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-900">Yard Management — Driver Badges</p>
+              <p className="text-sm font-bold text-slate-900">FG Yard — Driver Badges</p>
               <p className="text-xs text-slate-500">{badgedDrivers.length} printed · {formatDateTime(new Date().toISOString())}</p>
             </div>
           </div>

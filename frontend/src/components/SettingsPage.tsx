@@ -263,7 +263,7 @@ export default function SettingsPage() {
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Settings"
         description="Integration endpoints and sync schedules for the plant upstreams"

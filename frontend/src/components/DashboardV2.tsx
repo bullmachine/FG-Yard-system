@@ -228,7 +228,7 @@ export default function DashboardV2() {
   const fertLabel = (code: string | null, desc: string | null) => (code ? `${code}${desc ? ` · ${desc}` : ''}` : '—');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Dashboard (New)"
         description={<>Under development - the current Dashboard stays live until this one replaces it.{data && <> · Updated {formatDateTime(data.generatedAt)}</>}</>}

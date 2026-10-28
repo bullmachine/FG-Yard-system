@@ -44,7 +44,7 @@ export default function LoginPage() {
               <img src={asset("/company-logo.png")} alt="Logo" className="h-7 w-7 object-contain brightness-0 invert" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Yard Management System</p>
+              <p className="text-sm font-bold text-white">FG Yard</p>
               <p className="text-xs text-slate-400">Machine Location System</p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
               <img src={asset("/company-logo.png")} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900">Yard Management System</p>
+              <p className="text-sm font-bold text-slate-900">FG Yard</p>
               <p className="text-xs text-slate-500">Machine Location System</p>
             </div>
           </div>

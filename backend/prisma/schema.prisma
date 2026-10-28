@@ -116,6 +116,7 @@ model User {
   approvedExits         MachineExitRequest[]   @relation("ApprovedBy")
   createdDispatchPlans  DispatchPlan[]         @relation("PlanCreatedBy")
   mainGateDispatchItems DispatchItem[]         @relation("ItemMainGateOutBy")
+  pdiDispatchItems      DispatchItem[]         @relation("ItemPdiBy")
 }
 
 enum NotificationSeverity {
@@ -445,6 +446,8 @@ enum DispatchItemStatus {
 model DispatchPlan {
   id          String   @id @default(uuid())
   planNo      String   @unique
+  // Sales Order the plan is for (optional; SOP step 10).
+  soNumber    String?  @db.VarChar(50)
   createdById String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -455,6 +458,7 @@ model DispatchPlan {
 
   @@index([createdById])
   @@index([createdAt])
+  @@index([soNumber])
 }
 
 model DispatchPlanLine {
@@ -490,6 +494,12 @@ model DispatchItem {
   // MANUAL (main gate user) or API (main gate system), with the reference it sent.
   mainGateSource   String?
   mainGateRef      String?
+  // PDI final check after FG gate-out (SOP step 12): null = not checked yet, PASSED or
+  // HOLD. Main gate-out is refused until PASSED. A HOLD keeps its remark until re-checked.
+  pdiStatus        String?
+  pdiAt            DateTime?
+  pdiById          String?
+  pdiRemark        String?            @db.VarChar(500)
   // Last overdue e-mail that included this machine (out of the FG yard too long).
   overdueAlertAt   DateTime?
   cancelledAt      DateTime?
@@ -502,6 +512,7 @@ model DispatchItem {
   machine       Machine          @relation(fields: [machineId], references: [id], onDelete: Cascade)
   driver        Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
   mainGateOutBy User?            @relation("ItemMainGateOutBy", fields: [mainGateOutById], references: [id])
+  pdiBy         User?            @relation("ItemPdiBy", fields: [pdiById], references: [id])
 
   @@index([planId])
   @@index([lineId])

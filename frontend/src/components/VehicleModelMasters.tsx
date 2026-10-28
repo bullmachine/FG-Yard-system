@@ -141,7 +141,7 @@ export default function VehicleModelMasters() {
   const noYardPending = masters.filter((m) => !m.preferredYardId && (m.status || 'PENDING') === 'PENDING').length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{error}</div>}
 
       <PageHeader

@@ -7,7 +7,6 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Modal from '@/components/ui/Modal';
 import PageHeader from '@/components/ui/PageHeader';
-import Toolbar from '@/components/ui/Toolbar';
 import Pagination from '@/components/ui/Pagination';
 import { SectionCard } from '@/components/ui/Card';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '@/components/ui/Table';
@@ -162,19 +161,24 @@ export default function MachineTracking() {
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Machine Tracking"
         description={`${machines.length} machines total`}
         actions={canManageMachines ? <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowAddModal(true)}>Add Machine</Button> : undefined}
       />
 
-      <SectionCard title="Inventory" bodyClassName={paginated.length === 0 ? '' : 'p-0'}>
-        <Toolbar className="px-4 py-3 border-b border-slate-100">
-          <Input value={searchTerm} onChange={e => applySearch(e.target.value)} placeholder="Search by serial number or model..." icon={<Search className="w-4 h-4" />} className="w-full sm:w-72" />
-          <Select value={statusFilter} onChange={e => applyStatusFilter(e.target.value)} options={[{ value: '', label: 'All Statuses' }, ...STATUS_OPTIONS]} className="w-full sm:w-44" />
-          <Select value={parkFilter} onChange={e => applyParkFilter(e.target.value)} options={[{ value: '', label: 'All Park Statuses' }, ...parkStatusOptions]} className="w-full sm:w-44" />
-        </Toolbar>
+      <SectionCard
+        title="Inventory"
+        noPadding
+        action={
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            <Input value={searchTerm} onChange={e => applySearch(e.target.value)} placeholder="Search by serial number or model..." icon={<Search className="w-4 h-4" />} className="w-full sm:w-72" />
+            <Select value={statusFilter} onChange={e => applyStatusFilter(e.target.value)} options={[{ value: '', label: 'All Statuses' }, ...STATUS_OPTIONS]} className="w-full sm:w-44" />
+            <Select value={parkFilter} onChange={e => applyParkFilter(e.target.value)} options={[{ value: '', label: 'All Park Statuses' }, ...parkStatusOptions]} className="w-full sm:w-44" />
+          </div>
+        }
+      >
 
         {filtered.length === 0 ? (
           <EmptyState title="No machines found" description={searchTerm || statusFilter || parkFilter ? 'Try adjusting your filters' : 'Add your first machine to start tracking'} action={canManageMachines ? <Button size="sm" onClick={() => setShowAddModal(true)}>Add Machine</Button> : undefined} />
@@ -286,7 +290,7 @@ export default function MachineTracking() {
                   return (
                     <div className="p-3 rounded-lg border border-yellow-300 bg-yellow-50">
                       <p className="text-xs font-semibold text-yellow-800">{y ? `${y.name} has no available slots` : 'Choose a yard first'}</p>
-                      <p className="text-[11px] text-yellow-700 mt-0.5">All of this yard&apos;s slots are currently reserved. Choose another yard, or release an existing reservation from Yard Management.</p>
+                      <p className="text-[11px] text-yellow-700 mt-0.5">All of this yard&apos;s slots are currently reserved. Choose another yard, or release an existing reservation from the FG Yard page.</p>
                     </div>
                   );
                 }

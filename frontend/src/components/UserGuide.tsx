@@ -51,7 +51,7 @@ const ROLE_SUMMARY: Record<string, string> = {
 };
 
 const QUICK_START = [
-  { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open the Yard Management System and sign in with your work email and password. New users can register, but start with View Only access until an Administrator changes the role.' },
+  { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open FG Yard and sign in with your work email and password. New users can register, but start with View Only access until an Administrator changes the role.' },
   { icon: <PanelLeft className="w-4 h-4" />, title: 'Use the menu', text: 'The left menu lists only the screens your role can open. On a phone or tablet, tap the ☰ button at the top left to open it. On a computer, use the arrow at the top of the menu to collapse it.' },
   { icon: <LayoutDashboard className="w-4 h-4" />, title: 'Start at the Dashboard', text: 'The Dashboard shows the FG yard today: stock, free slots, dispatch and a "Needs attention" list. Click any card to see the machines behind the number.' },
   { icon: <Bell className="w-4 h-4" />, title: 'Watch the bell', text: 'The bell at the top right shows alerts for your role (yard full, gate rejected, sync failed and so on). Critical alerts also pop up on screen. Open Notifications for the full list.' },
@@ -84,7 +84,7 @@ const SCREENS: ScreenGuide[] = [
     tips: ['The page refreshes itself every minute and when new alerts arrive. The time of the last update is shown at the top right.', 'Overdue and parking alert times are the ones set by the Administrator in Settings.'],
   },
   {
-    tab: 'yards', title: 'Yard Management', roles: 'Administrator, Yard Manager, Operator, View Only',
+    tab: 'yards', title: 'FG Yard', roles: 'Administrator, Yard Manager, Operator, View Only',
     purpose: 'See every yard as a grid of slots, find a machine, and manage slots.',
     steps: [
       'Click a yard card to open its slot grid. Rows are letters (A, B, C…) and columns are numbers, so slot B5 is row B, column 5.',
@@ -114,7 +114,8 @@ const SCREENS: ScreenGuide[] = [
     tab: 'dispatch', title: 'Dispatch Planning', roles: 'Dispatch Planner, Yard Manager, Administrator',
     purpose: 'Plan FG yard machines for dispatch. The system picks the oldest machines first (FIFO).',
     steps: [
-      'Click Plan Machines. Choose a model-type and the quantity; the free stock of each model-type is shown in the list.',
+      'Click Plan Machines. Enter the SO number if the plan is for a Sales Order (optional).',
+      'Choose a model-type and the quantity; the free stock of each model-type is shown in the list.',
       'Add more model-types if needed, then click Save Plan.',
       'The quantity cannot be more than the free FG yard stock. If it is, the plan is not saved.',
       'The oldest free machines are picked straight away and appear on the PDI Dispatch Machine List. No approval is needed.',
@@ -124,16 +125,18 @@ const SCREENS: ScreenGuide[] = [
   },
   {
     tab: 'pdi', title: 'Dispatch Machine List', roles: 'PDI Team, Main Gate, Yard Manager, Administrator (Dispatch Planner, Operator and View Only can view)',
-    purpose: 'Follow planned machines from the FG yard to the main gate.',
+    purpose: 'Follow planned machines from the FG yard through the PDI final check to the main gate.',
     steps: [
       'In FG yard lists the planned machines with their yard and slot.',
       'Choose a driver for a machine (optional).',
       'Tick the machines and click Print Slip. The slip lists, for each driver, the machine serial, barcode, yard and slot to collect.',
-      'The driver takes the machine out through the normal FG gate-out with their badge and the machine barcode. No exit request is needed. The machine moves to Waiting main gate by itself.',
-      'Waiting main gate shows the time since FG gate-out. It turns amber at half the alert time and red after it (8 hours by default).',
+      'The driver takes the machine out through the normal FG gate-out with their badge and the machine barcode. No exit request is needed. The machine moves to At PDI by itself.',
+      'PDI does the final check and clicks PDI Check: Pass, or Hold with a remark. A machine on hold stays At PDI; check it again after rectification.',
+      'A passed machine moves to Ready for main gate. Main Gate Out is only possible after PDI passes the machine.',
+      'The time since FG gate-out is shown. It turns amber at half the alert time and red after it (8 hours by default).',
       'The Main Gate user clicks Main Gate Out when the machine leaves the plant. Later the main gate system will send this automatically. Undo corrects a wrong click.',
     ],
-    tips: ['A machine still waiting after the alert time is e-mailed to the production manager, with a reminder while it is still waiting. The time and the e-mail address are set by the Administrator in Settings.', 'The Main Gate user sees only this list, and only machines that have left the FG yard.'],
+    tips: ['A machine still waiting after the alert time is e-mailed to the production manager, with a reminder while it is still waiting. The time and the e-mail address are set by the Administrator in Settings.', 'The Main Gate user sees only this list, and only machines that have left the FG yard. They cannot mark a machine out until PDI passes it.'],
   },
   {
     tab: 'machines', title: 'Machine Tracking', roles: 'Administrator, Yard Manager, Operator, Service Technician, View Only',
@@ -297,6 +300,11 @@ const SCREENS: ScreenGuide[] = [
     steps: ['Read the machine lifecycle and access lifecycle, the guardrails, the role table and the alert list.'],
   },
   {
+    tab: 'sop', title: 'SOP', roles: 'All signed-in users',
+    purpose: 'The Quality Department SOP for the FG yard gate system: process steps, the shortage rule and who does what.',
+    steps: ['Read the 13 process steps and the roles table.', 'Click Download PDF for the issued copy.'],
+  },
+  {
     tab: 'notifications', title: 'Notifications', roles: 'All signed-in users',
     purpose: 'Every alert sent to your role.',
     steps: ['Read new alerts (red = critical, amber = warning, blue = information).', 'Press Mark read on one alert or "Mark all read".'],
@@ -366,10 +374,10 @@ export default function UserGuide({ onNavigate, allowedTabs }: UserGuideProps) {
   const glossary = term ? GLOSSARY.filter((g) => `${g.term} ${g.meaning}`.toLowerCase().includes(term)) : GLOSSARY;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Help & User Guide"
-        description="How to use the Yard Management System, screen by screen"
+        description="How to use FG Yard, screen by screen"
       />
 
       <Input
@@ -522,7 +530,7 @@ export default function UserGuide({ onNavigate, allowedTabs }: UserGuideProps) {
             </dl>
           </SectionCard>
 
-          <SectionCard title="Yard slot colours" description="As shown in the Yard Management grid">
+          <SectionCard title="Yard slot colours" description="As shown in the FG Yard grid">
             <dl className="space-y-1.5 text-xs">
               {[
                 ['bg-emerald-100 border-emerald-400', 'Available', 'Free for the next machine.'],

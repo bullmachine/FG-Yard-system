@@ -20,7 +20,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { slotLabel, formatDateTime } from '@/lib/format';
 import { Barcode as BarcodeSvg, canEncodeCode128 } from '@/lib/barcode';
 import { renderGateLabel } from '@/lib/gateLabel';
-import { Shield, CheckCircle2, XCircle, ScanLine, UserRound, DoorOpen, DoorClosed, MapPin, RotateCcw, ArrowRight, ChevronDown, ChevronUp, Printer, Download, Camera } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, ScanLine, UserRound, DoorOpen, DoorClosed, MapPin, RotateCcw, ArrowRight, ChevronDown, ChevronUp, Printer, Download, Camera, Shirt } from 'lucide-react';
 
 interface Driver { id: string; name: string; employeeCode?: string | null; photoUrl?: string | null; }
 interface SlotRef { row: number; col: number; status?: string; yard?: { name: string } | null; }
@@ -391,7 +391,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   if (loading) return <PageSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         title="Gate Control"
         description={direction === 'IN' ? 'Authenticate drivers and machines entering the yard' : 'Verify released machines leaving the yard'}
@@ -443,7 +443,14 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
 
             <div className="mb-3">
               <Input
-                label="Scan Driver Badge (Employee Code)"
+                label={
+                  <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <span>Scan Driver Badge (Employee Code)</span>
+                    <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Dress code is checked by eye at the gate; it is not recorded">
+                      <Shirt className="h-3 w-3" /> Red / green T-shirt only
+                    </span>
+                  </span>
+                }
                 value={driverBarcodeInput}
                 onChange={e => setDriverBarcodeInput(e.target.value)}
                 placeholder="Scan or type the driver's employee code..."

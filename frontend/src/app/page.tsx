@@ -7,7 +7,7 @@ import {
   LayoutDashboard, MapPin, Truck, Users, Shield,
   Clock, LogOut, Menu, X, Factory, Package, Fence, Database, Layers,
   PanelLeftClose, PanelLeftOpen, BookOpen, Bell, Settings, ParkingCircle, Send,
-  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck
+  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import DashboardV2 from '@/components/DashboardV2';
@@ -29,12 +29,13 @@ import MovementHistory from '@/components/MovementHistory';
 import ExitRequests from '@/components/ExitRequests';
 import MachineReturns from '@/components/MachineReturns';
 import ProcessFlowDocument from '@/components/ProcessFlowDocument';
+import SopDocument from '@/components/SopDocument';
 import NotificationCenter, { NotificationBell } from '@/components/NotificationCenter';
 import SettingsPage from '@/components/SettingsPage';
 import UserGuide from '@/components/UserGuide';
 import { asset } from '@/lib/basePath';
 
-type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'notifications' | 'help';
+type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
@@ -58,6 +59,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   requests: <Send className="w-5 h-5" />,
   returns: <RotateCcw className="w-5 h-5" />,
   docs: <BookOpen className="w-5 h-5" />,
+  sop: <FileText className="w-5 h-5" />,
   help: <LifeBuoy className="w-5 h-5" />,
   notifications: <Bell className="w-5 h-5" />,
 };
@@ -65,7 +67,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
 const TAB_LABELS: Record<Tab, string> = {
   dashboard: 'Dashboard',
   dashboard2: 'Dashboard (New)',
-  yards: 'Yard Management',
+  yards: 'FG Yard',
   stock: 'Yard Stock',
   dispatch: 'Dispatch Planning',
   pdi: 'Dispatch Machine List',
@@ -84,6 +86,7 @@ const TAB_LABELS: Record<Tab, string> = {
   requests: 'Exit Requests',
   returns: 'Returns',
   docs: 'Docs',
+  sop: 'SOP',
   help: 'Help & User Guide',
   notifications: 'Notifications',
 };
@@ -93,7 +96,7 @@ const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
   { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers'] },
   { label: 'ADMINISTRATION', tabs: ['users', 'settings'] },
   { label: 'CONTROL', tabs: ['gate', 'parked', 'security', 'returns', 'requests', 'history'] },
-  { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'notifications'] },
+  { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'sop', 'notifications'] },
 ];
 
 const ROLE_TABS: Record<string, Tab[]> = {
@@ -156,7 +159,7 @@ function SidebarContent({ allowedTabs, activeTab, collapsed, user, isAuthenticat
         {!collapsed && (
           <>
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-bold text-white truncate">Yard Management System</h1>
+              <h1 className="text-sm font-bold text-white truncate">FG Yard</h1>
               <p className="text-[10px] text-slate-400 truncate">Machine Location System</p>
             </div>
             <button onClick={onToggle} className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="Collapse sidebar">
@@ -252,9 +255,9 @@ export default function Home() {
   const roleTabs = isAuthenticated && user?.role ? ROLE_TABS[user.role] || ROLE_TABS.VIEW_ONLY : ROLE_TABS.VIEW_ONLY;
   // Help is open to everyone, signed in or not, so a new user can read it first.
   const allowedTabs: Tab[] = isAuthenticated && !roleTabs.includes('docs')
-    ? [...roleTabs, 'help', 'docs', 'notifications']
+    ? [...roleTabs, 'help', 'docs', 'sop', 'notifications']
     : isAuthenticated
-      ? [...roleTabs, 'help', 'notifications']
+      ? [...roleTabs, 'help', 'sop', 'notifications']
       : [...roleTabs, 'help'];
   // A role without the dashboard (the main gate) opens on its first screen instead.
   const effectiveTab = allowedTabs.includes(activeTab) ? activeTab : allowedTabs[0];
@@ -296,6 +299,7 @@ export default function Home() {
       case 'requests': return <ExitRequests />;
       case 'returns': return <MachineReturns />;
       case 'docs': return <ProcessFlowDocument />;
+      case 'sop': return <SopDocument />;
       case 'notifications': return <NotificationCenter />;
       case 'help': return <UserGuide onNavigate={(tab) => handleSelect(tab as Tab)} allowedTabs={allowedTabs} />;
       default: return <Dashboard />;
