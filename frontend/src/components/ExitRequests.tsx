@@ -68,9 +68,8 @@ const STATUS_OPTIONS = [
 const reasonLabel = exitReasonLabel;
 
 export default function ExitRequests() {
-  const { token, user } = useAuth();
-  const role = user?.role;
-  const isManager = role === 'ADMIN' || role === 'YARD_MANAGER';
+  const { token, user, can } = useAuth();
+  const isManager = can('requests.approve');
   const canRequest = !!user;
 
   const [requests, setRequests] = useState<ExitRequest[]>([]);

@@ -10,7 +10,8 @@ import {
   blockSlot,
   unblockSlot
 } from '../controllers/yardController';
-import { auth, requireRole } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
@@ -21,12 +22,12 @@ router.get('/availability', getYardAvailability);
 router.get('/:id', getYardById);
 
 // Protected routes (require authentication)
-router.post('/', auth, requireRole(['ADMIN', 'YARD_MANAGER']), createYard);
-router.put('/:id', auth, requireRole(['ADMIN', 'YARD_MANAGER']), updateYard);
-router.delete('/:id', auth, requireRole(['ADMIN']), deleteYard);
+router.post('/', auth, requirePermission('yards.edit'), createYard);
+router.put('/:id', auth, requirePermission('yards.edit'), updateYard);
+router.delete('/:id', auth, requirePermission('yards.delete'), deleteYard);
 // Releasing a reservation is a capacity decision: managers only.
-router.post('/slots/:id/release', auth, requireRole(['ADMIN', 'YARD_MANAGER']), releaseSlotReservation);
-router.post('/slots/:id/block', auth, requireRole(['ADMIN', 'YARD_MANAGER']), blockSlot);
-router.post('/slots/:id/unblock', auth, requireRole(['ADMIN', 'YARD_MANAGER']), unblockSlot);
+router.post('/slots/:id/release', auth, requirePermission('yards.edit'), releaseSlotReservation);
+router.post('/slots/:id/block', auth, requirePermission('yards.edit'), blockSlot);
+router.post('/slots/:id/unblock', auth, requirePermission('yards.edit'), unblockSlot);
 
 export default router;

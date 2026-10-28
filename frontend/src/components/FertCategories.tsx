@@ -27,9 +27,9 @@ export default function FertCategories() {
   const [editing, setEditing] = useState<FertCategory | null>(null);
   const [form, setForm] = useState({ code: '', name: '', priority: 0, preferredYardId: '' });
   const [submitting, setSubmitting] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, can } = useAuth();
   // Create, edit and delete are ADMIN-only on the server.
-  const isAdmin = isAuthenticated && user?.role === 'ADMIN';
+  const isAdmin = isAuthenticated && can('fert.manage');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };

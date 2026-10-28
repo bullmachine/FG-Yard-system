@@ -46,9 +46,8 @@ interface Yard {
 }
 
 export default function MachineReturns() {
-  const { token, user } = useAuth();
-  const role = user?.role;
-  const canReserve = role === 'ADMIN' || role === 'YARD_MANAGER' || role === 'OPERATOR';
+  const { token, can } = useAuth();
+  const canReserve = can('returns.reserve');
 
   const [items, setItems] = useState<ReturnMachine[]>([]);
   const [loading, setLoading] = useState(true);

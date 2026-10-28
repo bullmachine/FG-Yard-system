@@ -7,7 +7,7 @@ import {
   LayoutDashboard, MapPin, Truck, Users, Shield,
   Clock, LogOut, Menu, X, Factory, Package, Fence, Database, Layers,
   PanelLeftClose, PanelLeftOpen, BookOpen, Bell, Settings, ParkingCircle, Send,
-  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText
+  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText, KeyRound
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import DashboardV2 from '@/components/DashboardV2';
@@ -30,12 +30,13 @@ import ExitRequests from '@/components/ExitRequests';
 import MachineReturns from '@/components/MachineReturns';
 import ProcessFlowDocument from '@/components/ProcessFlowDocument';
 import SopDocument from '@/components/SopDocument';
+import RoleAccess from '@/components/RoleAccess';
 import NotificationCenter, { NotificationBell } from '@/components/NotificationCenter';
 import SettingsPage from '@/components/SettingsPage';
 import UserGuide from '@/components/UserGuide';
 import { asset } from '@/lib/basePath';
 
-type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
+type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'access' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
@@ -52,6 +53,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   drivers: <Users className="w-5 h-5" />,
   users: <Users className="w-5 h-5" />,
   settings: <Settings className="w-5 h-5" />,
+  access: <KeyRound className="w-5 h-5" />,
   gate: <Fence className="w-5 h-5" />,
   security: <Shield className="w-5 h-5" />,
   parked: <ParkingCircle className="w-5 h-5" />,
@@ -79,6 +81,7 @@ const TAB_LABELS: Record<Tab, string> = {
   drivers: 'Drivers',
   users: 'User Management',
   settings: 'Settings',
+  access: 'Role Access',
   gate: 'Gate Control',
   security: 'Security',
   parked: 'Confirm Parking',
@@ -94,32 +97,15 @@ const TAB_LABELS: Record<Tab, string> = {
 const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
   { label: 'OVERVIEW', tabs: ['dashboard', 'dashboard2'] },
   { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers'] },
-  { label: 'ADMINISTRATION', tabs: ['users', 'settings'] },
+  { label: 'ADMINISTRATION', tabs: ['users', 'settings', 'access'] },
   { label: 'CONTROL', tabs: ['gate', 'parked', 'security', 'returns', 'requests', 'history'] },
   { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'sop', 'notifications'] },
 ];
 
-const ROLE_TABS: Record<string, Tab[]> = {
-  // dashboard2 (DashboardV2) is hidden from every role; add it back to a role's list to show it again.
-  ADMIN: ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'users', 'settings', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
-  YARD_MANAGER: ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'returns', 'requests', 'history'],
-  OPERATOR: ['dashboard', 'yards', 'stock', 'pdi', 'machines', 'assembly', 'gate', 'parked', 'returns', 'requests', 'history'],
-  // No history: the movements endpoint does not admit this role.
-  SERVICE_TECHNICIAN: ['dashboard', 'machines', 'returns', 'requests'],
-  // The guard scans machines in and out at the FG yard gate (SOP step 7), confirms parking
-  // for the driver, verifies parking
-  // and can look at the yard and slot grid (view only).
-  SECURITY: ['dashboard', 'yards', 'gate', 'parked', 'security', 'returns', 'requests', 'history'],
-  VIEW_ONLY: ['dashboard', 'yards', 'stock', 'pdi', 'machines', 'returns', 'requests'],
-  // A driver only ever sees the parking confirmation, not the yard overview.
-  DRIVER: ['dashboard', 'parked', 'requests'],
-  // Dispatch planning team: reads yard stock and plans machines for dispatch.
-  PLANNER: ['dashboard', 'stock', 'dispatch', 'pdi'],
-  // PDI team: assigns drivers and prints the pick slip for planned machines.
-  PDI: ['dashboard', 'pdi'],
-  // Main gate: only the dispatch list, to mark machines out of the plant.
-  MAIN_GATE: ['pdi'],
-};
+// Pages whose access is set per role on the Role Access page (permission page.<tab>).
+// The Admin-only pages are fixed in code; Help, Docs, SOP and Notifications are open.
+const PERMISSION_TABS: Tab[] = ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'security', 'returns', 'requests', 'history'];
+const ADMIN_ONLY_TABS: Tab[] = ['users', 'settings', 'access'];
 
 const ROLE_COLORS: Record<string, string> = {
   ADMIN: 'bg-blue-600',
@@ -252,16 +238,16 @@ export default function Home() {
     if (typeof window === 'undefined') return true;
     return localStorage.getItem('sidebarCollapsed') !== '0';
   });
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, can } = useAuth();
   const router = useRouter();
 
-  const roleTabs = isAuthenticated && user?.role ? ROLE_TABS[user.role] || ROLE_TABS.VIEW_ONLY : ROLE_TABS.VIEW_ONLY;
+  const roleTabs: Tab[] = isAuthenticated
+    ? [...PERMISSION_TABS.filter((t) => can(`page.${t}`)), ...(user?.role === 'ADMIN' ? ADMIN_ONLY_TABS : [])]
+    : [];
   // Help is open to everyone, signed in or not, so a new user can read it first.
-  const allowedTabs: Tab[] = isAuthenticated && !roleTabs.includes('docs')
+  const allowedTabs: Tab[] = isAuthenticated
     ? [...roleTabs, 'help', 'docs', 'sop', 'notifications']
-    : isAuthenticated
-      ? [...roleTabs, 'help', 'sop', 'notifications']
-      : [...roleTabs, 'help'];
+    : ['help'];
   // A role without the dashboard (the main gate) opens on its first screen instead.
   const effectiveTab = allowedTabs.includes(activeTab) ? activeTab : allowedTabs[0];
 
@@ -295,6 +281,7 @@ export default function Home() {
       case 'drivers': return <Drivers />;
       case 'users': return <UserManagement />;
       case 'settings': return <SettingsPage />;
+      case 'access': return <RoleAccess />;
       case 'gate': return <GateControl onNavigate={(tab) => handleSelect(tab as Tab)} />;
       case 'security': return <SecurityVerification />;
       case 'parked': return <DriverParked />;

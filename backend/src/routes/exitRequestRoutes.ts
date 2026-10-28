@@ -5,7 +5,8 @@ import {
   approveExitRequest,
   rejectExitRequest
 } from '../controllers/exitRequestController';
-import { auth, requireRole } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.post('/', auth, createExitRequest);
 router.get('/', auth, listExitRequests);
 
 // Review: YARD_MANAGER and ADMIN decide.
-router.post('/:id/approve', auth, requireRole(['ADMIN', 'YARD_MANAGER']), approveExitRequest);
-router.post('/:id/reject', auth, requireRole(['ADMIN', 'YARD_MANAGER']), rejectExitRequest);
+router.post('/:id/approve', auth, requirePermission('requests.approve'), approveExitRequest);
+router.post('/:id/reject', auth, requirePermission('requests.approve'), rejectExitRequest);
 
 export default router;

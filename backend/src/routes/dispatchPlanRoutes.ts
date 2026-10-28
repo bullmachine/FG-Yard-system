@@ -10,27 +10,24 @@ import {
   recordPdiCheck,
   markMainGateOut
 } from '../controllers/dispatchPlanController';
-import { auth, requireRole } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
 // The planning team plans and cancels, the PDI team assigns drivers, and the main gate
 // marks machines out of the plant.
-const PLANNERS = ['ADMIN', 'YARD_MANAGER', 'PLANNER'];
-const PDI_TEAM = ['ADMIN', 'YARD_MANAGER', 'PDI'];
-const MAIN_GATE = ['ADMIN', 'YARD_MANAGER', 'MAIN_GATE'];
-const VIEWERS = ['ADMIN', 'YARD_MANAGER', 'PLANNER', 'PDI', 'MAIN_GATE', 'OPERATOR', 'VIEW_ONLY'];
 
 // Dispatch list. Declared before /:id so "items" is not read as a plan id.
-router.get('/items', auth, requireRole(VIEWERS), listDispatchItems);
-router.put('/items/:itemId/driver', auth, requireRole(PDI_TEAM), assignDispatchDriver);
-router.post('/items/:itemId/pdi', auth, requireRole(PDI_TEAM), recordPdiCheck);
-router.post('/items/:itemId/main-gate-out', auth, requireRole(MAIN_GATE), markMainGateOut);
-router.post('/items/:itemId/cancel', auth, requireRole(PLANNERS), cancelDispatchItem);
+router.get('/items', auth, requirePermission('page.pdi', 'page.dispatch'), listDispatchItems);
+router.put('/items/:itemId/driver', auth, requirePermission('pdi.assign'), assignDispatchDriver);
+router.post('/items/:itemId/pdi', auth, requirePermission('pdi.check'), recordPdiCheck);
+router.post('/items/:itemId/main-gate-out', auth, requirePermission('pdi.mainGate'), markMainGateOut);
+router.post('/items/:itemId/cancel', auth, requirePermission('dispatch.plan'), cancelDispatchItem);
 
-router.get('/', auth, requireRole(VIEWERS.filter((r) => r !== 'MAIN_GATE')), listDispatchPlans);
-router.get('/:id', auth, requireRole(VIEWERS.filter((r) => r !== 'MAIN_GATE')), getDispatchPlan);
-router.post('/', auth, requireRole(PLANNERS), createDispatchPlan);
-router.post('/:id/cancel', auth, requireRole(PLANNERS), cancelDispatchPlan);
+router.get('/', auth, requirePermission('page.dispatch'), listDispatchPlans);
+router.get('/:id', auth, requirePermission('page.dispatch'), getDispatchPlan);
+router.post('/', auth, requirePermission('dispatch.plan'), createDispatchPlan);
+router.post('/:id/cancel', auth, requirePermission('dispatch.plan'), cancelDispatchPlan);
 
 export default router;

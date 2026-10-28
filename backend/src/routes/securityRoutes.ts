@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getSecurityVerifications } from '../controllers/securityController';
-import { auth, requireRole } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
 router.get(
   '/verifications',
   auth,
-  requireRole(['ADMIN', 'SECURITY', 'YARD_MANAGER']),
+  requirePermission('page.security', 'history.verifications'),
   getSecurityVerifications
 );
 

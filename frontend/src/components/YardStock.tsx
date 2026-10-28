@@ -105,8 +105,8 @@ function toDateInput(iso: string | null): string {
 }
 
 export default function YardStock() {
-  const { user } = useAuth();
-  const canEditDate = user?.role === 'ADMIN' || user?.role === 'YARD_MANAGER';
+  const { can } = useAuth();
+  const canEditDate = can('stock.edit');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const [data, setData] = useState<StockResponse | null>(null);

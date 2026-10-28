@@ -203,6 +203,17 @@ const SCREENS: ScreenGuide[] = [
     tips: ['A role change applies on the user’s next action. Deactivating is safer than deleting because history stays linked to the person.'],
   },
   {
+    tab: 'access', title: 'Role Access', roles: 'Administrator',
+    purpose: 'Choose which role may open each page and use each action, without a code change.',
+    steps: [
+      'Tick a box to allow, untick to remove. Rows are pages (Open page) with their actions under them; columns are roles.',
+      'Press Save. Users get the change the next time they open or refresh the app. The server applies it too, so a removed action is refused even outside the screen.',
+      'A dot marks a box that differs from the default. Reset to Default puts every role back to the original access.',
+      'Recent changes lists who changed what and when.',
+    ],
+    tips: ['Administrator always has full access. User Management, Settings and Role Access stay Administrator-only. A driver can only be given Dashboard, Confirm Parking and Exit Requests.', 'An action needs its page: give the page too, or the role cannot reach the button.'],
+  },
+  {
     tab: 'settings', title: 'Settings', roles: 'Administrator',
     purpose: 'Connections to the plant production system, SAP material master, the gate barrier, e-mail and the main gate, plus parking and dispatch alerts.',
     steps: [

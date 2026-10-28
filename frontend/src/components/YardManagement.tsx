@@ -203,10 +203,11 @@ export default function YardManagement() {
   // Driver details opened from the slot panel. The slot already carries the full
   // driver row, so it is held here and enriched by the modal with login + count.
   const [driverDetails, setDriverDetails] = useState<{ id: string; driver: DriverDetails } | null>(null);
-  const { token, user, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, can } = useAuth();
   // Security sees the yard to find machines and slots, but does not move them.
-  const isViewOnly = !isAuthenticated || user?.role === 'VIEW_ONLY' || user?.role === 'SECURITY';
-  const canRelease = isAuthenticated && (user?.role === 'YARD_MANAGER' || user?.role === 'ADMIN');
+  const isViewOnly = !isAuthenticated || !can('yards.move');
+  const canRelease = isAuthenticated && can('yards.edit');
+  const canReleaseExit = isAuthenticated && can('yards.releaseExit');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const headers = () => { const h: Record<string, string> = {}; if (token) h['Authorization'] = `Bearer ${token}`; return h; };
 
@@ -739,7 +740,7 @@ export default function YardManagement() {
                         )}
                       </dl>
                       <MachineSlotStatus machine={selectedSlot.machine} />
-                      {canRelease && !isPlannedForDispatch(selectedSlot.machine) && (
+                      {canReleaseExit && !isPlannedForDispatch(selectedSlot.machine) && (
                         <Button variant="secondary" size="sm" className="w-full" onClick={() => openDispatch(selectedSlot.machine)}>Release for exit</Button>
                       )}
                     </div>

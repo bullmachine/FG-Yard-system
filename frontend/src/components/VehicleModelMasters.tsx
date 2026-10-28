@@ -49,8 +49,8 @@ export default function VehicleModelMasters() {
   const [form, setForm] = useState({ kmat: '', model: '', type: '', modelType: '', status: 'PENDING' as ModelStatus, preferredYardId: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, user } = useAuth();
-  const isAdmin = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'YARD_MANAGER');
+  const { isAuthenticated, can } = useAuth();
+  const isAdmin = isAuthenticated && can('models.manage');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };

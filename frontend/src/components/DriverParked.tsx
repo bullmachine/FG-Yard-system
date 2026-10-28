@@ -45,7 +45,7 @@ const STATUS_HELP: Record<string, string> = {
 };
 
 export default function DriverParked() {
-  const { user } = useAuth();
+  const { can } = useAuth();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [recentParks, setRecentParks] = useState<ParkingRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +55,7 @@ export default function DriverParked() {
 
   // This screen is also a driver's, and a driver must not see what every other
   // driver parked, so the shared trail is only fetched for the yard office roles.
-  const canSeeParkingTrail = user?.role === 'ADMIN' || user?.role === 'YARD_MANAGER' || user?.role === 'OPERATOR' || user?.role === 'SECURITY';
+  const canSeeParkingTrail = can('page.history');
 
   // `mine=true` resolves the linked Driver record from the token server-side, so
   // the scoping cannot be bypassed by editing the query string.

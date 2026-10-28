@@ -8,6 +8,8 @@ interface User {
   email: string;
   role: string;
   isActive: boolean;
+  // What this user's role may open and do (Role Access page). ADMIN has everything.
+  permissions?: string[];
 }
 
 interface RegistrationDetails {
@@ -29,6 +31,8 @@ interface AuthContextType {
   register: (details: RegistrationDetails) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  /** Whether the signed-in user's role has a permission, e.g. can('pdi.check'). */
+  can: (permission: string) => boolean;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -145,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         isAuthenticated: !!user && !!token,
+        can: (permission: string) => !!user && (user.role === 'ADMIN' || !!user.permissions?.includes(permission)),
       }}
     >
       {!loading && children}

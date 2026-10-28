@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
+import { permissionsFor } from '../services/roleAccessService';
 import { hashPassword, comparePassword, generateToken } from '../lib/auth';
 import { notifyEvent } from '../services/notificationService';
 
@@ -56,7 +57,7 @@ export const register = async (req: Request, res: Response) => {
       link: 'users'
     });
 
-    res.status(201).json({ user, token });
+    res.status(201).json({ user: { ...user, permissions: await permissionsFor(user.role) }, token });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       return res.status(400).json({ error: 'User already exists' });
@@ -114,7 +115,7 @@ export const login = async (req: Request, res: Response) => {
       updatedAt: user.updatedAt
     };
 
-    res.json({ user: userWithoutPassword, token });
+    res.json({ user: { ...userWithoutPassword, permissions: await permissionsFor(userWithoutPassword.role) }, token });
   } catch {
     res.status(500).json({ error: 'Failed to login' });
   }
@@ -140,7 +141,7 @@ export const getMe = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user });
+    res.json({ user: { ...user, permissions: await permissionsFor(user.role) } });
   } catch {
     res.status(500).json({ error: 'Failed to fetch user' });
   }

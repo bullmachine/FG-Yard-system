@@ -12,7 +12,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { slotLabel, formatDateTime } from '@/lib/format';
 import { useAuth } from '@/contexts/AuthContext';
-import { canViewSecurityHistory, isYardRecorder } from '@/lib/roles';
+import { isYardRecorder } from '@/lib/roles';
 import { Clock, ArrowLeftRight, Shield, CarFront } from 'lucide-react';
 
 interface Movement {
@@ -61,8 +61,8 @@ const REASON_VARIANTS: Record<string, BadgeProps['variant']> = { PRODUCTION: 'bl
 type HistoryMode = 'movements' | 'parking' | 'verifications';
 
 export default function MovementHistory() {
-  const { user } = useAuth();
-  const canViewVerifications = canViewSecurityHistory(user?.role);
+  const { can } = useAuth();
+  const canViewVerifications = can('history.verifications');
   const [mode, setMode] = useState<HistoryMode>('movements');
   const [movements, setMovements] = useState<PaginatedMovements>({ items: [], total: 0, page: 1, pageSize: 15 });
   const [parking, setParking] = useState<PaginatedMovements>({ items: [], total: 0, page: 1, pageSize: 15 });

@@ -19,6 +19,7 @@ import {
   verifyParking
 } from '../controllers/assemblyController';
 import { auth, requireRole, optionalAuth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
@@ -33,14 +34,14 @@ router.get('/:id', getMachineById);
 
 // Protected routes (require authentication)
 router.get('/:id/history', auth, getMachineStageHistory);
-router.post('/', auth, requireRole(['ADMIN', 'YARD_MANAGER', 'OPERATOR']), createMachine);
-router.put('/:id', auth, requireRole(['ADMIN', 'YARD_MANAGER']), updateMachine);
-router.delete('/:id', auth, requireRole(['ADMIN']), deleteMachine);
-router.post('/:id/allocate', auth, requireRole(['ADMIN', 'YARD_MANAGER', 'OPERATOR']), allocateMachine);
-router.post('/:id/remove', auth, requireRole(['ADMIN', 'YARD_MANAGER']), removeMachineFromSlot);
+router.post('/', auth, requirePermission('machines.add'), createMachine);
+router.put('/:id', auth, requirePermission('machines.edit'), updateMachine);
+router.delete('/:id', auth, requirePermission('machines.delete'), deleteMachine);
+router.post('/:id/allocate', auth, requirePermission('yards.move', 'machines.allocate'), allocateMachine);
+router.post('/:id/remove', auth, requirePermission('yards.releaseExit'), removeMachineFromSlot);
 // Reserve a slot for a machine coming back to the yard, so the gate-in checkpoint
 // will admit it. Managers and the operator plan returns; everyone else reads.
-router.post('/:id/return-slot', auth, requireRole(['ADMIN', 'YARD_MANAGER', 'OPERATOR']), reserveReturnSlot);
+router.post('/:id/return-slot', auth, requirePermission('returns.reserve'), reserveReturnSlot);
 
 // Driver confirms the machine is physically parked in its slot. This is the step
 // that creates the security verification queue entry. Ownership of the machine
@@ -51,14 +52,14 @@ router.post('/:id/return-slot', auth, requireRole(['ADMIN', 'YARD_MANAGER', 'OPE
 router.post(
   '/:id/parked',
   auth,
-  requireRole(['ADMIN', 'YARD_MANAGER', 'OPERATOR', 'SECURITY', 'DRIVER']),
+  requirePermission('page.parked'),
   confirmMachineParked
 );
 
 // Assembly stage management
-router.post('/:id/advance-stage', auth, requireRole(['ADMIN', 'OPERATOR']), advanceStage);
-router.post('/:id/assign-location', auth, requireRole(['ADMIN', 'YARD_MANAGER']), assignLocation);
-router.post('/:id/assign-driver', auth, requireRole(['ADMIN', 'YARD_MANAGER']), assignDriver);
-router.post('/:id/verify-parking', auth, requireRole(['ADMIN', 'SECURITY']), verifyParking);
+router.post('/:id/advance-stage', auth, requirePermission('assembly.advance'), advanceStage);
+router.post('/:id/assign-location', auth, requirePermission('assembly.assign'), assignLocation);
+router.post('/:id/assign-driver', auth, requirePermission('assembly.assign'), assignDriver);
+router.post('/:id/verify-parking', auth, requirePermission('security.verify'), verifyParking);
 
 export default router;

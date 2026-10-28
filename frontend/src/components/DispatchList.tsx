@@ -255,12 +255,12 @@ function printSlip(items: DispatchItem[], printedBy: string) {
 }
 
 export default function DispatchList() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const role = user?.role || '';
   const isMainGate = role === 'MAIN_GATE';
-  const canAssign = role === 'ADMIN' || role === 'YARD_MANAGER' || role === 'PDI';
-  const canPdi = canAssign;
-  const canGateOut = role === 'ADMIN' || role === 'YARD_MANAGER' || isMainGate;
+  const canAssign = can('pdi.assign');
+  const canPdi = can('pdi.check');
+  const canGateOut = can('pdi.mainGate');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   // The main gate user only sees machines that have left the FG yard.

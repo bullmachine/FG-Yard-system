@@ -10,27 +10,28 @@ import {
   createDriverAccount,
   removeDriverAccount
 } from '../controllers/driverController';
-import { auth, requireRole } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 import { driverPhotoUpload } from '../lib/upload';
 
 const router = Router();
 
 router.get('/', getAllDrivers);
 router.get('/:id', getDriverById);
-router.post('/', auth, requireRole(['ADMIN', 'YARD_MANAGER']), createDriver);
-router.put('/:id', auth, requireRole(['ADMIN', 'YARD_MANAGER']), updateDriver);
-router.delete('/:id', auth, requireRole(['ADMIN']), deleteDriver);
+router.post('/', auth, requirePermission('drivers.manage'), createDriver);
+router.put('/:id', auth, requirePermission('drivers.manage'), updateDriver);
+router.delete('/:id', auth, requirePermission('drivers.admin'), deleteDriver);
 
 // Photo is a separate multipart endpoint rather than part of create/update, so a
 // photo can be replaced or cleared on its own and the JSON payloads stay JSON.
 // multer runs before the controller, which is why the driver lookup (and the cleanup
 // of the just-written file) happens inside it.
-router.post('/:id/photo', auth, requireRole(['ADMIN', 'YARD_MANAGER']), driverPhotoUpload, uploadDriverPhoto);
-router.delete('/:id/photo', auth, requireRole(['ADMIN', 'YARD_MANAGER']), removeDriverPhoto);
+router.post('/:id/photo', auth, requirePermission('drivers.manage'), driverPhotoUpload, uploadDriverPhoto);
+router.delete('/:id/photo', auth, requirePermission('drivers.manage'), removeDriverPhoto);
 
 // Creating or removing a driver's login is an account change, so it is
 // restricted to ADMIN rather than the broader set allowed to edit drivers.
-router.post('/:id/account', auth, requireRole(['ADMIN']), createDriverAccount);
-router.delete('/:id/account', auth, requireRole(['ADMIN']), removeDriverAccount);
+router.post('/:id/account', auth, requirePermission('drivers.admin'), createDriverAccount);
+router.delete('/:id/account', auth, requirePermission('drivers.admin'), removeDriverAccount);
 
 export default router;

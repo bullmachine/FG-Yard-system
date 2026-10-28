@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { MovementReason } from '@prisma/client';
 import prisma from '../lib/prisma';
+import { hasPermission } from '../services/roleAccessService';
 import { notifyEvent, notifyUser, pushExitRequestsChanged } from '../services/notificationService';
 
 // Reasons a machine may be taken out of the yard. YARD_ENTRY is a parking reason and
@@ -163,19 +164,18 @@ export const listExitRequests = async (req: Request, res: Response) => {
     const rawStatus = req.query.status;
     const requested = typeof rawStatus === 'string' && rawStatus !== '' ? rawStatus.split(',').filter(Boolean) : [];
 
-    // Security sees approved-but-not-yet-driven-out tickets only (awareness queue).
-    // Completed tickets drop off automatically because their status is COMPLETED.
+    // Reviewers (those who may approve) see the whole board. Security, if not a
+    // reviewer, sees approved-but-not-yet-driven-out tickets only (awareness queue);
+    // completed ones drop off because their status is COMPLETED. Everyone else sees
+    // only the tickets they raised.
+    const reviewer = await hasPermission(user.role, 'requests.approve');
     const where: Record<string, unknown> =
-      user.role === 'SECURITY'
+      !reviewer && user.role === 'SECURITY'
         ? { status: { in: ['APPROVED'] } }
         : {
             ...(requested.length > 0 ? { status: { in: requested } } : {})
           };
-
-    // Everyone except reviewers sees their own tickets. Operators, technicians,
-    // viewers and drivers only ever see what they raised; managers and admins
-    // review the whole board.
-    if (['OPERATOR', 'SERVICE_TECHNICIAN', 'VIEW_ONLY', 'DRIVER'].includes(user.role || '')) {
+    if (!reviewer && user.role !== 'SECURITY') {
       where.requestedById = user.id;
     }
 

@@ -74,11 +74,11 @@ export default function MachineTracking() {
   const [allocateRemark, setAllocateRemark] = useState('');
   const [allocateError, setAllocateError] = useState<string | null>(null);
   const [newMachine, setNewMachine] = useState({ serialNumber: '', model: '', productionDate: '', status: 'AVAILABLE' as Machine['status'] });
-  const { token, user, isAuthenticated } = useAuth();
-  const canManageMachines = isAuthenticated && ['ADMIN', 'YARD_MANAGER', 'OPERATOR'].includes(user?.role || '');
+  const { token, isAuthenticated, can } = useAuth();
+  const canManageMachines = isAuthenticated && can('machines.add');
   // A machine not yet in a slot enters the yard only through Gate Control. Placing one
   // by hand is for the stock parked before go-live, while an Admin has Initial stock load on.
-  const canStockLoad = initialStockLoad && ['ADMIN', 'YARD_MANAGER'].includes(user?.role || '');
+  const canStockLoad = initialStockLoad && can('machines.allocate');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; if (token) h['Authorization'] = `Bearer ${token}`; return h; };

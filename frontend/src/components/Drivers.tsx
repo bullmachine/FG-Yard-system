@@ -46,9 +46,9 @@ export default function Drivers() {
   const [accountFor, setAccountFor] = useState<Driver | null>(null);
   const [accountForm, setAccountForm] = useState({ email: '', password: '' });
   const [accountError, setAccountError] = useState<string | null>(null);
-  const { isAuthenticated, user } = useAuth();
-  const isAdmin = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'YARD_MANAGER');
-  const isSysAdmin = user?.role === 'ADMIN';
+  const { isAuthenticated, can } = useAuth();
+  const isAdmin = isAuthenticated && can('drivers.manage');
+  const isSysAdmin = can('drivers.admin');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   // The printable badge sheet is portaled to document.body, which only exists on the client.
   const mounted = useSyncExternalStore(subscribeEmpty, () => true, () => false);

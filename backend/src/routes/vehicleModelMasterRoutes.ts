@@ -6,14 +6,15 @@ import {
   updateVehicleModelMaster,
   deleteVehicleModelMaster
 } from '../controllers/vehicleModelMasterController';
-import { auth, requireRole } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
 router.get('/', getAllVehicleModelMasters);
 router.get('/:id', getVehicleModelMasterById);
-router.post('/', auth, requireRole(['ADMIN', 'YARD_MANAGER']), createVehicleModelMaster);
-router.put('/:id', auth, requireRole(['ADMIN', 'YARD_MANAGER']), updateVehicleModelMaster);
-router.delete('/:id', auth, requireRole(['ADMIN', 'YARD_MANAGER']), deleteVehicleModelMaster);
+router.post('/', auth, requirePermission('models.manage'), createVehicleModelMaster);
+router.put('/:id', auth, requirePermission('models.manage'), updateVehicleModelMaster);
+router.delete('/:id', auth, requirePermission('models.manage'), deleteVehicleModelMaster);
 
 export default router;

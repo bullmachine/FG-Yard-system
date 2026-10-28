@@ -114,9 +114,8 @@ function authHeaders(): Record<string, string> {
 }
 
 export default function DispatchPlanning() {
-  const { user } = useAuth();
-  const role = user?.role || '';
-  const canPlan = role === 'ADMIN' || role === 'YARD_MANAGER' || role === 'PLANNER';
+  const { can } = useAuth();
+  const canPlan = can('dispatch.plan');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const [data, setData] = useState<PlansResponse | null>(null);

@@ -26,8 +26,8 @@ export default function MaterialMasters() {
   const [notice, setNotice] = useState<SyncNotice | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
-  const { isAuthenticated, user } = useAuth();
-  const isAdmin = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'YARD_MANAGER');
+  const { isAuthenticated, can } = useAuth();
+  const isAdmin = isAuthenticated && can('materials.sync');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };

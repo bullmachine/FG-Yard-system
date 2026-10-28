@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { hasPermission } from '../services/roleAccessService';
 import { notifyEvent, pushSecurityQueueChanged, pushExitRequestsChanged } from '../services/notificationService';
 import { EXIT_REASONS, releaseMachine } from './exitRequestController';
 import { getSettings } from '../services/settingsService';
@@ -328,8 +329,8 @@ export const allocateMachine = async (req: Request, res: Response) => {
       if (!initialStockLoad) {
         return res.status(403).json({ error: 'Machines enter the yard only through Gate Control (Inward). An Admin can switch on Initial stock load in Settings to place machines already parked before go-live.' });
       }
-      if (actorRole !== 'ADMIN' && actorRole !== 'YARD_MANAGER') {
-        return res.status(403).json({ error: 'Only an Admin or Yard Manager can place a machine during the initial stock load' });
+      if (!(await hasPermission(actorRole, 'machines.allocate'))) {
+        return res.status(403).json({ error: 'You do not have access to place a machine during the initial stock load' });
       }
       if (['IN_TRANSIT', 'AT_GATE'].includes(machine.parkStatus)) {
         return res.status(400).json({ error: 'This machine is in the gate process; finish it through Gate Control and Confirm Parking' });
@@ -345,6 +346,8 @@ export const allocateMachine = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Write a remark (at least 3 characters), e.g. where the machine was found' });
       }
       entryNote = `Initial stock load: ${remark.slice(0, 480)}`;
+    } else if (!(await hasPermission(actorRole, 'yards.move'))) {
+      return res.status(403).json({ error: 'You do not have access to move machines between slots' });
     }
 
     if (slot.status !== 'AVAILABLE' && machine.currentSlotId !== slotId) {
@@ -462,8 +465,9 @@ export const confirmMachineParked = async (req: Request, res: Response) => {
       select: { id: true, name: true }
     });
 
-    const isOperatorOverride =
-      actor?.role === 'ADMIN' || actor?.role === 'YARD_MANAGER' || actor?.role === 'OPERATOR' || actor?.role === 'SECURITY';
+    // Staff given "Confirm for a driver" on the Role Access page (default: yard office
+    // and Security) may record it on the driver's behalf.
+    const isOperatorOverride = actor?.role !== 'DRIVER' && (await hasPermission(actor?.role, 'parked.confirmOthers'));
     if (!isOperatorOverride) {
       if (!actorDriver) {
         return res.status(403).json({

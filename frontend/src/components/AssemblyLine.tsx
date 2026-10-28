@@ -66,9 +66,9 @@ export default function AssemblyLine() {
   // while demo rows are hidden. Otherwise hiding them would remove the only
   // control that can bring them back.
   const [demoAvailable, setDemoAvailable] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, can } = useAuth();
   // The sync endpoint is ADMIN-only on the server, so the button follows it.
-  const canSync = isAuthenticated && user?.role === 'ADMIN';
+  const canSync = isAuthenticated && can('assembly.sync');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };

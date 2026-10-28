@@ -118,6 +118,7 @@ model User {
   mainGateDispatchItems DispatchItem[]         @relation("ItemMainGateOutBy")
   pdiDispatchItems      DispatchItem[]         @relation("ItemPdiBy")
   blockedSlots          Slot[]                 @relation("SlotBlockedBy")
+  roleAccessChanges     RoleAccessLog[]        @relation("RoleAccessChangedBy")
 }
 
 enum NotificationSeverity {
@@ -590,4 +591,30 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
   updatedBy   User?    @relation(fields: [updatedById], references: [id])
   updatedById String?
+}
+
+// Where an Admin has changed a role's default access (Role Access page). Defaults
+// live in roleAccessService; a row here overrides one permission for one role.
+model RoleAccess {
+  role        UserRole
+  permission  String   @db.VarChar(64)
+  allowed     Boolean
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@id([role, permission])
+}
+
+// Every change made on the Role Access page: who changed what, and when.
+model RoleAccessLog {
+  id          String   @id @default(uuid())
+  role        UserRole
+  permission  String   @db.VarChar(64)
+  allowed     Boolean
+  changedById String
+  changedAt   DateTime @default(now())
+
+  changedBy User @relation("RoleAccessChangedBy", fields: [changedById], references: [id])
+
+  @@index([changedAt])
 }

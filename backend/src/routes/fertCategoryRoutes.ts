@@ -6,14 +6,15 @@ import {
   updateFertCategory,
   deleteFertCategory
 } from '../controllers/fertCategoryController';
-import { auth, requireRole } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
 router.get('/', getAllFertCategories);
 router.get('/:id', getFertCategoryById);
-router.post('/', auth, requireRole(['ADMIN']), createFertCategory);
-router.put('/:id', auth, requireRole(['ADMIN']), updateFertCategory);
-router.delete('/:id', auth, requireRole(['ADMIN']), deleteFertCategory);
+router.post('/', auth, requirePermission('fert.manage'), createFertCategory);
+router.put('/:id', auth, requirePermission('fert.manage'), updateFertCategory);
+router.delete('/:id', auth, requirePermission('fert.manage'), deleteFertCategory);
 
 export default router;
