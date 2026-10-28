@@ -504,6 +504,9 @@ model DispatchItem {
   overdueAlertAt   DateTime?
   cancelledAt      DateTime?
   cancelledById    String?
+  // Set when the machine came back in through the FG gate before main gate-out: the
+  // item is closed (CANCELLED) so the machine can be planned again after its return hold.
+  returnedAt       DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 

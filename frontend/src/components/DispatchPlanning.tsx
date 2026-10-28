@@ -14,7 +14,7 @@ import Pagination from '@/components/ui/Pagination';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '@/components/ui/Table';
 import { formatDateShort, formatDateTime } from '@/lib/format';
-import { DISPATCH_STATUS, DispatchItem, DispatchProgress, dispatchLocation } from '@/components/DispatchList';
+import { DispatchItem, DispatchProgress, dispatchLocation, dispatchStatusMeta } from '@/components/DispatchList';
 import { Boxes, ClipboardList, PackageCheck, Plus, RefreshCw, Search, Trash2, Truck, X } from 'lucide-react';
 
 interface Plan {
@@ -450,7 +450,7 @@ export default function DispatchPlanning() {
             </TableHeader>
             <TableBody>
               {cardItems.map((i) => {
-                const meta = DISPATCH_STATUS[i.status];
+                const meta = dispatchStatusMeta(i);
                 const at = cardList === 'IN_YARD' ? i.plannedAt : cardList === 'OUT_OF_YARD' ? i.gateOutAt : i.mainGateOutAt;
                 return (
                   <TableRow key={i.id} onClick={() => openPlan(i.planId)} className="cursor-pointer">
@@ -524,7 +524,7 @@ export default function DispatchPlanning() {
                 </TableHeader>
                 <TableBody>
                   {selectedItems.map((i) => {
-                    const meta = DISPATCH_STATUS[i.status];
+                    const meta = dispatchStatusMeta(i);
                     const inYard = i.status === 'PLANNED' || i.status === 'DRIVER_ASSIGNED';
                     return (
                       <TableRow key={i.id} className={i.status === 'CANCELLED' ? 'opacity-60' : ''}>

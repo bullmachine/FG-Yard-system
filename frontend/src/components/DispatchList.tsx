@@ -39,6 +39,7 @@ export interface DispatchItem {
   pdiBy: { id: string; name: string } | null;
   pdiRemark: string | null;
   cancelledAt: string | null;
+  returnedAt: string | null;
   machine: {
     id: string;
     serialNumber: string;
@@ -58,6 +59,12 @@ export const DISPATCH_STATUS: Record<DispatchStatus, { label: string; variant: '
   MAIN_GATE_OUT: { label: 'Main gate out', variant: 'green' },
   CANCELLED: { label: 'Cancelled', variant: 'gray' },
 };
+
+/** Status label of a dispatch machine; a returned machine is told apart from a planner's cancel. */
+export function dispatchStatusMeta(i: DispatchItem) {
+  if (i.status === 'CANCELLED' && i.returnedAt) return { label: 'Returned to FG yard', variant: 'amber' as const };
+  return DISPATCH_STATUS[i.status];
+}
 
 export function dispatchLocation(m: { yard: { name: string } | null; row: number | null; col: number | null }) {
   if (!m.yard) return '—';
@@ -148,7 +155,7 @@ function nextStep(i: DispatchItem, isMainGate: boolean): string {
       if (i.pdiStatus !== 'PASSED') return isMainGate ? 'Waiting for the PDI final check' : 'Do the PDI final check';
       return isMainGate ? 'PDI passed - click Main Gate Out when it leaves' : 'PDI passed - waiting for main gate-out';
     case 'MAIN_GATE_OUT': return 'Completed';
-    default: return 'Cancelled by the planner';
+    default: return i.returnedAt ? 'Came back into the FG yard before main gate-out; on return hold in Yard Stock' : 'Cancelled by the planner';
   }
 }
 
@@ -515,7 +522,7 @@ export default function DispatchList() {
             </TableHeader>
             <TableBody>
               {visible.map((i) => {
-                const meta = DISPATCH_STATUS[i.status];
+                const meta = dispatchStatusMeta(i);
                 const busy = busyId === i.id;
                 const wait = waitMs(i, now);
                 const late = overdue(i);
@@ -644,7 +651,7 @@ export default function DispatchList() {
           return (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={DISPATCH_STATUS[detail.status].variant}>{DISPATCH_STATUS[detail.status].label}</Badge>
+                <Badge variant={dispatchStatusMeta(detail).variant}>{dispatchStatusMeta(detail).label}</Badge>
                 {detail.status === 'OUT_OF_YARD' && <Badge variant={pdiMeta(detail).variant}>{pdiMeta(detail).label}</Badge>}
                 <span className={`text-xs ${late ? 'font-medium text-red-700' : 'text-slate-600'}`}>
                   {late ? `Overdue - over ${alertHours} h since FG gate-out` : nextStep(detail, isMainGate)}

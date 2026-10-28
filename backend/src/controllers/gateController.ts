@@ -8,7 +8,7 @@ import {
   findSlotForMachine,
   listAvailableSlots
 } from '../services/locationAssignmentService';
-import { findPlannedDispatch, releaseForDispatch, markDispatchGateOut } from './dispatchPlanController';
+import { findPlannedDispatch, releaseForDispatch, markDispatchGateOut, closeDispatchOnReturn } from './dispatchPlanController';
 
 const INWARD_BLOCKED: Record<string, string> = {
   PARKED_PENDING: 'is already parked in the yard (waiting for security). It cannot come in again.',
@@ -263,6 +263,8 @@ export const authenticateGate = async (req: Request, res: Response) => {
     // inspection or repair it is free stock again. Back from dispatch is not normal
     // (rejection, damage, cancelled order), so it is held until someone checks it.
     const returnedFromDispatch = machine.status === 'DISPATCHED';
+    // Back before main gate-out (e.g. sent back from PDI): take it off its dispatch plan.
+    const returnedPlans = await closeDispatchOnReturn(machine.id, actorId === 'system' ? null : actorId);
     const tripEnded = returnedFromDispatch || machine.status === 'UNDER_INSPECTION' || machine.status === 'IN_REPAIR';
     await prisma.machine.update({
       where: { id: machine.id },
@@ -278,7 +280,7 @@ export const authenticateGate = async (req: Request, res: Response) => {
         type: 'RETURN_HOLD',
         severity: 'WARNING',
         title: `${machine.serialNumber} returned after dispatch - on hold`,
-        message: `${machine.serialNumber} (${machine.model}) came back in through the gate after being dispatched. It is on hold and cannot be planned until it is checked and cleared in Yard Stock.`,
+        message: `${machine.serialNumber} (${machine.model}) came back in through the gate after being dispatched.${returnedPlans.length ? ` It had not left the main gate, so it has been taken off dispatch plan ${returnedPlans.join(', ')}.` : ''} It is on hold and cannot be planned until it is checked and cleared in Yard Stock.`,
         link: 'stock'
       });
     }

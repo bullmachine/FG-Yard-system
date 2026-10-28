@@ -92,6 +92,7 @@ function serializeItem(i: ItemRow) {
     pdiBy: i.pdiBy,
     pdiRemark: i.pdiRemark,
     cancelledAt: iso(i.cancelledAt),
+    returnedAt: iso(i.returnedAt),
     machine: {
       id: i.machine.id,
       serialNumber: i.machine.serialNumber,
@@ -626,6 +627,26 @@ export function findPlannedDispatch(machineId: string) {
  */
 export async function releaseForDispatch(machineId: string, planNo: string, actorId: string) {
   return releaseMachine(machineId, 'DISPATCH', actorId, `Dispatch plan ${planNo}`);
+}
+
+/**
+ * Called when a machine comes back in through the FG gate. A dispatch that never got
+ * past the main gate ends here: the item is closed as returned, so the machine leaves
+ * the PDI list and can be planned again once its return hold is cleared. Returns the
+ * plan numbers it was taken off.
+ */
+export async function closeDispatchOnReturn(machineId: string, actorId: string | null): Promise<string[]> {
+  const items = await prisma.dispatchItem.findMany({
+    where: { machineId, status: 'OUT_OF_YARD' },
+    select: { id: true, plan: { select: { planNo: true } } }
+  });
+  if (items.length === 0) return [];
+  const now = new Date();
+  await prisma.dispatchItem.updateMany({
+    where: { id: { in: items.map((i) => i.id) } },
+    data: { status: 'CANCELLED', activeMachineId: null, cancelledAt: now, cancelledById: actorId, returnedAt: now }
+  });
+  return items.map((i) => i.plan.planNo);
 }
 
 /** Called after an authorized FG gate-out: the PDI list shows the machine as out. */
