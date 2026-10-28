@@ -100,6 +100,7 @@ export default function YardManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [yardFormError, setYardFormError] = useState<string | null>(null);
   const [yardNotice, setYardNotice] = useState<string | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
   // Rows/cols/lat/lng are held as strings so a cleared box stays empty instead of
   // snapping back to a default the moment the field loses focus.
   const [yardForm, setYardForm] = useState({ name: '', description: '', rows: '10', cols: '10', latitude: '', longitude: '', address: '' });
@@ -184,9 +185,35 @@ export default function YardManagement() {
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = async (e: React.DragEvent, target: Slot) => {
     e.preventDefault();
-    if (!draggedSlot || draggedSlot.id === target.id || !draggedSlot.machine) { setDraggedSlot(null); return; }
-    try { await fetch(`${API_URL}/api/machines/${draggedSlot.machine.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...headers() }, body: JSON.stringify({ currentSlotId: target.id }) }); if (selectedYard) await fetchYardSlots(selectedYard.id); } catch { }
+    const from = draggedSlot;
     setDraggedSlot(null);
+    if (!from || from.id === target.id || !from.machine || isViewOnly) return;
+    const fromLabel = slotLabel(from.row, from.col);
+    const toLabel = slotLabel(target.row, target.col);
+    if (target.machine || target.status !== 'AVAILABLE') {
+      setMoveError(`${toLabel} is not free (${target.status.toLowerCase().replace(/_/g, ' ')}). Drop the machine on a free (green) slot.`);
+      return;
+    }
+    const serial = from.machine.serialNumber;
+    if (!window.confirm(`Move ${serial} from ${fromLabel} to ${toLabel}?\n\nThe move is recorded in Movement History, and Security must verify the machine again in its new slot.`)) return;
+    setMoveError(null);
+    // A move between slots is an allocation of a machine already in the yard: the
+    // server records a RELOCATION movement, frees the old slot and sends the
+    // machine back to Security for verification.
+    try {
+      const res = await fetch(`${API_URL}/api/machines/${from.machine.id}/allocate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers() },
+        body: JSON.stringify({ slotId: target.id, reason: 'RELOCATION', notes: `Moved on the yard grid from ${fromLabel} to ${toLabel}` }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) setMoveError(`${serial}: ${body?.error || `move failed (${res.status})`}`);
+      else setYardNotice(`${serial} moved from ${fromLabel} to ${toLabel}. Security must verify it in the new slot.`);
+    } catch {
+      setMoveError('Connection error - the machine was not moved. Try again.');
+    }
+    if (selectedYard) await fetchYardSlots(selectedYard.id);
+    fetchAvailability();
   };
 
   const openDispatch = (machine: DispatchMachine) => {
@@ -418,6 +445,13 @@ export default function YardManagement() {
         description={`${yards.length} yard${yards.length !== 1 ? 's' : ''} configured`}
         actions={canRelease ? <Button icon={<Plus className="w-4 h-4" />} onClick={openCreateYard}>Create Yard</Button> : undefined}
       />
+
+      {moveError && (
+        <div role="alert" className="flex items-start justify-between gap-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2">
+          <p className="text-xs font-medium text-red-900">{moveError}</p>
+          <button type="button" onClick={() => setMoveError(null)} aria-label="Dismiss" className="text-red-700 hover:text-red-900 text-xs font-semibold leading-none">✕</button>
+        </div>
+      )}
 
       {yardNotice && (
         <div role="status" className="flex items-start justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2">

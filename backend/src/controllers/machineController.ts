@@ -347,6 +347,10 @@ export const allocateMachine = async (req: Request, res: Response) => {
       entryNote = `Initial stock load: ${remark.slice(0, 480)}`;
     }
 
+    if (slot.status !== 'AVAILABLE' && machine.currentSlotId !== slotId) {
+      return res.status(400).json({ error: `Slot ${slot.row}-${slot.col} is not free (${slot.status.toLowerCase().replace(/_/g, ' ')}). Choose a free slot.` });
+    }
+
     // Check if machine is already in the target slot. A machine that security
     // rejected is allowed to be re-parked where it already is, otherwise it can
     // never be re-verified without being moved to a different slot first.
