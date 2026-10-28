@@ -280,7 +280,7 @@ export const updateYard = async (req: Request, res: Response) => {
     if (rowCount < existing.rows || colCount < existing.cols) {
       return res.status(400).json({
         error: `${existing.name} is ${existing.rows} x ${existing.cols} and cannot be made smaller. ` +
-          'Removing individual slots from the yard view is the supported way to retire capacity.'
+          'Block the slots that are no longer used instead.'
       });
     }
 
@@ -360,99 +360,6 @@ export const getYardAvailability = async (_req: Request, res: Response) => {
     res.json({ availability, totalAvailable, waiting });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch yard availability' });
-  }
-};
-
-/**
- * Retire a single slot. One slot at a time - there is no rectangle shrink.
- *
- * The outcome depends on whether the slot has a history, because the FKs do not all
- * fail the same way. Machine.currentSlotId, Machine.plannedSlotId, Movement.fromSlotId
- * and Movement.toSlotId are all nullable with no onDelete, so Prisma defaults them to
- * SetNull: a hard delete would silently un-park a machine, orphan a live reservation, or
- * strip the slot reference out of movement history. Only SecurityVerification.slotId is
- * mandatory, so MySQL itself refuses that one case. Anything with history is therefore
- * marked BLOCKED instead of deleted, which keeps every audit link intact while still
- * removing the slot from allocation (allocation only ever selects AVAILABLE).
- */
-export const removeSlot = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const slotId = Array.isArray(id) ? id[0] : id;
-    const { reason } = req.body;
-    const userRole = (req as Request & { userRole?: string }).userRole;
-
-    if (typeof reason !== 'string' || reason.trim().length < 5) {
-      return res.status(400).json({ error: 'A reason of at least 5 characters is required to remove a slot' });
-    }
-
-    const slot = await prisma.slot.findUnique({
-      where: { id: slotId },
-      include: {
-        machine: { select: { serialNumber: true } },
-        plannedFor: { select: { serialNumber: true } },
-        _count: { select: { movementsFrom: true, movementsTo: true, securityVerifications: true } }
-      }
-    });
-
-    if (!slot) return res.status(404).json({ error: 'Slot not found' });
-
-    if (slot.machine) {
-      return res.status(409).json({
-        code: 'SLOT_OCCUPIED',
-        error: `Slot ${slot.row}-${slot.col} is occupied by ${slot.machine.serialNumber}. Dispatch or move it first.`
-      });
-    }
-
-    if (slot.plannedFor) {
-      return res.status(409).json({
-        code: 'SLOT_RESERVED',
-        error: `Slot ${slot.row}-${slot.col} is reserved for ${slot.plannedFor.serialNumber}. Release the reservation first.`
-      });
-    }
-
-    const historyCount =
-      slot._count.movementsFrom + slot._count.movementsTo + slot._count.securityVerifications;
-
-    // Pristine slot: nothing references it, so it can genuinely go.
-    if (historyCount === 0) {
-      if (userRole !== 'ADMIN') {
-        return res.status(403).json({
-          code: 'REQUIRES_ADMIN',
-          error: 'Deleting a slot that has no history requires an ADMIN. Mark it out of service instead.'
-        });
-      }
-      await prisma.slot.delete({ where: { id: slotId } });
-      return res.json({
-        outcome: 'DELETED' as const,
-        row: slot.row,
-        col: slot.col,
-        reason: reason.trim()
-      });
-    }
-
-    // Has history: keep the row so the audit trail survives, take it out of service.
-    await prisma.slot.update({ where: { id: slotId }, data: { status: 'BLOCKED' } });
-
-    return res.json({
-      outcome: 'BLOCKED' as const,
-      row: slot.row,
-      col: slot.col,
-      preservedRecords: historyCount,
-      alreadyBlocked: slot.status === 'BLOCKED',
-      reason: reason.trim()
-    });
-  } catch (error) {
-    // Belt and braces: if a future FK is added without a guard, MySQL refuses rather
-    // than silently nulling the reference.
-    if (prismaCode(error) === 'P2003' || prismaCode(error) === 'P2014') {
-      return res.status(409).json({
-        code: 'SLOT_IN_USE',
-        error: 'This slot is referenced by records that must be kept, so it was marked out of service instead of deleted.'
-      });
-    }
-    console.error('Error removing slot:', error);
-    res.status(500).json({ error: 'Failed to remove slot' });
   }
 };
 

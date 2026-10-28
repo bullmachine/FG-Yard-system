@@ -188,10 +188,6 @@ export default function YardManagement() {
   const [availability, setAvailability] = useState<AvailabilitySummary | null>(null);
   const [releaseReason, setReleaseReason] = useState('');
   const [releasing, setReleasing] = useState(false);
-  const [removeTarget, setRemoveTarget] = useState<Slot | null>(null);
-  const [removeReason, setRemoveReason] = useState('');
-  const [removeError, setRemoveError] = useState<string | null>(null);
-  const [removing, setRemoving] = useState(false);
   const [dispatchTarget, setDispatchTarget] = useState<DispatchMachine | null>(null);
   const [dispatchReason, setDispatchReason] = useState('INSPECTION');
   const [dispatchNotes, setDispatchNotes] = useState('');
@@ -211,7 +207,6 @@ export default function YardManagement() {
   // Security sees the yard to find machines and slots, but does not move them.
   const isViewOnly = !isAuthenticated || user?.role === 'VIEW_ONLY' || user?.role === 'SECURITY';
   const canRelease = isAuthenticated && (user?.role === 'YARD_MANAGER' || user?.role === 'ADMIN');
-  const isAdmin = isAuthenticated && user?.role === 'ADMIN';
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const headers = () => { const h: Record<string, string> = {}; if (token) h['Authorization'] = `Bearer ${token}`; return h; };
 
@@ -479,50 +474,6 @@ export default function YardManagement() {
       setYardFormError('Could not reach the server');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  /** How removing this slot would actually behave, so the dialog can say so up front. */
-  const removalPlan = (slot: Slot | null) => {
-    if (!slot) return null;
-    const history = (slot._count?.movementsFrom ?? 0) + (slot._count?.movementsTo ?? 0) + (slot._count?.securityVerifications ?? 0);
-    if (slot.machine) return { kind: 'blocked' as const, title: 'Slot is occupied', detail: `${slot.machine.serialNumber} is parked here. Dispatch or move it before removing the slot.`, history };
-    if (slot.plannedFor) return { kind: 'blocked' as const, title: 'Slot is reserved', detail: `${slot.plannedFor.serialNumber} holds this slot as a promise. Release the reservation first.`, history };
-    if (history > 0) return { kind: 'block' as const, title: 'Will be marked out of service', detail: `This slot has ${history} movement or verification record${history === 1 ? '' : 's'}. It will be marked Blocked so that history is kept, rather than deleted.`, history };
-    return { kind: 'delete' as const, title: 'Will be deleted', detail: 'This slot has no machine, no reservation and no history, so it will be deleted outright.', history };
-  };
-
-  const handleRemoveSlot = async () => {
-    if (!removeTarget) return;
-    setRemoving(true);
-    setRemoveError(null);
-    try {
-      const r = await fetch(`${API_URL}/api/yards/slots/${removeTarget.id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', ...headers() },
-        body: JSON.stringify({ reason: removeReason })
-      });
-      const body = await r.json().catch(() => null);
-      if (!r.ok) {
-        setRemoveError(body?.error || `Remove failed (${r.status})`);
-        return;
-      }
-
-      const label = slotLabel(body.row ?? removeTarget.row, body.col ?? removeTarget.col);
-      setYardNotice(
-        body.outcome === 'DELETED'
-          ? `Slot ${label} deleted.`
-          : `Slot ${label} marked out of service${body.alreadyBlocked ? ' (already Blocked)' : ''}. ${body.preservedRecords} history record${body.preservedRecords === 1 ? '' : 's'} kept.`
-      );
-      setRemoveTarget(null);
-      setRemoveReason('');
-      setSelectedSlot(null);
-      if (selectedYard) { await fetchYardSlots(selectedYard.id); await fetchYards(); }
-      await fetchAvailability();
-    } catch {
-      setRemoveError('Could not reach the server');
-    } finally {
-      setRemoving(false);
     }
   };
 
@@ -844,19 +795,6 @@ export default function YardManagement() {
                       <p className="text-[11px] text-slate-500 mt-1.5">Takes the slot out of use for now. No machine is placed here until it is unblocked.</p>
                     </div>
                   )}
-                  {canRelease && (
-                    <div className="p-3 bg-white rounded-lg border border-slate-200">
-                      <p className="text-[10px] text-slate-500 uppercase font-medium mb-1.5">Remove slot</p>
-                      {/* The dialog says whether this will delete or only block, so the
-                          button label stays neutral instead of promising one outcome. */}
-                      <Button variant="secondary" size="sm" className="w-full" onClick={() => { setRemoveTarget(selectedSlot); setRemoveReason(''); setRemoveError(null); }}>
-                        Remove {slotLabel(selectedSlot.row, selectedSlot.col)}
-                      </Button>
-                      {(removalPlan(selectedSlot)?.history ?? 0) > 0 && (
-                        <p className="text-[11px] text-slate-500 mt-1.5">Has {removalPlan(selectedSlot)?.history} history record{(removalPlan(selectedSlot)?.history ?? 0) === 1 ? '' : 's'}, so it can only be marked out of service.</p>
-                      )}
-                    </div>
-                  )}
                   <Button variant="secondary" size="sm" className="w-full" onClick={() => setSelectedSlot(null)}>Clear</Button>
                 </div>
               ) : (
@@ -995,59 +933,6 @@ export default function YardManagement() {
               <Input label="Address" value={yardForm.address} onChange={e => setYardForm({ ...yardForm, address: e.target.value })} placeholder="123 Industrial Ave" />
             </div>
           </div>
-        </div>
-      </Modal>
-
-      {/* Remove Slot Modal */}
-      <Modal
-        open={!!removeTarget}
-        onClose={() => { setRemoveTarget(null); setRemoveReason(''); setRemoveError(null); }}
-        title="Remove Slot"
-        subtitle={removeTarget ? `Slot ${slotLabel(removeTarget.row, removeTarget.col)}` : undefined}
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => { setRemoveTarget(null); setRemoveReason(''); setRemoveError(null); }}>Cancel</Button>
-            <Button variant={removalPlan(removeTarget)?.kind === 'delete' ? 'danger' : 'secondary'} onClick={handleRemoveSlot} loading={removing}>
-              {removalPlan(removeTarget)?.kind === 'delete' ? 'Delete Slot' : 'Mark Out of Service'}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3.5">
-          {removeTarget && (() => {
-            const plan = removalPlan(removeTarget)!;
-            const tone = plan.kind === 'blocked' ? 'amber' : plan.kind === 'delete' ? 'red' : 'blue';
-            const box = tone === 'red' ? 'border-red-300 bg-red-50 text-red-800' : tone === 'amber' ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-blue-300 bg-blue-50 text-blue-800';
-            return (
-              <div className={`rounded-lg border px-3 py-2.5 text-xs ${box}`}>
-                <p className="font-semibold">{plan.title}</p>
-                <p className="mt-1 leading-relaxed">{plan.detail}</p>
-                {plan.kind === 'delete' && !isAdmin && (
-                  <p className="mt-1.5 font-medium">Deleting an unused slot requires an ADMIN. You can still mark it out of service.</p>
-                )}
-              </div>
-            );
-          })()}
-
-          <div className="space-y-1">
-            <label htmlFor="remove-reason" className="block text-xs font-medium text-slate-700">Reason (required)</label>
-            <textarea
-              id="remove-reason"
-              value={removeReason}
-              onChange={e => setRemoveReason(e.target.value)}
-              rows={2}
-              placeholder="e.g. damaged ground surface"
-              className="w-full px-3 py-1.5 text-[13px] border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none placeholder:text-slate-400 resize-none"
-            />
-            <p className={`text-[11px] ${removeReason.trim().length > 0 && removeReason.trim().length < 5 ? 'text-amber-600' : 'text-slate-500'}`}>
-              {removeReason.trim().length < 5 ? 'At least 5 characters.' : 'Recorded in the server log.'}
-            </p>
-          </div>
-
-          {removeError && (
-            <div role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">{removeError}</div>
-          )}
         </div>
       </Modal>
 
