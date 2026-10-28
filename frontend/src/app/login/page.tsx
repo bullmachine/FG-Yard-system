@@ -32,50 +32,36 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-slate-50">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative overflow-hidden flex-col justify-between p-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-slate-900" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+      {/* Left panel: the FG yard photo, darkened at the bottom so the text stays readable. */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-10 bg-slate-900">
+        <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/25 to-slate-950/10" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
+          <div className="inline-flex items-center gap-3 rounded-xl bg-slate-950/40 px-3 py-2 backdrop-blur-sm">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
               <img src={asset("/company-logo.png")} alt="Logo" className="h-7 w-7 object-contain brightness-0 invert" />
             </div>
             <div>
               <p className="text-sm font-bold text-white">FG Yard</p>
-              <p className="text-xs text-slate-400">Machine Location System</p>
+              <p className="text-xs text-slate-300">Machine Location System</p>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10">
-                <img src={asset("/backhoe-loader.webp")} alt="Backhoe Loader" className="w-full max-w-md mx-auto opacity-90 drop-shadow-2xl" />
-        </div>
-
         <div className="relative z-10 space-y-3">
-          <h2 className="text-2xl font-bold text-white leading-tight">
+          <h2 className="text-3xl font-bold text-white leading-tight">
             Track. Manage.<br />
-            <span className="text-blue-400">Deliver.</span>
+            <span className="text-amber-400">Deliver.</span>
           </h2>
-          <p className="text-slate-400 text-sm max-w-md leading-relaxed">
-            Real-time visibility into your yard operations. Monitor machine locations,
-            assembly progress, and dispatch readiness from a single dashboard.
+          <p className="text-slate-200 text-sm max-w-md leading-relaxed">
+            Every machine from Stage 18 through the FG yard gate, its slot, FIFO stock,
+            dispatch planning, the PDI check and main gate-out, in one place.
           </p>
-          <div className="flex gap-6 pt-1">
-            <div>
-              <p className="text-xl font-bold text-white">98%</p>
-              <p className="text-xs text-slate-500">Yard Utilization</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-white">24/7</p>
-              <p className="text-xs text-slate-500">Real-time Tracking</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-white">3x</p>
-              <p className="text-xs text-slate-500">Faster Dispatch</p>
-            </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {['Gate check', 'FIFO stock', 'PDI to main gate'].map((t) => (
+              <span key={t} className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">{t}</span>
+            ))}
           </div>
         </div>
       </div>
@@ -83,13 +69,18 @@ export default function LoginPage() {
       {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-              <img src={asset("/company-logo.png")} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900">FG Yard</p>
-              <p className="text-xs text-slate-500">Machine Location System</p>
+          {/* Phones and tablets: a short photo banner with the name. */}
+          <div className="lg:hidden relative mb-6 h-36 overflow-hidden rounded-xl">
+            <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10" />
+            <div className="absolute bottom-3 left-3 flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+                <img src={asset("/company-logo.png")} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">FG Yard</p>
+                <p className="text-xs text-slate-300">Machine Location System</p>
+              </div>
             </div>
           </div>
 
