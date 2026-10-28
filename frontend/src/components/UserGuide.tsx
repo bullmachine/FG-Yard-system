@@ -136,6 +136,7 @@ const SCREENS: ScreenGuide[] = [
       'A passed machine moves to Ready for main gate. Main Gate Out is only possible after PDI passes the machine.',
       'The time since FG gate-out is shown. It turns amber at half the alert time and red after it (8 hours by default).',
       'The Main Gate user clicks Main Gate Out when the machine leaves the plant. Later the main gate system will send this automatically. Undo corrects a wrong click.',
+      'A machine that comes back into the FG yard before main gate-out (for example sent back from PDI) is taken off its plan and shows "Returned to FG yard". It is on return hold in Yard Stock; once cleared it can be planned again. The planner plans a replacement if needed.',
     ],
     tips: ['A machine still waiting after the alert time is e-mailed to the production manager, with a reminder while it is still waiting. The time and the e-mail address are set by the Administrator in Settings.', 'The Main Gate user sees only this list, and only machines that have left the FG yard. They cannot mark a machine out until PDI passes it.'],
   },
@@ -145,7 +146,7 @@ const SCREENS: ScreenGuide[] = [
     steps: [
       'Search by serial number or model, and filter by status or park status.',
       'Click "Stage X/18" to see the assembly stage history, or History for slot movements.',
-      'Machines without a slot show "Allocate". Administrators, Yard Managers and Operators can use it to put the machine into a chosen yard and slot.',
+      'Machines enter the yard only through Gate Control. Allocate (place a machine straight into a slot) appears only while an Administrator has Initial stock load switched on in Settings, for machines already parked before go-live. It needs stage 18, a barcode and a remark, and the machine still goes to Security.',
       'Administrators, Yard Managers and Operators can add a machine manually with Add Machine.',
     ],
   },
@@ -222,6 +223,7 @@ const SCREENS: ScreenGuide[] = [
       'Gate Boom Barrier: set the Open and Close URLs and the auto-close time. Optionally enable the Manual Open button for the gate.',
       'E-mail (SMTP): enter the sender mailbox and its app password, then press Send Test.',
       'Parking & Security Check: choose whether Security must verify each parked machine, and the minutes after gate in before an alert is raised for parking that is not confirmed.',
+      'Initial stock load: switch on only while entering the machines already parked in the yard before go-live (Machine Tracking > Allocate), then switch it off. When off, machines enter only through Gate Control.',
       'Dispatch Overdue Alert: set the hours a machine may wait between FG gate-out and main gate out, and the e-mail address that receives the alert.',
       'Main Gate Integration: press Create Key only when the main gate system team is ready to connect.',
       'Press Save Changes. New schedules take effect immediately.',
@@ -489,7 +491,7 @@ export default function UserGuide({ onNavigate, allowedTabs }: UserGuideProps) {
                   </button>
                   {expanded && (
                     <div className="px-4 pb-4 pl-10 space-y-3">
-                      <p className="text-[11px] text-slate-500"><span className="font-semibold text-slate-700">Who uses it:</span> {s.roles}</p>
+                      <p className="text-[11px] text-slate-500"><span className="font-semibold text-slate-700">Who uses it (default):</span> {s.roles}</p>
                       <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
                         {s.steps.map((step) => <li key={step}>{step}</li>)}
                       </ol>

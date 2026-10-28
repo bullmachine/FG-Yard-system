@@ -1,5 +1,11 @@
 # Yard Management System — Full Project Documentation
 
+> **Historical document.** Written during the build phase and not kept current. It does not cover
+> Dispatch Planning, PDI, Yard Stock, the SOP page or Role Access, and uses the old name
+> "Yard Management System" (now **FG Yard**). For the current system see [README.md](./README.md)
+> and [CHANGELOG.md](./CHANGELOG.md).
+
+
 **Version:** 0.2.0 (Assembly-to-Yard Integration) | **Status:** In Development
 
 ---

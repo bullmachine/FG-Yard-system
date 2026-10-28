@@ -1,6 +1,13 @@
-# Yard Management System
+# FG Yard
 
-A comprehensive web-based system for tracking backhoe loaders in manufacturing yards. Track machine locations, yard slot availability, movement history, and manage inventory efficiently.
+Web system for the Finished Goods (FG) yard: machines from Stage 18 through the FG yard gate, parking
+and security verification, FIFO yard stock, dispatch planning, the PDI check and main gate-out.
+Served at `/fg-yard` (for example `https://projects.bullmachine.in/fg-yard/`). Formerly called
+"Yard Management System".
+
+> **What changed recently:** see [`CHANGELOG.md`](./CHANGELOG.md).
+>
+> **Updating a running server:** see [`INSTALL.md` › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
 > **Full project documentation (objectives, architecture, API reference, developer guide): see [`PROJECT_DOCUMENTATION.md`](./PROJECT_DOCUMENTATION.md)**
 >
@@ -8,7 +15,7 @@ A comprehensive web-based system for tracking backhoe loaders in manufacturing y
 
 ## Project Description
 
-The **Yard Management System** is a full-stack web application designed to digitize and streamline the management of backhoe loader inventory across manufacturing yard locations. It provides real-time visibility into machine positioning using a grid-based slot system, enabling yard operators and managers to track every machine's exact location, status, and movement history. The system replaces manual tracking methods with an intuitive dashboard, role-based access control, and automated slot allocation workflows — reducing errors, improving yard utilization, and accelerating machine dispatch operations.
+**FG Yard** is a full-stack web application designed to digitize and streamline the management of backhoe loader inventory across manufacturing yard locations. It provides real-time visibility into machine positioning using a grid-based slot system, enabling yard operators and managers to track every machine's exact location, status, and movement history. The system replaces manual tracking methods with an intuitive dashboard, role-based access control, and automated slot allocation workflows — reducing errors, improving yard utilization, and accelerating machine dispatch operations.
 
 ## Project Scope
 
@@ -18,7 +25,7 @@ The **Yard Management System** is a full-stack web application designed to digit
 - **Machine Tracking** — Track backhoe loaders by unique serial number, model, production date, and operational status (Available, Sold, Reserved, Under Inspection, In Repair, Dispatched)
 - **Slot Allocation** — Auto-suggest available slots, prevent double allocation, support slot statuses (Available, Occupied, Reserved, Maintenance, Dispatch Ready, Blocked, Inspection)
 - **Movement History** — Complete audit trail of all machine movements with reason tracking (Production, Inspection, Repair, Dispatch, Relocation, Maintenance) tied to user accounts
-- **User Authentication & Roles** — JWT-based auth with role-based access control (Admin, Yard Manager, Operator, Service Technician, View-Only)
+- **User Authentication & Roles** — JWT-based auth; access per role is set by an Admin on the Role Access page (roles: Admin, Yard Manager, Operator, Service Technician, Security, View Only, Driver, Planner, PDI, Main Gate)
 - **Dashboard & Analytics** — Real-time statistics on yard occupancy, machine status distribution, and recent movement alerts
 - **Search & Filtering** — Instant search by machine ID, serial number, or model across all yards
 - **QR Code Integration** — Generate and scan QR codes for rapid machine identification and slot updates
@@ -384,7 +391,7 @@ Start the frontend development server:
 npm run dev
 ```
 
-The frontend will run on `http://localhost:3000`
+The frontend will run on `http://localhost:3000/fg-yard`
 
 ## Running the Project
 
@@ -401,7 +408,7 @@ npm run dev
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000) in your browser.
+Then open [http://localhost:3000/fg-yard](http://localhost:3000/fg-yard) in your browser.
 
 ## Maintenance Scripts
 
@@ -447,7 +454,14 @@ yard-management-system/
 - **Audit History**: Movements, parking and security decisions in one place, with server-side paging and the recorder attributed to a driver or the yard office
 - **Dashboard**: Real-time statistics and alerts
 - **Search**: Instant search by machine ID, serial number, or model
-- **User Roles**: Admin, Yard Manager, Operator, Service Technician, Security, View Only, Driver
+- **User Roles**: Admin, Yard Manager, Operator, Service Technician, Security, View Only, Driver, Planner, PDI, Main Gate
+- **Role Access**: an Admin ticks which role may open each page and use each action; the server enforces it and every change is logged. Users / Settings / Role Access stay Admin-only
+- **Yard Stock (FIFO)**: free stock per model-type, oldest first, with real inward dates and return hold
+- **Dispatch Planning**: plans by model-type and quantity with an optional SO number; the oldest free machines are picked
+- **PDI and main gate**: FG gate-out, PDI Pass / Hold, main gate-out only after a PDI pass; overdue e-mail alert
+- **Initial stock load**: an Admin switch for placing machines that were parked before go-live; otherwise machines enter only through Gate Control
+- **Block / Unblock slots** with a reason
+- **SOP page**: the Quality SOP, its PDF and printable role checklists
 - **Stage History**: Per-machine timeline of all 18 assembly stages, sourced from the plant system or recorded manually
 - **Driver Parking Confirmation**: The driver confirms a machine is physically in its slot, which creates the security queue entry
 - **Security Verification**: Guards approve or reject a parked machine, and the driver is notified of the outcome
@@ -502,27 +516,16 @@ Bounds: each dimension must be a whole number of at least 1 and at most 100, and
 would have written `0,0` (Null Island) into every yard. Out-of-range values are rejected
 rather than clamped.
 
-### Removing a slot
+### Blocking a slot
 
-`DELETE /api/yards/slots/:id` retires exactly one slot and requires a `reason` of at least
-5 characters, which is written to the server log. There is no bulk row or column removal.
-The outcome depends on what still references the slot:
+Slots are never deleted. `POST /api/yards/slots/:id/block` takes a free slot out of use with a
+`reason` (Ground damage, Waterlogging, Maintenance work, Used for other purpose, or Other with a
+`note`); who, when and why are stored on the slot and the yard managers are notified.
+`POST /api/yards/slots/:id/unblock` puts it back. An occupied or reserved slot cannot be blocked.
+Allocation only ever selects `AVAILABLE`, so a blocked slot is never assigned.
 
-| Slot state | Outcome |
-| --- | --- |
-| Occupied (`Machine.currentSlotId`) | `409 SLOT_OCCUPIED`. Dispatch or move the machine first |
-| Reserved (`Machine.plannedSlotId`) | `409 SLOT_RESERVED`. Release the reservation first |
-| No history, caller is `ADMIN` | `outcome: DELETED`. The row is removed |
-| No history, caller is `YARD_MANAGER` | `403 REQUIRES_ADMIN`. Mark it out of service instead |
-| Has movement or verification history | `outcome: BLOCKED`. The row is kept and marked `BLOCKED` |
-
-Blocking preserves every audit link while still removing the slot from allocation, which
-only ever selects `AVAILABLE`. Blocking a slot that is already `BLOCKED` is allowed and
-returns `alreadyBlocked: true`, so the reason can be corrected.
-
-`rows` and `cols` are deliberately left alone when a slot is removed. The grid keeps its
-dimensions and the vacated position renders as a dashed placeholder, so the header stays
-aligned with the columns and the hole is visible instead of every later slot sliding left.
+Slots deleted by the old Remove slot option show as a dashed placeholder; editing that yard
+re-creates them as free slots, which should then be blocked if they are not to be used.
 
 ### How the grid stays aligned
 
@@ -655,7 +658,7 @@ UI is a convenience and not the enforcement point.
 - `GET /api/yards/availability` - Allocation summary across all yards
 - `GET /api/yards/:id` - One yard with every slot, its machine, its reservation, and per-slot history counts
 - `PUT /api/yards/:id` - Edit a yard; grows `rows`/`cols` and creates the missing slots, never shrinks
-- `DELETE /api/yards/slots/:id` - Retire one slot; deletes it if unused and the caller is an ADMIN, otherwise marks it `BLOCKED` (Admin, Yard Manager)
+- `POST /api/yards/slots/:id/block` / `unblock` - Take a free slot out of use with a reason, or put it back
 - `POST /api/yards/slots/:id/release` - Release a reservation and re-allocate if a machine is waiting (Admin, Yard Manager)
 - `POST /api/machines` - Add new machine
 - `GET /api/machines` - List all machines
@@ -679,12 +682,19 @@ UI is a convenience and not the enforcement point.
 - `POST /api/gate/authenticate` - Verify a driver (by their employee-code `driverBarcode`, or `driverId`) and a machine at the gate, and open the barrier
 - `POST /api/gate/barrier/close` - Close the barrier after an entry (Admin, Yard Manager, Operator)
 - `GET /api/gate/logs` - Recent gate attempts (Admin, Yard Manager, Security)
+- `GET /api/dispatch-plans` - Paged plans (`view`, `q`, `from`, `to`, `page`, `pageSize`); `POST` creates a plan (`lines`, optional `soNumber`)
+- `GET /api/dispatch-plans/items` - Dispatch machine list; `POST .../items/:id/pdi` records PDI Pass / Hold; `POST .../items/:id/main-gate-out` marks main gate-out (refused until PDI passed)
+- `GET /api/settings/stock-load` - Whether Initial stock load is on
+- `GET /api/role-access/me` - The signed-in user's permissions; `GET/PUT /api/role-access` and `POST /api/role-access/reset` manage the matrix (Admin)
+
+Role names next to endpoints are the **default** access. Apart from Users, Settings and Role
+Access (Admin only), an Admin can change who may call each endpoint on the Role Access page.
 
 ## Development Status
 
-The system is in use and feature-complete for the assembly-to-parked-verified flow. Production
-sync, gate control, driver parking confirmation, security verification, and the audit history are
-all live. The open work is listed under Future Features below; the design documents in the
+The system is in use for the full flow: production sync, gate control, parking confirmation,
+security verification, FIFO yard stock, dispatch planning, the PDI check, main gate-out and the
+audit history. Recent changes are listed in `CHANGELOG.md`. The open work is listed under Future Features below; the design documents in the
 repository root (`PROJECT_PLAN.md`, `PROJECT_DOCUMENTATION.md`, `YARD_MANAGEMENT_CONCEPT.md`) are
 a point-in-time package from the build phase and are not kept current.
 
@@ -695,9 +705,8 @@ here have since shipped.
 
 - **Boom barrier hardware**: the gate already records barrier open and close, offers an operator
   close after an entry, and closes a dangling barrier when the same machine is re-authenticated,
-  but no physical barrier is driven. There is also no separate entry and exit gate. Departure is
-  handled by removing the machine from its slot, which records a `DISPATCH` movement with no
-  destination slot, rather than by a distinct exit flow of its own.
+  but no physical barrier is driven. There is also no separate entry and exit gate. Customer
+  dispatch now has its own flow (Dispatch Planning, FG gate-out, PDI, main gate-out).
 - **Simplified slot status**: slots still carry seven statuses (`AVAILABLE`, `OCCUPIED`,
   `RESERVED`, `MAINTENANCE`, `DISPATCH_READY`, `BLOCKED`, `INSPECTION`). Collapsing this to
   Available and Occupied would need the reservation and maintenance workflows to be reworked

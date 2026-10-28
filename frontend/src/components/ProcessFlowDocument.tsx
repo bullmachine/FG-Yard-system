@@ -90,7 +90,7 @@ const machineFlow: FlowStep[] = [
   },
   {
     title: 'Gate authentication',
-    actor: 'Operator / Yard Manager / Admin',
+    actor: 'Security / Operator / Yard Manager / Admin',
     description: 'The driver is identified by scanning their employee-code badge, then the machine or barcode is verified before the barrier is opened. The screen is scan-first: a scanned barcode selects the machine and shows its stage and status; for inward, the gate proposes a slot and allows manual override. If no slot exists, entry is rejected. Camera scanning supports both fields.',
     outcome: 'Authorized requests open the barrier; every attempt is logged',
   },
@@ -114,14 +114,20 @@ const machineFlow: FlowStep[] = [
   },
   {
     title: 'PDI and FG gate-out',
-    actor: 'PDI Team / Operator',
-    description: 'The PDI team may assign a driver and prints the slip. The driver takes the machine out through the FG gate with no exit request; the slot is freed on scan-out.',
-    outcome: 'Machine is out of the FG yard and waiting for the main gate',
+    actor: 'PDI Team / Security',
+    description: 'The PDI team may assign a driver and prints the slip. The driver takes the machine out through the FG gate (Security scans it) with no exit request; the slot is freed on scan-out.',
+    outcome: 'Machine is out of the FG yard and at PDI',
+  },
+  {
+    title: 'PDI final check',
+    actor: 'PDI Team',
+    description: 'PDI checks the machine and records Pass, or Hold with a remark. A held machine is checked again after rectification. A machine sent back into the FG yard before main gate-out is taken off its plan and goes on return hold.',
+    outcome: 'Only a passed machine is ready for the main gate',
   },
   {
     title: 'Main gate out',
     actor: 'Main Gate (user, or the main gate system through the API)',
-    description: 'The main gate marks the machine out of the plant. A machine still waiting after the set hours is alerted and e-mailed to the production manager.',
+    description: 'The main gate marks the machine out of the plant, only after PDI has passed it. A machine still waiting after the set hours is alerted and e-mailed to the production manager.',
     outcome: 'Dispatch is complete',
   },
   {
@@ -213,7 +219,7 @@ const yardGuardrails: Guardrail[] = [
   },
   {
     title: 'Only the assigned driver confirms parking',
-    description: 'Parking is confirmed by the driver linked to that machine. An Admin, Yard Manager or Operator may record it on the driver\u2019s behalf, and the override is written into the movement notes.',
+    description: 'Parking is confirmed by the driver linked to that machine. Staff with "Confirm for a driver" (by default Admin, Yard Manager, Operator and Security) may record it on the driver\u2019s behalf, and the override is written into the movement notes.',
   },
   {
     title: 'A rejection keeps the same slot',
@@ -236,6 +242,22 @@ const yardGuardrails: Guardrail[] = [
     description: 'A machine that comes back after dispatch is put on hold and is not free stock until an Administrator or Yard Manager clears it with a remark. Machines back from inspection or repair return to stock directly. FIFO age always counts from the first inward.',
   },
   {
+    title: 'Machines enter only through the gate',
+    description: 'A machine not yet in a slot can be placed only by scanning it in at Gate Control. Placing one by hand is allowed only while an Administrator has Initial stock load on, needs stage 18, a barcode and a remark, and still goes to Security.',
+  },
+  {
+    title: 'Main gate-out needs a PDI pass',
+    description: 'Main gate-out is refused, from the screen and from the main gate system, until PDI has passed the machine.',
+  },
+  {
+    title: 'Dispatch only through Dispatch Planning',
+    description: 'Customer dispatch goes through Dispatch Planning (FIFO) and the PDI check. A manual exit (Release for exit or an exit request) is only for testing, repair, relocation or maintenance.',
+  },
+  {
+    title: 'Blocked slots are never used',
+    description: 'A blocked slot (ground damage, waterlogging, maintenance and so on) is never assigned, and a machine cannot be moved into it. Slots are blocked and unblocked with a reason, never deleted.',
+  },
+  {
     title: 'The recorder is the signed-in user',
     description: 'Movements and security decisions take their author from the authenticated session rather than from the form, so the audit trail always names a real person.',
   },
@@ -246,12 +268,12 @@ const roleRows: RoleRow[] = [
   { role: 'Yard Manager', modules: 'Yards, yard stock, dispatch, machines, assembly, masters, drivers, gate, confirm parking, history', permissions: 'Allocates locations and drivers, authenticates at the gate, records parking on a driver\u2019s behalf' },
   { role: 'Operator', modules: 'Dashboard, yards, machines, assembly, gate, confirm parking, history', permissions: 'Creates machines, advances assembly stages, records parking on a driver\u2019s behalf' },
   { role: 'Service Technician', modules: 'Dashboard, machines, history', permissions: 'Read-only machine tracking and history' },
-  { role: 'Security', modules: 'Dashboard, FG yard (view only), gate control, security verification, history', permissions: 'Scans machines in and out at the FG yard gate, checks the dress code, approves or rejects parked machines' },
+  { role: 'Security', modules: 'Dashboard, FG yard (view only), gate control, confirm parking, security verification, history', permissions: 'Scans machines in and out at the FG yard gate, checks the dress code, approves or rejects parked machines' },
   { role: 'View Only', modules: 'Dashboard, yards, machines', permissions: 'Read-only access' },
   { role: 'Driver', modules: 'Dashboard, confirm parking', permissions: 'Confirms that their own assigned machine is parked in its slot' },
   { role: 'Dispatch Planner', modules: 'Dashboard, yard stock, dispatch planning, dispatch machine list', permissions: 'Plans machines for dispatch by model-type and cancels them until they leave the FG yard' },
-  { role: 'PDI Team', modules: 'Dashboard, dispatch machine list', permissions: 'Assigns drivers to planned machines and prints the slip' },
-  { role: 'Main Gate', modules: 'Dispatch machine list', permissions: 'Marks machines out of the main gate, or undoes a wrong mark' },
+  { role: 'PDI Team', modules: 'Dashboard, dispatch machine list', permissions: 'Assigns drivers to planned machines, prints the slip and does the PDI final check (pass / hold)' },
+  { role: 'Main Gate', modules: 'Dispatch machine list', permissions: 'Marks PDI-passed machines out of the main gate, or undoes a wrong mark' },
 ];
 
 const notificationRows: NotificationRow[] = [
@@ -408,7 +430,7 @@ export default function ProcessFlowDocument() {
         <GuardrailGrid items={yardGuardrails} />
       </SectionCard>
 
-      <SectionCard title="Role Reference" description="What each role can reach in the sidebar">
+      <SectionCard title="Role Reference" description="Default access of each role. An Administrator can change it on Administration > Role Access.">
         <Table>
           <TableHeader>
             <TableHeaderCell>Role</TableHeaderCell>

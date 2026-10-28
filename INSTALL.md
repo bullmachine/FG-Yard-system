@@ -1,4 +1,4 @@
-# Installing the Yard Management System on a New Server
+# Installing FG Yard on a New Server
 
 Step-by-step installation guide for a **fresh server**. Covers both a Windows box running
 XAMPP (how this project is currently hosted) and a Linux VPS. The full feature and API
@@ -207,9 +207,10 @@ npm run build      # runs `next build`
 npm start          # runs `next start` on port 3000
 ```
 
-Open **http://YOUR_SERVER_IP:3000** and log in with one of the seeded accounts.
+Open **http://YOUR_SERVER_IP:3000/fg-yard** and log in with one of the seeded accounts. The app
+is served under the `/fg-yard` base path (set in `next.config.ts`).
 
-For **development**, `npm run dev` serves on http://localhost:3000 with hot reload.
+For **development**, `npm run dev` serves on http://localhost:3000/fg-yard with hot reload.
 
 ---
 
@@ -236,13 +237,17 @@ pm2 save && pm2 startup
 ## 11. Post-installation checklist
 
 - [ ] `curl http://<host>:5000/health` returns `ok`.
-- [ ] http://<host>:3000 loads the login page.
+- [ ] http://<host>:3000/fg-yard loads the login page.
 - [ ] The seeded role accounts can sign in (`npm run seed:users` used).
 - [ ] The top-bar notification bell connects and receives live alerts.
 - [ ] Admin > Settings shows the integration endpoints (self-created from `.env` on first
       boot); save as needed. The database row is the source of truth after creation.
 - [ ] On a one-time dev database, `npm run demo:seed` added demo machines that appear on
       Assembly / Yards / History.
+- [ ] Admin > Role Access shows the access matrix (defaults until an Admin changes them).
+- [ ] Create logins for the Planner, PDI and Main Gate staff in User Management.
+- [ ] Machines already parked before go-live: switch on Settings > Initial stock load, place them
+      with Machine Tracking > Allocate, then switch it off again.
 
 ## 12. Backups and re-runs
 
@@ -252,3 +257,67 @@ pm2 save && pm2 startup
   `reconcile:ready-move`) are safe to re-run; see the Maintenance table in `README.md`.
 - Integration settings are a single `SystemSetting` row. Delete it (and restart the
   backend) to re-bootstrap from `.env`.
+
+## 13. Updating an existing server
+
+For a server that already runs FG Yard (Windows + XAMPP + pm2 + IIS). Downtime is about 3–5
+minutes, from stopping pm2 to starting it again. What changed in each update is in
+[`CHANGELOG.md`](./CHANGELOG.md).
+
+```powershell
+cd <APP_FOLDER>
+pm2 ls                                   # note the backend and frontend names
+git status                               # must show no changed files
+git log --oneline -1                     # write down: rollback point
+
+# Back up the database and the settings file
+E:\xampp\mysql\bin\mysqldump.exe -u root -p --single-transaction --routines yard_management > E:\fg-yard-backups\before_update.sql
+Copy-Item backend\.env E:\fg-yard-backups\backend.env
+
+pm2 stop <backend-name> <frontend-name>  # downtime starts
+git pull origin master
+
+cd backend
+npm install
+npx prisma db push                       # must end "in sync"; on a data-loss warning answer N and stop
+npm run build
+cd ..\frontend
+npm install
+npm run build
+cd ..
+
+pm2 start <backend-name> <frontend-name> # downtime ends
+pm2 save
+curl http://localhost:5000/health
+```
+
+`prisma db push` must be run while the backend is stopped: on Windows the running backend locks
+the database client files.
+
+### Moving to the /fg-yard address (once, from 28 Oct 2026)
+
+IIS serves the app from a folder named after the address. After the steps above:
+
+```powershell
+Rename-Item E:\xampp\htdocs\fg-yard-system fg-yard
+Copy-Item <APP_FOLDER>\web.config E:\xampp\htdocs\fg-yard\web.config -Force
+New-Item -ItemType Directory -Force E:\xampp\htdocs\fg-yard-system
+Copy-Item <APP_FOLDER>\deploy\old-address-redirect\web.config E:\xampp\htdocs\fg-yard-system\web.config
+iisreset
+```
+
+The old folder then only redirects `/fg-yard-system/...` to `/fg-yard/...`, so old bookmarks keep
+working. Confirm the IIS site root before renaming.
+
+### Rollback
+
+```powershell
+pm2 stop <backend-name> <frontend-name>
+git checkout <rollback-commit>
+cd backend;  npm run build; cd ..
+cd frontend; npm run build; cd ..
+pm2 start <backend-name> <frontend-name>
+```
+
+The database does not need restoring: updates only add columns and tables, which the older
+version ignores. Run `git checkout master` before updating again.

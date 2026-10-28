@@ -1,5 +1,11 @@
 # Yard Management System — Concept Overview (Manager Briefing)
 
+> **Historical document.** Written during the build phase and not kept current. It does not cover
+> Dispatch Planning, PDI, Yard Stock, the SOP page or Role Access, and uses the old name
+> "Yard Management System" (now **FG Yard**). For the current system see [README.md](./README.md)
+> and [CHANGELOG.md](./CHANGELOG.md).
+
+
 A plain-language explanation of what the system does, how a machine flows through it, and where the system guards against errors.
 
 ---
