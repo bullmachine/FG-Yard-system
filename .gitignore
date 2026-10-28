@@ -48,3 +48,6 @@ backend/uploads/
 
 # crash dumps
 *.stackdump
+
+# database backups (contain user and driver personal data)
+backend/prisma/backups/
