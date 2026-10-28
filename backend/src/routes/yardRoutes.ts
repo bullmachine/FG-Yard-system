@@ -7,7 +7,9 @@ import {
   deleteYard,
   getYardAvailability,
   removeSlot,
-  releaseSlotReservation
+  releaseSlotReservation,
+  blockSlot,
+  unblockSlot
 } from '../controllers/yardController';
 import { auth, requireRole } from '../middleware/auth';
 
@@ -25,6 +27,8 @@ router.put('/:id', auth, requireRole(['ADMIN', 'YARD_MANAGER']), updateYard);
 router.delete('/:id', auth, requireRole(['ADMIN']), deleteYard);
 // Releasing a reservation is a capacity decision: managers only.
 router.post('/slots/:id/release', auth, requireRole(['ADMIN', 'YARD_MANAGER']), releaseSlotReservation);
+router.post('/slots/:id/block', auth, requireRole(['ADMIN', 'YARD_MANAGER']), blockSlot);
+router.post('/slots/:id/unblock', auth, requireRole(['ADMIN', 'YARD_MANAGER']), unblockSlot);
 // Removing one slot: managers may take a slot out of service, but permanently deleting
 // an unused one is an ADMIN action, enforced inside the handler. Declared before /:id
 // so the specific shape wins regardless of registration order.

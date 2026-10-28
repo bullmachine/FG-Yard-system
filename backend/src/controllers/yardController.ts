@@ -2,6 +2,7 @@
 import prisma from '../lib/prisma';
 import { getYardAvailability as getAvailabilitySummary, getWaitingMachines } from '../services/locationAssignmentService';
 import { releaseSlotReservation as releaseReservation } from '../services/locationAssignmentService';
+import { notifyEvent } from '../services/notificationService';
 
 const plannedForSelect = {
   serialNumber: true,
@@ -148,6 +149,7 @@ export const getYardById = async (req: Request, res: Response) => {
             // plannedFor is the machine that holds this slot as a promise (PlannedSlot).
             // Without it a RESERVED slot is indistinguishable from an empty one.
             plannedFor: { select: plannedForSelect },
+            blockedBy: { select: { name: true } },
             // History counts let the client tell the user whether removing this slot
             // would delete it or mark it out of service, instead of guessing.
             _count: {
@@ -475,5 +477,84 @@ export const releaseSlotReservation = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error releasing slot reservation:', error);
     res.status(500).json({ error: 'Failed to release slot' });
+  }
+};
+
+const BLOCK_REASONS = ['Ground damage', 'Waterlogging', 'Maintenance work', 'Used for other purpose', 'Other'];
+
+/**
+ * Take a free slot out of use for now. Body: { reason (one of BLOCK_REASONS), note }.
+ * Allocation only ever picks AVAILABLE slots, so nothing is placed here until it is
+ * unblocked. An occupied or reserved slot cannot be blocked.
+ */
+export const blockSlot = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const slotId = Array.isArray(id) ? id[0] : id;
+    const userId = (req as Request & { user?: { id: string } }).user?.id;
+    if (!userId) return res.status(401).json({ error: 'Authentication required' });
+
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim() : '';
+    if (!BLOCK_REASONS.includes(reason)) return res.status(400).json({ error: 'Choose why the slot is blocked' });
+    if (reason === 'Other' && note.length < 3) return res.status(400).json({ error: 'Describe the reason (at least 3 characters)' });
+
+    const slot = await prisma.slot.findUnique({
+      where: { id: slotId },
+      include: { yard: { select: { name: true } }, machine: { select: { serialNumber: true } }, plannedFor: { select: { serialNumber: true } } }
+    });
+    if (!slot) return res.status(404).json({ error: 'Slot not found' });
+    if (slot.machine) return res.status(409).json({ error: `Slot ${slot.row}-${slot.col} has ${slot.machine.serialNumber} in it. Move the machine first.` });
+    if (slot.plannedFor) return res.status(409).json({ error: `Slot ${slot.row}-${slot.col} is reserved for ${slot.plannedFor.serialNumber}. Release the reservation first.` });
+    if (slot.status !== 'AVAILABLE') return res.status(400).json({ error: `Slot ${slot.row}-${slot.col} is ${slot.status.toLowerCase()}; only a free slot can be blocked` });
+
+    const text = (note ? `${reason}: ${note}` : reason).slice(0, 300);
+    const saved = await prisma.slot.update({
+      where: { id: slot.id },
+      data: { status: 'BLOCKED', blockReason: text, blockedAt: new Date(), blockedById: userId },
+      include: { blockedBy: { select: { name: true } } }
+    });
+    await notifyEvent({
+      type: 'SLOT_BLOCKED',
+      severity: 'INFO',
+      title: `Slot ${slot.row}-${slot.col} blocked - ${slot.yard.name}`,
+      message: `${saved.blockedBy?.name ?? 'A manager'} blocked slot ${slot.row}-${slot.col} in ${slot.yard.name}: ${text}`,
+      link: 'yards'
+    });
+    res.json(saved);
+  } catch (error) {
+    console.error('blockSlot error:', error);
+    res.status(500).json({ error: 'Failed to block the slot' });
+  }
+};
+
+/** Put a blocked slot back into use. */
+export const unblockSlot = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const slotId = Array.isArray(id) ? id[0] : id;
+    const userId = (req as Request & { user?: { id: string } }).user?.id;
+    if (!userId) return res.status(401).json({ error: 'Authentication required' });
+
+    const slot = await prisma.slot.findUnique({ where: { id: slotId }, include: { yard: { select: { name: true } } } });
+    if (!slot) return res.status(404).json({ error: 'Slot not found' });
+    if (slot.status !== 'BLOCKED') return res.status(400).json({ error: `Slot ${slot.row}-${slot.col} is not blocked` });
+
+    const saved = await prisma.slot.update({
+      where: { id: slot.id },
+      data: { status: 'AVAILABLE', blockReason: null, blockedAt: null, blockedById: null }
+    });
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    await notifyEvent({
+      type: 'SLOT_UNBLOCKED',
+      severity: 'INFO',
+      title: `Slot ${slot.row}-${slot.col} unblocked - ${slot.yard.name}`,
+      message: `${user?.name ?? 'A manager'} put slot ${slot.row}-${slot.col} in ${slot.yard.name} back into use${slot.blockReason ? ` (was blocked: ${slot.blockReason})` : ''}.`,
+      link: 'yards'
+    });
+    res.json({ ...saved, blockedBy: null });
+  } catch (error) {
+    console.error('unblockSlot error:', error);
+    res.status(500).json({ error: 'Failed to unblock the slot' });
   }
 };

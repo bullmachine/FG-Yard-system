@@ -19,7 +19,7 @@ import { asset } from '@/lib/basePath';
 import { Search, Plus, MapPin, Grid3X3, ExternalLink, Pencil } from 'lucide-react';
 
 interface Yard { id: string; name: string; description?: string; rows: number; cols: number; latitude?: number; longitude?: number; address?: string; slotCounts?: Record<string, number>; totalSlots?: number; }
-interface Slot { id: string; row: number; col: number; status: string; machine?: any; plannedFor?: any; reservedAt?: string | null; _count?: { movementsFrom: number; movementsTo: number; securityVerifications: number }; movementsTo?: { timestamp: string; reason: string; user?: { name: string } }[]; }
+interface Slot { id: string; row: number; col: number; status: string; machine?: any; plannedFor?: any; reservedAt?: string | null; blockReason?: string | null; blockedAt?: string | null; blockedBy?: { name: string } | null; _count?: { movementsFrom: number; movementsTo: number; securityVerifications: number }; movementsTo?: { timestamp: string; reason: string; user?: { name: string } }[]; }
 
 interface DispatchMachine { id: string; serialNumber: string; model?: string | null; }
 
@@ -179,6 +179,11 @@ export default function YardManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedSlot, setHighlightedSlot] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [blockTarget, setBlockTarget] = useState<Slot | null>(null);
+  const [blockReason, setBlockReason] = useState('');
+  const [blockNote, setBlockNote] = useState('');
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const [blockSaving, setBlockSaving] = useState(false);
   const [draggedSlot, setDraggedSlot] = useState<Slot | null>(null);
   const [availability, setAvailability] = useState<AvailabilitySummary | null>(null);
   const [releaseReason, setReleaseReason] = useState('');
@@ -318,6 +323,36 @@ export default function YardManagement() {
       setDispatchError('Could not reach the server');
     } finally {
       setDispatchSubmitting(false);
+    }
+  };
+
+  const openBlock = (slot: Slot) => { setBlockTarget(slot); setBlockReason(''); setBlockNote(''); setBlockError(null); };
+
+  // Block takes a free slot out of use with a reason; unblock puts it back.
+  const setSlotBlocked = async (slot: Slot, block: boolean) => {
+    setBlockSaving(true);
+    setBlockError(null);
+    try {
+      const r = await fetch(`${API_URL}/api/yards/slots/${slot.id}/${block ? 'block' : 'unblock'}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers() },
+        body: JSON.stringify(block ? { reason: blockReason, note: blockNote } : {})
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok) {
+        if (block) setBlockError(d?.error || `Block failed (${r.status})`);
+        else setMoveError(d?.error || `Unblock failed (${r.status})`);
+        return;
+      }
+      setSelectedSlot((prev) => (prev && prev.id === slot.id ? { ...prev, ...d } : prev));
+      setBlockTarget(null);
+      setYardNotice(`Slot ${slotLabel(slot.row, slot.col)} ${block ? 'blocked' : 'unblocked and back in use'}.`);
+      if (selectedYard) await fetchYardSlots(selectedYard.id);
+      fetchAvailability();
+    } catch {
+      if (block) setBlockError('Connection error - try again'); else setMoveError('Connection error - try again');
+    } finally {
+      setBlockSaving(false);
     }
   };
 
@@ -786,6 +821,29 @@ export default function YardManagement() {
                       )}
                     </div>
                   )}
+                  {selectedSlot.status === 'BLOCKED' && (
+                    <div className="p-3 rounded-lg border border-slate-300 bg-slate-100">
+                      <p className="text-[10px] text-slate-600 uppercase font-medium mb-1">Blocked</p>
+                      <p className="text-xs font-medium text-slate-900">{selectedSlot.blockReason || 'Out of service (removed slot; no reason recorded)'}</p>
+                      {selectedSlot.blockedAt && (
+                        <p className="text-[11px] text-slate-500 mt-0.5">{selectedSlot.blockedBy?.name ?? '—'}, {formatDateTime(selectedSlot.blockedAt)}</p>
+                      )}
+                      {canRelease && (
+                        <Button variant="secondary" size="sm" className="w-full mt-2" loading={blockSaving} onClick={() => setSlotBlocked(selectedSlot, false)}>
+                          Unblock {slotLabel(selectedSlot.row, selectedSlot.col)}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {canRelease && !selectedSlot.machine && !selectedSlot.plannedFor && selectedSlot.status === 'AVAILABLE' && (
+                    <div className="p-3 bg-white rounded-lg border border-slate-200">
+                      <p className="text-[10px] text-slate-500 uppercase font-medium mb-1.5">Block slot</p>
+                      <Button variant="secondary" size="sm" className="w-full" onClick={() => openBlock(selectedSlot)}>
+                        Block {slotLabel(selectedSlot.row, selectedSlot.col)}
+                      </Button>
+                      <p className="text-[11px] text-slate-500 mt-1.5">Takes the slot out of use for now. No machine is placed here until it is unblocked.</p>
+                    </div>
+                  )}
                   {canRelease && (
                     <div className="p-3 bg-white rounded-lg border border-slate-200">
                       <p className="text-[10px] text-slate-500 uppercase font-medium mb-1.5">Remove slot</p>
@@ -812,6 +870,45 @@ export default function YardManagement() {
       {/* Dispatch / exit release modal - manager quick release. Releases the slot,
           marks the machine AT_GATE, stamps an auto-approved exit request and notifies
           Security's Authorized Exits in real time. */}
+      <Modal
+        open={!!blockTarget}
+        onClose={() => setBlockTarget(null)}
+        title={blockTarget ? `Block slot ${slotLabel(blockTarget.row, blockTarget.col)}` : undefined}
+        subtitle={selectedYard ? selectedYard.name : undefined}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setBlockTarget(null)}>Cancel</Button>
+            <Button
+              onClick={() => blockTarget && setSlotBlocked(blockTarget, true)}
+              loading={blockSaving}
+              disabled={!blockReason || (blockReason === 'Other' && blockNote.trim().length < 3)}
+            >
+              Block Slot
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Select
+            label="Reason"
+            value={blockReason}
+            onChange={(e) => setBlockReason(e.target.value)}
+            placeholder="Choose a reason"
+            options={['Ground damage', 'Waterlogging', 'Maintenance work', 'Used for other purpose', 'Other'].map((r) => ({ value: r, label: r }))}
+          />
+          <Input
+            label={blockReason === 'Other' ? 'Details (required)' : 'Details (optional)'}
+            value={blockNote}
+            maxLength={250}
+            onChange={(e) => setBlockNote(e.target.value)}
+            placeholder="e.g. pothole near the rear wheels, until road repair"
+          />
+          <p className="text-[11px] text-slate-500">No machine is placed in a blocked slot. Your name, the time and the reason are recorded, and the yard managers are notified.</p>
+          {blockError && <p className="text-xs font-medium text-red-700">{blockError}</p>}
+        </div>
+      </Modal>
+
       <Modal
         open={!!dispatchTarget}
         onClose={() => setDispatchTarget(null)}

@@ -117,6 +117,7 @@ model User {
   createdDispatchPlans  DispatchPlan[]         @relation("PlanCreatedBy")
   mainGateDispatchItems DispatchItem[]         @relation("ItemMainGateOutBy")
   pdiDispatchItems      DispatchItem[]         @relation("ItemPdiBy")
+  blockedSlots          Slot[]                 @relation("SlotBlockedBy")
 }
 
 enum NotificationSeverity {
@@ -173,6 +174,12 @@ model Slot {
   // updatedAt, which moves on any later slot edit and so cannot answer "how long has
   // this been held?". Null whenever the slot is not RESERVED.
   reservedAt DateTime?
+  // Taken out of use for now (status BLOCKED): why, when and by whom. Cleared on
+  // unblock. A slot removed with history is also BLOCKED, without these.
+  blockReason String?   @db.VarChar(300)
+  blockedAt   DateTime?
+  blockedById String?
+  blockedBy   User?     @relation("SlotBlockedBy", fields: [blockedById], references: [id])
 
   yard                  Yard                   @relation(fields: [yardId], references: [id], onDelete: Cascade)
   machine               Machine?               @relation("CurrentSlot")

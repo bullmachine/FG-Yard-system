@@ -21,7 +21,9 @@ export type NotificationEventType =
   | 'DISPATCH_PLANNED'
   | 'DISPATCH_OVERDUE'
   | 'IN_TRANSIT_STUCK'
-  | 'RETURN_HOLD';
+  | 'RETURN_HOLD'
+  | 'SLOT_BLOCKED'
+  | 'SLOT_UNBLOCKED';
 
 export interface NotificationEvent {
   type: NotificationEventType;
@@ -50,6 +52,9 @@ export const NOTIFICATION_RECIPIENTS: Record<NotificationEventType, UserRole[]> 
   // the ones who need the record that it happened.
   SLOT_RELEASED: ['YARD_MANAGER', 'ADMIN'],
   SLOT_REASSIGNED: ['YARD_MANAGER', 'ADMIN'],
+  // Blocking a slot takes capacity out of use, so the managers keep the record.
+  SLOT_BLOCKED: ['YARD_MANAGER', 'ADMIN'],
+  SLOT_UNBLOCKED: ['YARD_MANAGER', 'ADMIN'],
   // Barcode is part of gate identification, so a machine that reaches yard age without
   // one is a yard-manager problem, not just a data-entry one.
   BARCODE_MISSING: ['YARD_MANAGER', 'ADMIN'],
