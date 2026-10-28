@@ -46,12 +46,12 @@ router.post('/:id/return-slot', auth, requireRole(['ADMIN', 'YARD_MANAGER', 'OPE
 // that creates the security verification queue entry. Ownership of the machine
 // is enforced in the controller, so the role gate here is only the outer
 // boundary: a logged-in user of an allowed role still has to be the assigned
-// driver, unless they are an ADMIN, YARD_MANAGER or OPERATOR recording it on
-// the driver's behalf, which is written into the movement notes.
+// driver, unless they are an ADMIN, YARD_MANAGER, OPERATOR or SECURITY (the guard at
+// the FG gate) recording it on the driver's behalf, which is written into the notes.
 router.post(
   '/:id/parked',
   auth,
-  requireRole(['ADMIN', 'YARD_MANAGER', 'OPERATOR', 'DRIVER']),
+  requireRole(['ADMIN', 'YARD_MANAGER', 'OPERATOR', 'SECURITY', 'DRIVER']),
   confirmMachineParked
 );
 

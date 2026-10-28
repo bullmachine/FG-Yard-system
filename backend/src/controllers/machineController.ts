@@ -450,7 +450,7 @@ export const confirmMachineParked = async (req: Request, res: Response) => {
     // parked. Without this, any stranger could vouch for another driver's load and
     // the security walk-down would verify a claim that was never made by the
     // person who drove the machine. The yard office (ADMIN / YARD_MANAGER /
-    // OPERATOR - the same roles allowed to run the gate) is the override, for the
+    // OPERATOR / SECURITY - the same roles allowed to run the gate) is the override, for the
     // case where a driver forgot to tap and the yard has to record it; that
     // override is visible in the movement notes.
     const actor = await prisma.user.findUnique({
@@ -463,7 +463,7 @@ export const confirmMachineParked = async (req: Request, res: Response) => {
     });
 
     const isOperatorOverride =
-      actor?.role === 'ADMIN' || actor?.role === 'YARD_MANAGER' || actor?.role === 'OPERATOR';
+      actor?.role === 'ADMIN' || actor?.role === 'YARD_MANAGER' || actor?.role === 'OPERATOR' || actor?.role === 'SECURITY';
     if (!isOperatorOverride) {
       if (!actorDriver) {
         return res.status(403).json({

@@ -240,7 +240,7 @@ const SCREENS: ScreenGuide[] = [
     ],
   },
   {
-    tab: 'parked', title: 'Confirm Parking', roles: 'Administrator, Yard Manager, Operator, Driver',
+    tab: 'parked', title: 'Confirm Parking', roles: 'Administrator, Yard Manager, Operator, Security, Driver',
     purpose: 'Tell the yard the machine is physically in its slot.',
     steps: [
       'Find your machine card. It shows the yard and slot it should be in.',
