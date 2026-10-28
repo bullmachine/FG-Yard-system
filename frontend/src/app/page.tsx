@@ -141,22 +141,30 @@ interface SidebarContentProps {
 function SidebarContent({ allowedTabs, activeTab, collapsed, user, isAuthenticated, onToggle, onSelect, onLogout }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className={`py-5 flex items-center ${collapsed ? 'px-3 justify-center' : 'px-5 gap-3'}`}>
-        <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-          <img src={asset("/company-logo.png")} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
+      {/* The logo has a transparent background with black and red artwork, so it sits on
+          a white tag to stay readable on the dark sidebar. */}
+      {collapsed ? (
+        <div className="py-5 px-3 flex justify-center">
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0">
+            <img src={asset("/company-logo-mark.png")} alt="Bull" className="h-8 w-8 object-contain" />
+          </div>
         </div>
-        {!collapsed && (
-          <>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-bold text-white truncate">FG Yard</h1>
-              <p className="text-[10px] text-slate-400 truncate">Machine Location System</p>
+      ) : (
+        <div className="px-5 pt-5 pb-4 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="bg-white rounded-lg px-2.5 py-1.5">
+              <img src={asset("/company-logo.png")} alt="Bull" className="h-6 w-auto" />
             </div>
             <button onClick={onToggle} className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="Collapse sidebar">
               <PanelLeftClose className="w-4 h-4" />
             </button>
-          </>
-        )}
-      </div>
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-white truncate">FG Yard</h1>
+            <p className="text-[10px] text-slate-400 truncate">Machine Location System</p>
+          </div>
+        </div>
+      )}
 
       {collapsed && (
         <div className="flex justify-center pb-3">
