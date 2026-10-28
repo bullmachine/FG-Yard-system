@@ -288,6 +288,7 @@ export const allocateMachine = async (req: Request, res: Response) => {
     const { id } = req.params;
     const machineId = Array.isArray(id) ? id[0] : id;
     const { slotId, reason, notes } = req.body;
+    const actorRole = (req as Request & { user?: { role?: string } }).user?.role;
     // The actor comes from the verified token, never from the request body, so a
     // movement cannot be attributed to another user.
     const actorId = (req as Request & { user?: { id: string } }).user?.id;
@@ -317,6 +318,35 @@ export const allocateMachine = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Machine not found' });
     }
     
+    // A machine not yet in a slot enters the yard only through Gate Control (barcode
+    // scan and the dress code check). Placing one by hand is allowed only for the stock
+    // already parked before go-live, while an Admin has Initial stock load switched on.
+    // Moving a machine between slots inside the yard is not affected.
+    let entryNote: string | null = null;
+    if (!machine.currentSlotId) {
+      const { initialStockLoad } = await getSettings();
+      if (!initialStockLoad) {
+        return res.status(403).json({ error: 'Machines enter the yard only through Gate Control (Inward). An Admin can switch on Initial stock load in Settings to place machines already parked before go-live.' });
+      }
+      if (actorRole !== 'ADMIN' && actorRole !== 'YARD_MANAGER') {
+        return res.status(403).json({ error: 'Only an Admin or Yard Manager can place a machine during the initial stock load' });
+      }
+      if (['IN_TRANSIT', 'AT_GATE'].includes(machine.parkStatus)) {
+        return res.status(400).json({ error: 'This machine is in the gate process; finish it through Gate Control and Confirm Parking' });
+      }
+      if (machine.parkStatus === 'EXITED') {
+        return res.status(400).json({ error: 'This machine has left the yard; it must come back in through Gate Control (Inward)' });
+      }
+      if (machine.assemblyStage < 18 || !machine.barcode?.trim()) {
+        return res.status(400).json({ error: 'Only a machine with Stage 18 cleared and a barcode label can be placed in the yard' });
+      }
+      const remark = typeof notes === 'string' ? notes.trim() : '';
+      if (remark.length < 3) {
+        return res.status(400).json({ error: 'Write a remark (at least 3 characters), e.g. where the machine was found' });
+      }
+      entryNote = `Initial stock load: ${remark.slice(0, 480)}`;
+    }
+
     // Check if machine is already in the target slot. A machine that security
     // rejected is allowed to be re-parked where it already is, otherwise it can
     // never be re-verified without being moved to a different slot first.
@@ -332,8 +362,8 @@ export const allocateMachine = async (req: Request, res: Response) => {
         fromSlotId: machine.currentSlotId,
         toSlotId: slotId,
         userId: actorId,
-        reason: reason || 'RELOCATION',
-        notes
+        reason: entryNote ? 'YARD_ENTRY' : reason || 'RELOCATION',
+        notes: entryNote ?? notes
       }
     });
     

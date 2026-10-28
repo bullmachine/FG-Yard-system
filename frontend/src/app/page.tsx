@@ -106,7 +106,8 @@ const ROLE_TABS: Record<string, Tab[]> = {
   OPERATOR: ['dashboard', 'yards', 'stock', 'pdi', 'machines', 'assembly', 'gate', 'parked', 'returns', 'requests', 'history'],
   // No history: the movements endpoint does not admit this role.
   SERVICE_TECHNICIAN: ['dashboard', 'machines', 'returns', 'requests'],
-  SECURITY: ['dashboard', 'security', 'returns', 'requests', 'history'],
+  // The guard scans machines in and out at the FG yard gate (SOP step 7) and verifies parking.
+  SECURITY: ['dashboard', 'gate', 'security', 'returns', 'requests', 'history'],
   VIEW_ONLY: ['dashboard', 'yards', 'stock', 'pdi', 'machines', 'returns', 'requests'],
   // A driver only ever sees the parking confirmation, not the yard overview.
   DRIVER: ['dashboard', 'parked', 'requests'],

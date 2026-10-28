@@ -42,7 +42,7 @@ const ROLE_SUMMARY: Record<string, string> = {
   YARD_MANAGER: 'Runs the yard: slots, machines, master data, drivers, gate, exit approvals and returns.',
   OPERATOR: 'Day-to-day yard work: gate check-in/out, parking confirmation, machine tracking.',
   SERVICE_TECHNICIAN: 'Looks up machines, raises exit requests for testing or repair, and follows returns.',
-  SECURITY: 'Verifies parked machines and watches authorized exits at the gate.',
+  SECURITY: 'Checks machines in and out at the FG yard gate (Gate Control) and verifies parked machines.',
   VIEW_ONLY: 'Read-only view of the dashboard, yards and machines. Can raise exit requests.',
   DRIVER: 'Confirms when a machine has been parked in its slot.',
   PLANNER: 'Checks yard stock and plans machines for dispatch.',
@@ -217,7 +217,7 @@ const SCREENS: ScreenGuide[] = [
     tips: ['Schedule format is 5 fields: "30 6 * * *" means every day at 06:30.', 'Keep the security check switched on unless switching it off has been formally approved. When it is off, parked machines are verified automatically and this is recorded in the history.'],
   },
   {
-    tab: 'gate', title: 'Gate Control', roles: 'Administrator, Yard Manager, Operator',
+    tab: 'gate', title: 'Gate Control', roles: 'Administrator, Yard Manager, Operator, Security',
     purpose: 'Check machines in to the yard (Inward) and out of the yard (Outward).',
     steps: [
       'Choose Inward or Outward at the top right.',

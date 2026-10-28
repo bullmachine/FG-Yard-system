@@ -21,6 +21,7 @@ interface Machine {
   id: string; serialNumber: string; model: string; productionDate: string;
   status: 'AVAILABLE' | 'SOLD' | 'RESERVED' | 'UNDER_INSPECTION' | 'IN_REPAIR' | 'DISPATCHED';
   assemblyStage: number; parkStatus: string;
+  barcode?: string | null;
   plannedSlotId?: string | null;
   currentSlot?: { id: string; row: number; col: number; yard: { name: string } };
   // getAllMachines already returns this, so the history modal reads it from page
@@ -69,9 +70,15 @@ export default function MachineTracking() {
   const [selectedYard, setSelectedYard] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [initialStockLoad, setInitialStockLoad] = useState(false);
+  const [allocateRemark, setAllocateRemark] = useState('');
+  const [allocateError, setAllocateError] = useState<string | null>(null);
   const [newMachine, setNewMachine] = useState({ serialNumber: '', model: '', productionDate: '', status: 'AVAILABLE' as Machine['status'] });
   const { token, user, isAuthenticated } = useAuth();
   const canManageMachines = isAuthenticated && ['ADMIN', 'YARD_MANAGER', 'OPERATOR'].includes(user?.role || '');
+  // A machine not yet in a slot enters the yard only through Gate Control. Placing one
+  // by hand is for the stock parked before go-live, while an Admin has Initial stock load on.
+  const canStockLoad = initialStockLoad && ['ADMIN', 'YARD_MANAGER'].includes(user?.role || '');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; if (token) h['Authorization'] = `Bearer ${token}`; return h; };
@@ -101,7 +108,14 @@ export default function MachineTracking() {
     try { const r = await fetch(`${API_URL}/api/yards/availability`, { headers: headers() }); const d = await r.json(); setAvailability(d ?? null); } catch { }
   };
 
-  useEffect(() => { fetchMachines(); fetchYards(); fetchAvailability(); }, []);
+  const fetchStockLoad = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/settings/stock-load`, { headers: headers() });
+      if (res.ok) setInitialStockLoad(!!(await res.json()).initialStockLoad);
+    } catch { }
+  };
+
+  useEffect(() => { fetchMachines(); fetchYards(); fetchAvailability(); fetchStockLoad(); }, []);
 
   const applySearch = (value: string) => { setSearchTerm(value); setPage(1); };
   const applyStatusFilter = (value: string) => { setStatusFilter(value); setPage(1); };
@@ -132,15 +146,21 @@ export default function MachineTracking() {
     } finally { setSubmitting(false); }
   };
 
+  const closeAllocate = () => { setShowAllocateModal(false); setSelectedMachine(null); setSelectedYard(''); setSelectedSlot(''); setAllocateRemark(''); setAllocateError(null); };
+
   const handleAllocate = async () => {
     if (!selectedMachine || !selectedSlot) return;
     setSubmitting(true);
+    setAllocateError(null);
     try {
       const res = await fetch(`${API_URL}/api/machines/${selectedMachine.id}/allocate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', ...headers() },
-        body: JSON.stringify({ slotId: selectedSlot, userId: user?.id || 'system', reason: 'RELOCATION' }),
+        body: JSON.stringify({ slotId: selectedSlot, reason: 'RELOCATION', notes: allocateRemark }),
       });
-      if (res.ok) { await fetchMachines(); setShowAllocateModal(false); setSelectedMachine(null); setSelectedYard(''); setSelectedSlot(''); }
+      if (res.ok) { await fetchMachines(); closeAllocate(); }
+      else { const body = await res.json().catch(() => null); setAllocateError(body?.error || `Allocate failed (${res.status})`); }
+    } catch {
+      setAllocateError('Connection error - try again');
     } finally { setSubmitting(false); }
   };
 
@@ -167,6 +187,16 @@ export default function MachineTracking() {
         description={`${machines.length} machines total`}
         actions={canManageMachines ? <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowAddModal(true)}>Add Machine</Button> : undefined}
       />
+
+      {initialStockLoad && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <span className="font-semibold">Initial stock load is ON.</span>{' '}
+          {canStockLoad
+            ? 'You can place machines that are already parked in the yard with Allocate. Each needs Stage 18, a barcode and a remark, and still goes to Security.'
+            : 'An Admin or Yard Manager is entering the machines already parked in the yard.'}
+          {' '}Switch it off in Settings when the yard stock is entered.
+        </p>
+      )}
 
       <SectionCard
         title="Inventory"
@@ -235,7 +265,7 @@ export default function MachineTracking() {
                           {m.assemblyStage >= 18 && (
                             <span className="text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5" title="Ready to move but no slot is assigned at gate yet">Awaiting gate slot</span>
                           )}
-                          {canManageMachines && <Button variant="ghost" size="sm" onClick={() => { setSelectedMachine(m); setShowAllocateModal(true); }}>Allocate</Button>}
+                          {canStockLoad && <Button variant="ghost" size="sm" onClick={() => { setSelectedMachine(m); setShowAllocateModal(true); }}>Allocate</Button>}
                         </div>
                       )}
                     </TableCell>
@@ -262,7 +292,7 @@ export default function MachineTracking() {
       </Modal>
 
       {/* Allocate Modal */}
-      <Modal open={showAllocateModal} onClose={() => { setShowAllocateModal(false); setSelectedMachine(null); setSelectedYard(''); setSelectedSlot(''); }} title="Allocate Machine" footer={<><Button variant="secondary" onClick={() => setShowAllocateModal(false)}>Cancel</Button><Button onClick={handleAllocate} loading={submitting} disabled={!selectedSlot}>Allocate</Button></>}>
+      <Modal open={showAllocateModal} onClose={closeAllocate} title="Allocate Machine" subtitle="Initial stock load: a machine already parked in the yard" footer={<><Button variant="secondary" onClick={closeAllocate}>Cancel</Button><Button onClick={handleAllocate} loading={submitting} disabled={!selectedSlot || allocateRemark.trim().length < 3}>Allocate</Button></>}>
         {selectedMachine && (
           <div className="space-y-3.5">
             {availability && availability.totalAvailable === 0 && (
@@ -277,7 +307,13 @@ export default function MachineTracking() {
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
               <p className="text-xs text-slate-500">Machine</p>
               <p className="text-[13px] font-semibold text-slate-900">{selectedMachine.serialNumber} — {selectedMachine.model}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Stage {selectedMachine.assemblyStage} · Barcode {selectedMachine.barcode || 'missing'}</p>
             </div>
+            {(selectedMachine.assemblyStage < 18 || !selectedMachine.barcode) && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                This machine cannot be placed: it needs Stage 18 cleared and a barcode label. Check it with Quality.
+              </p>
+            )}
             <Select label="Select Yard" value={selectedYard} onChange={e => { setSelectedYard(e.target.value); setSelectedSlot(''); }} placeholder="Choose a yard" options={yards.map(y => {
               const freeSlots = (y.slots || []).filter(s => s.status === 'AVAILABLE').length;
               return { value: y.id, label: `${y.name} — ${freeSlots} free` };
@@ -299,6 +335,15 @@ export default function MachineTracking() {
                 );
               })()
             )}
+            <Input
+              label="Remark (required)"
+              value={allocateRemark}
+              maxLength={480}
+              onChange={e => setAllocateRemark(e.target.value)}
+              placeholder="e.g. Parked before go-live, found in slot A-3"
+            />
+            <p className="text-[11px] text-slate-500">Choose the slot where the machine physically stands. Your name, the time and the remark are recorded, and Security verifies it next.</p>
+            {allocateError && <p className="text-xs font-medium text-red-700">{allocateError}</p>}
           </div>
         )}
       </Modal>

@@ -31,6 +31,7 @@ export interface SystemSettings {
   dispatchAlertEnabled: boolean;
   mainGateApiKey: string;
   securityVerifyRequired: boolean;
+  initialStockLoad: boolean;
   inTransitAlertMinutes: number;
 }
 
@@ -72,6 +73,7 @@ function bootstrapDefaults(): SystemSettings {
     dispatchAlertEnabled: true,
     mainGateApiKey: '',
     securityVerifyRequired: true,
+    initialStockLoad: false,
     inTransitAlertMinutes: 30
   };
 }
@@ -115,6 +117,7 @@ function rowToSettings(row: {
   dispatchAlertEnabled: boolean;
   mainGateApiKey: string;
   securityVerifyRequired: boolean;
+  initialStockLoad: boolean;
   inTransitAlertMinutes: number;
 }): SystemSettings {
   return {
@@ -145,6 +148,7 @@ function rowToSettings(row: {
     dispatchAlertEnabled: row.dispatchAlertEnabled,
     mainGateApiKey: row.mainGateApiKey,
     securityVerifyRequired: row.securityVerifyRequired,
+    initialStockLoad: row.initialStockLoad,
     inTransitAlertMinutes: row.inTransitAlertMinutes
   };
 }
@@ -212,6 +216,7 @@ export interface SettingsUpdate {
   dispatchAlertEnabled?: boolean;
   mainGateApiKey?: string;
   securityVerifyRequired?: boolean;
+  initialStockLoad?: boolean;
   inTransitAlertMinutes?: number;
 }
 
@@ -254,6 +259,7 @@ export async function updateSettings(
     dispatchAlertEnabled: update.dispatchAlertEnabled ?? current.dispatchAlertEnabled,
     mainGateApiKey: update.mainGateApiKey ?? current.mainGateApiKey,
     securityVerifyRequired: update.securityVerifyRequired ?? current.securityVerifyRequired,
+    initialStockLoad: update.initialStockLoad ?? current.initialStockLoad,
     inTransitAlertMinutes: update.inTransitAlertMinutes ?? current.inTransitAlertMinutes
   };
 
@@ -309,6 +315,7 @@ export function toPublicSettings(settings: SystemSettings) {
     // Admin-only endpoint: the admin needs to read the key to hand it to the main gate team.
     mainGateApiKey: settings.mainGateApiKey,
     securityVerifyRequired: settings.securityVerifyRequired,
+    initialStockLoad: settings.initialStockLoad,
     inTransitAlertMinutes: settings.inTransitAlertMinutes
   };
 }

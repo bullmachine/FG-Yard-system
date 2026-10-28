@@ -38,6 +38,7 @@ interface Settings {
   dispatchAlertEnabled: boolean;
   mainGateApiKey: string;
   securityVerifyRequired: boolean;
+  initialStockLoad: boolean;
   inTransitAlertMinutes: number;
 }
 
@@ -74,6 +75,7 @@ const EMPTY: Settings = {
   dispatchAlertEnabled: true,
   mainGateApiKey: '',
   securityVerifyRequired: true,
+  initialStockLoad: false,
   inTransitAlertMinutes: 30
 };
 
@@ -178,6 +180,7 @@ export default function SettingsPage() {
           dispatchReminderHours: Number(settings.dispatchReminderHours),
           dispatchAlertEnabled: settings.dispatchAlertEnabled,
           securityVerifyRequired: settings.securityVerifyRequired,
+          initialStockLoad: settings.initialStockLoad,
           inTransitAlertMinutes: Number(settings.inTransitAlertMinutes)
         })
       });
@@ -569,6 +572,29 @@ export default function SettingsPage() {
             <p className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Security check is off. A confirmed park is verified automatically and recorded as &quot;Auto-verified&quot; in the security history.
               Machines already waiting in the security queue still need a decision.
+            </p>
+          )}
+          <div className={`sm:col-span-2 flex items-start gap-3 rounded-lg border p-3 ${settings.initialStockLoad ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50/60'}`}>
+            <input
+              type="checkbox"
+              id="initialStockLoad"
+              checked={settings.initialStockLoad}
+              onChange={(e) => update('initialStockLoad', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="initialStockLoad" className="text-xs text-slate-700">
+              <span className="font-semibold">Initial stock load</span>: let an Admin or Yard Manager place machines that are already parked
+              in the yard straight into their slot (Machine Tracking &gt; Allocate), without Gate Control.
+              <span className="mt-1 block text-[11px] text-slate-500">
+                Keep this off. Switch it on only while entering the machines parked before go-live, then switch it off again.
+                When off, machines enter the yard only through Gate Control.
+              </span>
+            </label>
+          </div>
+          {settings.initialStockLoad && (
+            <p className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Initial stock load is ON. Each placement needs Stage 18, a barcode and a remark, is recorded in Movement History,
+              and still goes to Security for verification. Switch it off as soon as the yard stock is entered.
             </p>
           )}
           <Input

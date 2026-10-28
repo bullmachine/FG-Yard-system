@@ -336,6 +336,11 @@ export const updateSettingsHandler = async (req: Request, res: Response) => {
       else update.securityVerifyRequired = body.securityVerifyRequired;
     }
 
+    if (body.initialStockLoad !== undefined) {
+      if (typeof body.initialStockLoad !== 'boolean') errors.initialStockLoad = 'Must be a boolean';
+      else update.initialStockLoad = body.initialStockLoad;
+    }
+
     const inTransitAlertMinutes = validateWholeNumber(body.inTransitAlertMinutes, 'inTransitAlertMinutes', 0, 1440, errors);
     if (inTransitAlertMinutes !== undefined) update.inTransitAlertMinutes = inTransitAlertMinutes;
 
@@ -405,5 +410,16 @@ export const rotateMainGateKeyHandler = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Failed to rotate main gate key:', error);
     res.status(500).json({ error: 'Failed to create the API key' });
+  }
+};
+
+/** Whether the initial stock load is on. Any signed-in user may read it. */
+export const getStockLoadHandler = async (_req: Request, res: Response) => {
+  try {
+    const { initialStockLoad } = await getSettings();
+    res.json({ initialStockLoad });
+  } catch (error) {
+    console.error('getStockLoad error:', error);
+    res.status(500).json({ error: 'Failed to load the setting' });
   }
 };

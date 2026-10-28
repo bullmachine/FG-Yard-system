@@ -569,6 +569,10 @@ model SystemSetting {
 
   // Off = a confirmed park is verified automatically (recorded as auto-verified).
   securityVerifyRequired Boolean @default(true)
+  // On = Admin / Yard Manager may place a machine that is already standing in the yard
+  // straight into a slot (Machine Tracking > Allocate), for the stock parked before go-live.
+  // Off (normal) = machines enter the yard only through Gate Control.
+  initialStockLoad       Boolean @default(false)
   // Alert when a machine stays IN_TRANSIT this long after gate IN (0 = off).
   inTransitAlertMinutes  Int     @default(30)
 
