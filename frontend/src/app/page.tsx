@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -251,6 +251,12 @@ export default function Home() {
   // A role without the dashboard (the main gate) opens on its first screen instead.
   const effectiveTab = allowedTabs.includes(activeTab) ? activeTab : allowedTabs[0];
 
+  // Not signed in (first visit, or after logout): go to the login page. The session
+  // check has already finished when this renders, so this never fires for a signed-in user.
+  useEffect(() => {
+    if (!isAuthenticated) router.replace('/login');
+  }, [isAuthenticated, router]);
+
   const toggleSidebar = () => {
     setCollapsed(c => {
       const next = !c;
@@ -295,6 +301,8 @@ export default function Home() {
       default: return <Dashboard />;
     }
   };
+
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
