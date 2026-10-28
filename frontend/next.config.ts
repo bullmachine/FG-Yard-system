@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const basePath = "/fg-yard-system";
+const basePath = "/fg-yard";
 
 const nextConfig: NextConfig = {
   basePath,

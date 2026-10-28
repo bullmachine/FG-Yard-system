@@ -1,4 +1,4 @@
-# fg-yard-system - served through Apache ProxyPass (see httpd-vhosts.conf).
+# fg-yard - served through Apache ProxyPass (see httpd-vhosts.conf).
 # The app itself runs under PM2 on port 3000; this file only blocks
 # directory listings and dotfiles for the local folder.
 Options -Indexes
