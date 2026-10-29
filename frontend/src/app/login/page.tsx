@@ -45,7 +45,7 @@ export default function LoginPage() {
         {/* Logo left of the name. On the dark photo the logo is white, as the other Bull
             web apps show it on a dark background. */}
         <div className="relative z-10 flex items-center gap-3">
-          <img src={asset("/company-logo.png")} alt="BULL" className="h-6 w-auto max-w-[125px] object-contain brightness-0 invert select-none drop-shadow" />
+          <img src={asset("/company-logo.png")} alt="BULL" className="h-5 w-auto max-w-[105px] object-contain brightness-0 invert select-none drop-shadow" />
           <span className="h-8 w-px bg-white/40" aria-hidden="true" />
           <div>
             <p className="text-lg font-bold leading-tight text-white drop-shadow">FG Yard</p>
@@ -78,7 +78,7 @@ export default function LoginPage() {
             <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10" />
             <div className="absolute bottom-3 left-3 flex items-center gap-2.5">
-              <img src={asset("/company-logo.png")} alt="BULL" className="h-5 w-auto max-w-[105px] object-contain brightness-0 invert select-none" />
+              <img src={asset("/company-logo.png")} alt="BULL" className="h-4 w-auto max-w-[85px] object-contain brightness-0 invert select-none" />
               <span className="h-7 w-px bg-white/40" aria-hidden="true" />
               <div>
                 <p className="text-sm font-bold text-white">FG Yard</p>
