@@ -9,8 +9,8 @@ interface EmptyStateProps {
 
 export default function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="text-center py-8 px-4">
-      <div className="inline-flex items-center justify-center w-10 h-10 bg-slate-100 rounded-full mb-3">
+    <div className="text-center py-10 px-4">
+      <div className="inline-flex items-center justify-center w-11 h-11 bg-slate-100 ring-8 ring-slate-50 rounded-full mb-3">
         {icon || <Inbox className="w-5 h-5 text-slate-400" />}
       </div>
       <h3 className="text-sm font-medium text-slate-900 mb-0.5">{title}</h3>

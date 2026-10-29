@@ -18,26 +18,26 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div className="relative">
-          {icon && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              {icon}
-            </span>
-          )}
           <input
             ref={ref}
-            className={`w-full px-3 py-1.5 text-[13px] border rounded-md transition-colors
+            className={`peer h-9 w-full px-3 text-[13px] bg-white border rounded-lg shadow-[0_1px_2px_0_rgb(2_6_23_/_0.04)] transition-[border-color,box-shadow]
               ${icon ? 'pl-9' : ''}
               ${suffix ? 'pr-10' : ''}
               ${error
-                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                : 'border-slate-300 focus:ring-blue-500/30 focus:border-blue-500'
+                ? 'border-red-300 focus:ring-red-500/15 focus:border-red-500'
+                : 'border-slate-300 hover:border-slate-400 focus:ring-blue-600/15 focus:border-blue-600'
               }
-              focus:ring-2 focus:outline-none
+              focus:ring-4 focus:outline-none
               placeholder:text-slate-400 text-slate-900
-              disabled:bg-slate-50 disabled:text-slate-500
+              disabled:bg-slate-50 disabled:text-slate-500 disabled:hover:border-slate-300
               ${className}`}
             {...props}
           />
+          {icon && (
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none transition-colors peer-focus:text-blue-600">
+              {icon}
+            </span>
+          )}
           {suffix && (
             <span className="absolute right-1.5 top-1/2 -translate-y-1/2">
               {suffix}

@@ -7,7 +7,7 @@ interface TableProps {
 export function Table({ children, className = '', maxHeight }: TableProps) {
   return (
     <div className={`overflow-auto ${className}`} style={maxHeight ? { maxHeight } : undefined}>
-      <table className="min-w-full divide-y divide-slate-200">
+      <table className="min-w-full">
         {children}
       </table>
     </div>
@@ -20,9 +20,9 @@ interface TableHeaderProps {
   sticky?: boolean;
 }
 
-export function TableHeader({ children, className = '', sticky = false }: TableHeaderProps) {
+export function TableHeader({ children, className = '', sticky = true }: TableHeaderProps) {
   return (
-    <thead className={`bg-slate-50 ${sticky ? 'sticky top-0 z-10' : ''} ${className}`}>
+    <thead className={`bg-slate-50/95 backdrop-blur-sm ${sticky ? 'sticky top-0 z-10' : ''} ${className}`}>
       <tr>{children}</tr>
     </thead>
   );
@@ -41,7 +41,7 @@ export function TableHeaderCell({ children, className = '', align = 'left' }: Ta
     right: 'text-right',
   };
   return (
-    <th className={`px-3 py-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap ${alignClasses[align]} ${className}`}>
+    <th className={`px-3 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap border-b border-slate-200 ${alignClasses[align]} ${className}`}>
       {children}
     </th>
   );
@@ -70,7 +70,7 @@ interface TableRowProps {
 export function TableRow({ children, className = '', hover = true, onClick }: TableRowProps) {
   return (
     <tr
-      className={`animate-row ${hover ? 'hover:bg-slate-50' : ''} ${onClick ? 'cursor-pointer' : ''} transition-colors duration-150 ${className}`}
+      className={`animate-row ${hover ? 'hover:bg-blue-50/40' : ''} ${onClick ? 'cursor-pointer' : ''} transition-colors duration-150 ${className}`}
       onClick={onClick}
     >
       {children}
