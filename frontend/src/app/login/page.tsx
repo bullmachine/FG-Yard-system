@@ -43,15 +43,8 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/25 to-slate-950/10" />
 
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-3 rounded-xl bg-slate-950/40 px-3 py-2 backdrop-blur-sm">
-            <div className="bg-white rounded px-1.5 py-1">
-              <img src={asset("/company-logo.png")} alt="Bull" className="h-3.5 w-auto" />
-            </div>
-            <div>
-              <p className="text-base font-bold leading-tight text-white">FG Yard</p>
-              <p className="text-xs text-slate-300">Machine Location System</p>
-            </div>
-          </div>
+          <p className="text-lg font-bold leading-tight text-white drop-shadow">FG Yard</p>
+          <p className="text-xs text-slate-200 drop-shadow">Machine Location System</p>
         </div>
 
         <div className="relative z-10 space-y-3">
@@ -74,18 +67,16 @@ export default function LoginPage() {
       {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
+          {/* Same brand mark as the other Bull web apps: the plain logo on a light background. */}
+          <img src={asset("/company-logo.png")} alt="BULL" className="mb-4 h-6 w-auto max-w-[125px] object-contain select-none" />
+
           {/* Phones and tablets: a short photo banner with the name. */}
           <div className="lg:hidden relative mb-6 h-36 overflow-hidden rounded-xl">
             <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10" />
-            <div className="absolute bottom-3 left-3 flex items-center gap-3">
-              <div className="bg-white rounded px-1.5 py-1">
-                <img src={asset("/company-logo.png")} alt="Bull" className="h-3 w-auto" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white">FG Yard</p>
-                <p className="text-xs text-slate-300">Machine Location System</p>
-              </div>
+            <div className="absolute bottom-3 left-3">
+              <p className="text-sm font-bold text-white">FG Yard</p>
+              <p className="text-xs text-slate-300">Machine Location System</p>
             </div>
           </div>
 

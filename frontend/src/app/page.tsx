@@ -141,20 +141,15 @@ interface SidebarContentProps {
 function SidebarContent({ allowedTabs, activeTab, collapsed, user, isAuthenticated, onToggle, onSelect, onLogout }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
-      {/* The logo has a transparent background with black and red artwork, so it sits on
-          a white tag to stay readable on the dark sidebar. */}
+      {/* Same as the other Bull web apps on a dark background: the logo in white. */}
       {collapsed ? (
         <div className="py-5 px-3 flex justify-center">
-          <div className="w-7 h-7 bg-white rounded flex items-center justify-center shrink-0">
-            <img src={asset("/company-logo-mark.png")} alt="Bull" className="h-5 w-5 object-contain" />
-          </div>
+          <img src={asset("/company-logo-mark.png")} alt="BULL" className="h-6 w-6 object-contain brightness-0 invert" />
         </div>
       ) : (
         <div className="px-5 pt-5 pb-4 space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="bg-white rounded px-1.5 py-1">
-              <img src={asset("/company-logo.png")} alt="Bull" className="h-3 w-auto" />
-            </div>
+            <img src={asset("/company-logo.png")} alt="BULL" className="h-[18px] w-auto max-w-[110px] object-contain brightness-0 invert select-none" />
             <button onClick={onToggle} className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="Collapse sidebar">
               <PanelLeftClose className="w-4 h-4" />
             </button>
