@@ -462,6 +462,8 @@ yard-management-system/
 - **Initial stock load**: an Admin switch for placing machines that were parked before go-live; otherwise machines enter only through Gate Control
 - **Block / Unblock slots** with a reason
 - **SOP page**: the Quality SOP, its PDF and printable role checklists
+- **Feedback**: any user sends a suggestion or issue from the top bar; Admins review, set a status and reply
+- **Login History**: sign-ins, failures and sign-outs with IP and device (Admin-only, kept 90 days); 5 failed sign-ins in 15 minutes alert the Admins
 - **Stage History**: Per-machine timeline of all 18 assembly stages, sourced from the plant system or recorded manually
 - **Driver Parking Confirmation**: The driver confirms a machine is physically in its slot, which creates the security queue entry
 - **Security Verification**: Guards approve or reject a parked machine, and the driver is notified of the outcome
@@ -686,6 +688,8 @@ UI is a convenience and not the enforcement point.
 - `GET /api/dispatch-plans/items` - Dispatch machine list; `POST .../items/:id/pdi` records PDI Pass / Hold; `POST .../items/:id/main-gate-out` marks main gate-out (refused until PDI passed)
 - `GET /api/settings/stock-load` - Whether Initial stock load is on
 - `GET /api/role-access/me` - The signed-in user's permissions; `GET/PUT /api/role-access` and `POST /api/role-access/reset` manage the matrix (Admin)
+- `POST /api/feedback` - Send feedback (`type`, `message`, `page`); `GET /api/feedback/mine` - own feedback; `GET /api/feedback` and `PUT /api/feedback/:id` - review (Admin)
+- `POST /api/auth/logout` - Record a sign-out; `GET /api/login-history` - Login history with `result`, `q`, `from`, `to`, paging (Admin)
 
 Role names next to endpoints are the **default** access. Apart from Users, Settings and Role
 Access (Admin only), an Admin can change who may call each endpoint on the Role Access page.

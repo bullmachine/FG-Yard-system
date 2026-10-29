@@ -264,7 +264,7 @@ const yardGuardrails: Guardrail[] = [
 ];
 
 const roleRows: RoleRow[] = [
-  { role: 'Administrator', modules: 'All modules, including User Management and Settings', permissions: 'Manages users, assigns roles, activates or deactivates accounts, and configures upstream endpoints and sync schedules' },
+  { role: 'Administrator', modules: 'All modules, including User Management, Settings, Role Access, Feedback and Login History', permissions: 'Manages users, assigns roles, activates or deactivates accounts, and configures upstream endpoints and sync schedules' },
   { role: 'Yard Manager', modules: 'Yards, yard stock, dispatch, machines, assembly, masters, drivers, gate, confirm parking, history', permissions: 'Allocates locations and drivers, authenticates at the gate, records parking on a driver\u2019s behalf' },
   { role: 'Operator', modules: 'Dashboard, yards, machines, assembly, gate, confirm parking, history', permissions: 'Creates machines, advances assembly stages, records parking on a driver\u2019s behalf' },
   { role: 'Service Technician', modules: 'Dashboard, machines, history', permissions: 'Read-only machine tracking and history' },
@@ -353,6 +353,27 @@ const notificationRows: NotificationRow[] = [
     trigger: 'A machine is out of the FG yard longer than the set hours without main gate out (8 by default). Also e-mailed to the production manager',
     audience: 'Yard Manager, Administrator, PDI Team, Main Gate',
     opens: 'Dispatch Machine List',
+  },
+  {
+    event: 'Repeated failed sign-ins',
+    severity: 'WARNING',
+    trigger: '5 failed sign-ins on one account within 15 minutes (wrong password, unknown or inactive account)',
+    audience: 'Administrator',
+    opens: 'Login History',
+  },
+  {
+    event: 'New feedback',
+    severity: 'INFO',
+    trigger: 'A user sends a suggestion, issue or other feedback (an issue is shown as a warning)',
+    audience: 'Administrator',
+    opens: 'Feedback',
+  },
+  {
+    event: 'Feedback updated',
+    severity: 'INFO',
+    trigger: 'An Administrator changes the status or reply of feedback you sent',
+    audience: 'The sender only',
+    opens: 'Feedback',
   },
 ];
 

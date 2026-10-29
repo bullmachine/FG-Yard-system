@@ -51,7 +51,7 @@ const ROLE_SUMMARY: Record<string, string> = {
 };
 
 const QUICK_START = [
-  { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open FG Yard and sign in with your work email and password. New users can register, but start with View Only access until an Administrator changes the role.' },
+  { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open FG Yard and sign in with your work email and password. New users can register, but start with View Only access until an Administrator changes the role. Sign-ins are recorded (time, IP address and device) for security.' },
   { icon: <PanelLeft className="w-4 h-4" />, title: 'Use the menu', text: 'The left menu lists only the screens your role can open. On a phone or tablet, tap the ☰ button at the top left to open it. On a computer, use the arrow at the top of the menu to collapse it.' },
   { icon: <LayoutDashboard className="w-4 h-4" />, title: 'Start at the Dashboard', text: 'The Dashboard shows the FG yard today: stock, free slots, dispatch and a "Needs attention" list. Click any card to see the machines behind the number.' },
   { icon: <Bell className="w-4 h-4" />, title: 'Watch the bell', text: 'The bell at the top right shows alerts for your role (yard full, gate rejected, sync failed and so on). Critical alerts also pop up on screen. Open Notifications for the full list.' },

@@ -278,11 +278,11 @@ pm2 stop <backend-name> <frontend-name>  # downtime starts
 git pull origin master
 
 cd backend
-npm install
+npm install                              # only if package.json / package-lock.json changed (see below)
 npx prisma db push                       # must end "in sync"; on a data-loss warning answer N and stop
 npm run build
 cd ..\frontend
-npm install
+npm install                              # only if package.json / package-lock.json changed
 npm run build
 cd ..
 
@@ -293,6 +293,20 @@ curl http://localhost:5000/health
 
 `prisma db push` must be run while the backend is stopped: on Windows the running backend locks
 the database client files.
+
+**Is `npm install` needed?** Only when the package list changed. After `git pull`, run:
+
+```powershell
+git diff --name-only HEAD@{1} HEAD -- backend/package.json backend/package-lock.json frontend/package.json frontend/package-lock.json
+```
+
+No output means skip `npm install`; a listed file means run it in that folder. The two
+`npm run build` steps and the restart are always needed.
+
+**Login history needs the user's real IP.** After the update, sign in once from a phone or PC and
+open Administration › Login History. If the IP shown is `127.0.0.1` or the server's own address,
+IIS is not passing it on: in IIS Manager › Application Request Routing › Server Proxy Settings,
+enable *Preserve client IP in the following header* with `X-Forwarded-For`, then `iisreset`.
 
 ### Moving to the /fg-yard address (once, from 28 Oct 2026)
 

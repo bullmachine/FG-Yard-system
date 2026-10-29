@@ -3,6 +3,33 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 29 October 2026
+
+**Update needs:** `npx prisma db push` (two new tables: Feedback and LoginEvent, nothing removed),
+backend and frontend rebuild. No new packages, so `npm install` is not needed if the server is
+already on the 28 October update. Take a database backup first.
+
+### Feedback
+- **Feedback** button in the top bar for every user: send a Suggestion, an Issue or Other
+  feedback from any screen; the screen is attached. **My feedback** shows the status and reply.
+- **Administration › Feedback** (Admin): New / In progress / Done / Closed, filter, search, set the
+  status and reply. Admins are notified of new feedback; the sender is notified of changes.
+
+### Login history
+- Every sign-in attempt and sign-out is recorded with time, IP address and device.
+- **Administration › Login History** (Admin): today's sign-ins, users and failures, filters,
+  search by email, name or IP, date range.
+- 5 failed sign-ins on one account within 15 minutes alert the Admins.
+- Personal data (DPDPA): Admin-only, deleted after 90 days, notice on the login page.
+- **IIS must pass on the user's IP** (`X-Forwarded-For`); otherwise every row shows the server's
+  address. See INSTALL.md › Updating an existing server.
+
+### Login and screens
+- Login page with the FG yard photo and the Bull logo in its real colours beside the FG Yard name;
+  on phones the photo sits at the top with the form under it, no empty space, no zoom on iPhone.
+- Opening the app without signing in now goes to the login page (Help needs a sign-in).
+- Popups always open in the middle of the screen (the Feedback popup was stuck to the top bar).
+
 ## 28 October 2026
 
 **Update needs:** `npx prisma db push` (new columns and tables only, nothing removed), backend and
