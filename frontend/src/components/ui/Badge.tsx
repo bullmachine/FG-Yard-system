@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+
 export interface BadgeProps {
   children: React.ReactNode;
   variant?: 'green' | 'red' | 'amber' | 'blue' | 'gray' | 'purple' | 'indigo' | 'orange';
@@ -28,8 +32,19 @@ const dotClasses = {
 };
 
 export default function Badge({ children, variant = 'gray', size = 'sm', dot }: BadgeProps) {
+  // A short glow when a shown badge changes (e.g. PDI pending -> passed), not on first show.
+  const label = typeof children === 'string' ? `${variant}:${children}` : variant;
+  const previous = useRef(label);
+  const [flashKey, setFlashKey] = useState(0);
+  useEffect(() => {
+    if (previous.current === label) return;
+    previous.current = label;
+    setFlashKey((k) => k + 1);
+  }, [label]);
+
   return (
-    <span className={`inline-flex items-center gap-1 font-medium ring-1 ring-inset rounded-md whitespace-nowrap
+    <span key={flashKey} className={`inline-flex items-center gap-1 font-medium ring-1 ring-inset rounded-md whitespace-nowrap
+      ${flashKey ? 'animate-flash' : ''}
       ${variantClasses[variant]}
       ${size === 'sm' ? 'px-1.5 py-0.5 text-[11px]' : 'px-2.5 py-0.5 text-xs'}`}
     >

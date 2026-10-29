@@ -87,9 +87,78 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
+/* ---- Motion. Short, transform and opacity only, so it stays smooth on the gate
+   tablets. Everything is switched off by the reduced-motion rule below. ---- */
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sheetUp {
+  from { opacity: 0.6; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slowZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
+}
+
+@keyframes flash {
+  0% { box-shadow: 0 0 0 0 rgb(59 130 246 / 0.55); }
+  100% { box-shadow: 0 0 0 6px rgb(59 130 246 / 0); }
+}
+
+/* Page change: the new page fades in and slides up a little. */
+.animate-page {
+  animation: riseIn 0.22s ease-out both;
+}
+
+/* Summary cards appear one after another. */
+.animate-card {
+  animation: riseIn 0.28s ease-out both;
+}
+.animate-card:nth-child(2) { animation-delay: 40ms; }
+.animate-card:nth-child(3) { animation-delay: 80ms; }
+.animate-card:nth-child(4) { animation-delay: 120ms; }
+.animate-card:nth-child(5) { animation-delay: 160ms; }
+.animate-card:nth-child(n+6) { animation-delay: 200ms; }
+
+/* Popups: fade and zoom in; on phones they slide up from the bottom. */
+.animate-pop {
+  animation: popIn 0.18s ease-out both;
+}
+@media (max-width: 639px) {
+  .animate-pop {
+    animation: sheetUp 0.22s ease-out both;
+  }
+}
+
+/* Table rows fade in when they first appear. */
+.animate-row {
+  animation: fadeIn 0.25s ease-out both;
+}
+
+/* Login photo drifts in slowly once, then stays. */
+.animate-slow-zoom {
+  animation: slowZoom 18s ease-out both;
+}
+
+/* A status badge whose value changed (e.g. PDI pending -> passed). */
+.animate-flash {
+  animation: flash 0.9s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }

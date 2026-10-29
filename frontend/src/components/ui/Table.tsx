@@ -70,7 +70,7 @@ interface TableRowProps {
 export function TableRow({ children, className = '', hover = true, onClick }: TableRowProps) {
   return (
     <tr
-      className={`${hover ? 'hover:bg-slate-50/80' : ''} ${onClick ? 'cursor-pointer' : ''} transition-colors ${className}`}
+      className={`animate-row ${hover ? 'hover:bg-slate-50' : ''} ${onClick ? 'cursor-pointer' : ''} transition-colors duration-150 ${className}`}
       onClick={onClick}
     >
       {children}

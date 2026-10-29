@@ -39,7 +39,7 @@ export default function LoginPage() {
     <div className="min-h-dvh flex bg-slate-50">
       {/* Left panel: the FG yard photo, darkened at the bottom so the text stays readable. */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-10 bg-slate-900">
-        <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover animate-slow-zoom" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/25 to-slate-950/10" />
 
         {/* Logo left of the name, in its real colours on a small white tag so the black
@@ -76,7 +76,7 @@ export default function LoginPage() {
           top and the form sheet overlaps it, so there is no empty space above the photo. */}
       <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-6">
         <div className="lg:hidden relative h-60 sm:h-72 w-full shrink-0 overflow-hidden">
-          <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover animate-slow-zoom" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-slate-950/40" />
           <div className="absolute top-0 inset-x-0 flex items-center gap-2.5 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
             <span className="rounded bg-white px-1.5 py-1 shadow-sm">
@@ -95,7 +95,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 -mt-6 flex-1 rounded-t-3xl bg-slate-50 px-4 pt-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8 lg:mt-0 lg:flex-none lg:w-full lg:max-w-sm lg:rounded-none lg:bg-transparent lg:p-0">
+        <div className="animate-page relative z-10 -mt-6 flex-1 rounded-t-3xl bg-slate-50 px-4 pt-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8 lg:mt-0 lg:flex-none lg:w-full lg:max-w-sm lg:rounded-none lg:bg-transparent lg:p-0">
         <div className="mx-auto w-full max-w-sm">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-lg:bg-transparent max-lg:border-0 max-lg:shadow-none max-lg:px-1 max-lg:pt-2">
             <div className="space-y-1 mb-5">

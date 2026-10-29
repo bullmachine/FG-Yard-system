@@ -397,7 +397,8 @@ export default function Home() {
 
         {/* Page content */}
         <main className="flex-1 px-4 lg:px-5 py-4">
-          <div className="max-w-[1600px] mx-auto">
+          {/* key restarts the fade-in on every page change. */}
+          <div key={effectiveTab} className="max-w-[1600px] mx-auto animate-page">
             {renderContent()}
           </div>
         </main>
