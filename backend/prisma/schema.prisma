@@ -119,6 +119,8 @@ model User {
   pdiDispatchItems      DispatchItem[]         @relation("ItemPdiBy")
   blockedSlots          Slot[]                 @relation("SlotBlockedBy")
   roleAccessChanges     RoleAccessLog[]        @relation("RoleAccessChangedBy")
+  feedbackSent          Feedback[]             @relation("FeedbackBy")
+  feedbackHandled       Feedback[]             @relation("FeedbackHandledBy")
 }
 
 enum NotificationSeverity {
@@ -617,4 +619,26 @@ model RoleAccessLog {
   changedBy User @relation("RoleAccessChangedBy", fields: [changedById], references: [id])
 
   @@index([changedAt])
+}
+
+// Feedback, suggestions and issues sent by users from any screen; an Admin reviews
+// them on Administration > Feedback.
+model Feedback {
+  id          String    @id @default(uuid())
+  type        String    @db.VarChar(20)
+  page        String?   @db.VarChar(60)
+  message     String    @db.Text
+  status      String    @default("NEW") @db.VarChar(20)
+  adminNote   String?   @db.Text
+  createdById String
+  handledById String?
+  handledAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdBy User  @relation("FeedbackBy", fields: [createdById], references: [id])
+  handledBy User? @relation("FeedbackHandledBy", fields: [handledById], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
 }

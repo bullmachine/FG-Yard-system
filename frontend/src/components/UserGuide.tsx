@@ -204,6 +204,16 @@ const SCREENS: ScreenGuide[] = [
     tips: ['A role change applies on the user’s next action. Deactivating is safer than deleting because history stays linked to the person.'],
   },
   {
+    tab: 'feedback', title: 'Feedback', roles: 'Everyone sends · Administrator reviews',
+    purpose: 'Send a suggestion, report an issue or give feedback from any screen, and follow what happens to it.',
+    steps: [
+      'Press Feedback in the top bar. Choose Suggestion, Issue or Other, write a few words and press Send. The screen you were on is sent with it.',
+      'Open Feedback > My feedback to see the status (New, In progress, Done, Closed) and the Administrator’s reply. You get a notification when it changes.',
+      'Administrators: open Administration > Feedback, filter by status or type, open an item, set the status and write a reply.',
+    ],
+    tips: ['For an issue, include the serial number, the screen and what you expected, so it can be checked quickly.'],
+  },
+  {
     tab: 'access', title: 'Role Access', roles: 'Administrator',
     purpose: 'Choose which role may open each page and use each action, without a code change.',
     steps: [
