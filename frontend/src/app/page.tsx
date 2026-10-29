@@ -145,15 +145,15 @@ function SidebarContent({ allowedTabs, activeTab, collapsed, user, isAuthenticat
           letters stay readable on the dark sidebar. */}
       {collapsed ? (
         <div className="py-5 px-3 flex justify-center">
-          <span className="flex h-7 w-7 items-center justify-center rounded bg-white">
-            <img src={asset("/company-logo-mark.png")} alt="BULL" className="h-5 w-5 object-contain" />
+          <span className="flex h-6 w-6 items-center justify-center rounded bg-white">
+            <img src={asset("/company-logo-mark.png")} alt="BULL" className="h-4 w-4 object-contain" />
           </span>
         </div>
       ) : (
         <div className="px-5 pt-5 pb-4 space-y-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="rounded bg-white px-1.5 py-1">
-              <img src={asset("/company-logo.png")} alt="BULL" className="block h-3.5 w-auto max-w-[75px] object-contain select-none" />
+              <img src={asset("/company-logo.png")} alt="BULL" className="block h-3 w-auto max-w-[65px] object-contain select-none" />
             </span>
             <button onClick={onToggle} className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="Collapse sidebar">
               <PanelLeftClose className="w-4 h-4" />

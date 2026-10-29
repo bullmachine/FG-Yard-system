@@ -46,7 +46,7 @@ export default function LoginPage() {
             bull and red letters stay readable on the dark photo. */}
         <div className="relative z-10 flex items-center gap-3">
           <span className="rounded-md bg-white px-2 py-1.5 shadow-sm">
-            <img src={asset("/company-logo.png")} alt="BULL" className="block h-4 w-auto max-w-[85px] object-contain select-none" />
+            <img src={asset("/company-logo.png")} alt="BULL" className="block h-3.5 w-auto max-w-[75px] object-contain select-none" />
           </span>
           <span className="h-8 w-px bg-white/40" aria-hidden="true" />
           <div>
@@ -81,7 +81,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10" />
             <div className="absolute bottom-3 left-3 flex items-center gap-2.5">
               <span className="rounded bg-white px-1.5 py-1">
-                <img src={asset("/company-logo.png")} alt="BULL" className="block h-3.5 w-auto max-w-[75px] object-contain select-none" />
+                <img src={asset("/company-logo.png")} alt="BULL" className="block h-3 w-auto max-w-[65px] object-contain select-none" />
               </span>
               <span className="h-7 w-px bg-white/40" aria-hidden="true" />
               <div>
