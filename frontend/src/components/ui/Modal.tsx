@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -40,9 +41,11 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
     return () => window.removeEventListener('keydown', handleEsc);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
+  // Rendered into <body>: a parent with a blur, transform or filter (such as the sticky
+  // top bar) would otherwise become the frame for this fixed overlay and squeeze it there.
+  return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 animate-fade-in"
@@ -69,6 +72,7 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
