@@ -36,7 +36,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-dvh flex bg-slate-50">
       {/* Left panel: the FG yard photo, darkened at the bottom so the text stays readable. */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-10 bg-slate-900">
         <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
@@ -72,26 +72,32 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          {/* Phones and tablets: a short photo banner with the name. */}
-          <div className="lg:hidden relative mb-6 h-36 overflow-hidden rounded-xl">
-            <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10" />
-            <div className="absolute bottom-3 left-3 flex items-center gap-2.5">
-              <span className="rounded bg-white px-1.5 py-1">
-                <img src={asset("/company-logo.png")} alt="BULL" className="block h-3 w-auto max-w-[65px] object-contain select-none" />
-              </span>
-              <span className="h-7 w-px bg-white/40" aria-hidden="true" />
-              <div>
-                <p className="text-sm font-bold text-white">FG Yard</p>
-                <p className="text-xs text-slate-300">Machine Location System</p>
-              </div>
+      {/* Right panel: the form. On phones and tablets the yard photo sits edge to edge at the
+          top and the form sheet overlaps it, so there is no empty space above the photo. */}
+      <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-6">
+        <div className="lg:hidden relative h-60 sm:h-72 w-full shrink-0 overflow-hidden">
+          <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-slate-950/40" />
+          <div className="absolute top-0 inset-x-0 flex items-center gap-2.5 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+            <span className="rounded bg-white px-1.5 py-1 shadow-sm">
+              <img src={asset("/company-logo.png")} alt="BULL" className="block h-3 w-auto max-w-[65px] object-contain select-none" />
+            </span>
+            <span className="h-7 w-px bg-white/50" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-bold leading-tight text-white drop-shadow">FG Yard</p>
+              <p className="text-[11px] text-slate-200 drop-shadow">Machine Location System</p>
             </div>
           </div>
+          <div className="absolute inset-x-0 bottom-10 px-4">
+            <p className="text-2xl font-bold leading-tight text-white drop-shadow">
+              Track. Manage. <span className="text-amber-400">Deliver.</span>
+            </p>
+          </div>
+        </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div className="relative z-10 -mt-6 flex-1 rounded-t-3xl bg-slate-50 px-4 pt-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8 lg:mt-0 lg:flex-none lg:w-full lg:max-w-sm lg:rounded-none lg:bg-transparent lg:p-0">
+        <div className="mx-auto w-full max-w-sm">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-lg:bg-transparent max-lg:border-0 max-lg:shadow-none max-lg:px-1 max-lg:pt-2">
             <div className="space-y-1 mb-5">
               <h2 className="text-base font-semibold text-slate-900">Welcome back</h2>
               <p className="text-sm text-slate-500">Sign in to your account</p>
@@ -105,10 +111,10 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
-              <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required />
+              <Input label="Email" className="bg-white max-lg:text-base! max-lg:py-2.5!" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
+              <Input label="Password" className="bg-white max-lg:text-base! max-lg:py-2.5!" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required />
 
-              <Button type="submit" loading={loading} className="w-full" size="md">Sign In</Button>
+              <Button type="submit" loading={loading} className="w-full max-lg:py-2.5 max-lg:text-sm" size="md">Sign In</Button>
             </form>
 
             <p className="mt-4 text-center text-sm text-slate-500">
@@ -116,6 +122,7 @@ export default function LoginPage() {
                 <a href={asset("/register")} className="text-blue-700 hover:text-blue-900 font-semibold">Register</a>
             </p>
           </div>
+        </div>
 
         </div>
       </div>
