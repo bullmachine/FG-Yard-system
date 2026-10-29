@@ -204,6 +204,16 @@ const SCREENS: ScreenGuide[] = [
     tips: ['A role change applies on the user’s next action. Deactivating is safer than deleting because history stays linked to the person.'],
   },
   {
+    tab: 'logins', title: 'Login History', roles: 'Administrator',
+    purpose: 'Who signed in and out, when, from which IP address and device, and every failed attempt.',
+    steps: [
+      'The cards show today’s sign-ins, the number of different users and failed attempts. Click Failed today to list them.',
+      'Filter by Signed in, Failed or Signed out, search an email, name or IP, or pick a date range.',
+      'Click an IP address to list every sign-in from it.',
+    ],
+    tips: ['Five failed sign-ins on one account within 15 minutes alert the Administrators.', 'History is kept 90 days and then deleted automatically, because IP addresses linked to people are personal data.'],
+  },
+  {
     tab: 'feedback', title: 'Feedback', roles: 'Everyone sends · Administrator reviews',
     purpose: 'Send a suggestion, report an issue or give feedback from any screen, and follow what happens to it.',
     steps: [

@@ -1,3 +1,4 @@
+import { purgeOldLoginEvents } from './loginHistoryService';
 import cron from 'node-cron';
 import { syncProductionOrders, syncProductionOrderWindow } from './syncService';
 import { syncMaterialMaster } from './materialMasterService';
@@ -137,6 +138,12 @@ export async function startScheduler(): Promise<void> {
   cron.schedule('*/5 * * * *', () => {
     checkStuckInTransit().catch((error) => console.error('In-transit check failed:', error));
   });
+
+  // Login history older than the retention period is deleted every night at 02:30.
+  cron.schedule('30 2 * * *', () => {
+    purgeOldLoginEvents().catch((error) => console.error('Login history clean-up failed:', error));
+  });
+  purgeOldLoginEvents().catch((error) => console.error('Login history clean-up failed:', error));
 
   console.log('Scheduler started successfully');
 }

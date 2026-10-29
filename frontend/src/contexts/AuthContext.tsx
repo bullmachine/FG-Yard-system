@@ -134,6 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Record the sign-out in the login history; the session ends locally either way.
+    if (token) {
+      fetch(`${API_URL}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, keepalive: true }).catch(() => {});
+    }
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');

@@ -121,6 +121,9 @@ export default function LoginPage() {
               Don&apos;t have an account?{' '}
                 <a href={asset("/register")} className="text-blue-700 hover:text-blue-900 font-semibold">Register</a>
             </p>
+            <p className="mt-3 text-center text-[11px] leading-snug text-slate-400">
+              Sign-ins are recorded (time, IP address and device) for security.
+            </p>
           </div>
         </div>
 

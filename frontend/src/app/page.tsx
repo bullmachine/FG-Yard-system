@@ -7,7 +7,7 @@ import {
   LayoutDashboard, MapPin, Truck, Users, Shield,
   Clock, LogOut, Menu, X, Factory, Package, Fence, Database, Layers,
   PanelLeftClose, PanelLeftOpen, BookOpen, Bell, Settings, ParkingCircle, Send,
-  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText, KeyRound, MessageSquareText
+  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText, KeyRound, MessageSquareText, History
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import DashboardV2 from '@/components/DashboardV2';
@@ -32,12 +32,13 @@ import ProcessFlowDocument from '@/components/ProcessFlowDocument';
 import SopDocument from '@/components/SopDocument';
 import RoleAccess from '@/components/RoleAccess';
 import FeedbackAdmin, { FeedbackButton } from '@/components/Feedback';
+import LoginHistory from '@/components/LoginHistory';
 import NotificationCenter, { NotificationBell } from '@/components/NotificationCenter';
 import SettingsPage from '@/components/SettingsPage';
 import UserGuide from '@/components/UserGuide';
 import { asset } from '@/lib/basePath';
 
-type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'access' | 'feedback' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
+type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'access' | 'feedback' | 'logins' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
@@ -56,6 +57,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   settings: <Settings className="w-5 h-5" />,
   access: <KeyRound className="w-5 h-5" />,
   feedback: <MessageSquareText className="w-5 h-5" />,
+  logins: <History className="w-5 h-5" />,
   gate: <Fence className="w-5 h-5" />,
   security: <Shield className="w-5 h-5" />,
   parked: <ParkingCircle className="w-5 h-5" />,
@@ -85,6 +87,7 @@ const TAB_LABELS: Record<Tab, string> = {
   settings: 'Settings',
   access: 'Role Access',
   feedback: 'Feedback',
+  logins: 'Login History',
   gate: 'Gate Control',
   security: 'Security',
   parked: 'Confirm Parking',
@@ -100,7 +103,7 @@ const TAB_LABELS: Record<Tab, string> = {
 const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
   { label: 'OVERVIEW', tabs: ['dashboard', 'dashboard2'] },
   { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers'] },
-  { label: 'ADMINISTRATION', tabs: ['users', 'settings', 'access', 'feedback'] },
+  { label: 'ADMINISTRATION', tabs: ['users', 'settings', 'access', 'feedback', 'logins'] },
   { label: 'CONTROL', tabs: ['gate', 'parked', 'security', 'returns', 'requests', 'history'] },
   { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'sop', 'notifications'] },
 ];
@@ -108,7 +111,7 @@ const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
 // Pages whose access is set per role on the Role Access page (permission page.<tab>).
 // The Admin-only pages are fixed in code; Help, Docs, SOP and Notifications are open.
 const PERMISSION_TABS: Tab[] = ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'security', 'returns', 'requests', 'history'];
-const ADMIN_ONLY_TABS: Tab[] = ['users', 'settings', 'access', 'feedback'];
+const ADMIN_ONLY_TABS: Tab[] = ['users', 'settings', 'access', 'feedback', 'logins'];
 
 const ROLE_COLORS: Record<string, string> = {
   ADMIN: 'bg-blue-600',
@@ -300,6 +303,7 @@ export default function Home() {
       case 'settings': return <SettingsPage />;
       case 'access': return <RoleAccess />;
       case 'feedback': return <FeedbackAdmin />;
+      case 'logins': return <LoginHistory />;
       case 'gate': return <GateControl onNavigate={(tab) => handleSelect(tab as Tab)} />;
       case 'security': return <SecurityVerification />;
       case 'parked': return <DriverParked />;

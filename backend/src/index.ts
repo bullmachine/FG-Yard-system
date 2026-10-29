@@ -23,6 +23,7 @@ import dispatchPlanRoutes from './routes/dispatchPlanRoutes';
 import integrationRoutes from './routes/integrationRoutes';
 import roleAccessRoutes from './routes/roleAccessRoutes';
 import feedbackRoutes from './routes/feedbackRoutes';
+import loginHistoryRoutes from './routes/loginHistoryRoutes';
 import { startScheduler } from './services/scheduler';
 import { attachRealtime } from './services/realtime';
 import { pruneReadNotifications } from './services/notificationService';
@@ -37,6 +38,9 @@ const PORT = process.env.PORT || 5000;
 
 ensureUploadDirs();
 
+// IIS on this server proxies the site to this API. Trust X-Forwarded-For only from the
+// local machine, so req.ip is the user's address behind IIS and cannot be faked from outside.
+app.set('trust proxy', 'loopback');
 app.use(cors());
 app.use(express.json());
 // Uploaded driver photos are served straight from disk. Mounted before the API routes
@@ -70,6 +74,7 @@ app.use('/api/dispatch-plans', dispatchPlanRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/role-access', roleAccessRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/login-history', loginHistoryRoutes);
 
 // Multer raises its own errors (oversized file, unexpected end of stream) which would
 // otherwise reach Express' default HTML handler. Turn them into the same JSON shape

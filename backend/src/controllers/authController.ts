@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { permissionsFor } from '../services/roleAccessService';
+import { recordLogin, recordLogout } from '../services/loginHistoryService';
 import { hashPassword, comparePassword, generateToken } from '../lib/auth';
 import { notifyEvent } from '../services/notificationService';
 
@@ -90,6 +91,7 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
+      await recordLogin(req, normalizedEmail, 'UNKNOWN_USER', null);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -97,12 +99,16 @@ export const login = async (req: Request, res: Response) => {
     const isValidPassword = await comparePassword(password, user.password);
 
     if (!isValidPassword) {
+      await recordLogin(req, normalizedEmail, 'WRONG_PASSWORD', user.id);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     if (!user.isActive) {
+      await recordLogin(req, normalizedEmail, 'INACTIVE', user.id);
       return res.status(403).json({ error: 'Account is inactive' });
     }
+
+    await recordLogin(req, normalizedEmail, 'SUCCESS', user.id);
 
     const token = generateToken(user.id, user.role);
     const userWithoutPassword = {
@@ -145,4 +151,14 @@ export const getMe = async (req: Request, res: Response) => {
   } catch {
     res.status(500).json({ error: 'Failed to fetch user' });
   }
+};
+
+/** Records the sign-out; the token itself is dropped by the browser. */
+export const logout = async (req: Request, res: Response) => {
+  const userId = (req as AuthenticatedRequest).userId;
+  if (userId) {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }).catch(() => null);
+    if (user) await recordLogout(req, userId, user.email);
+  }
+  res.json({ ok: true });
 };

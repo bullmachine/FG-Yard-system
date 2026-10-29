@@ -25,7 +25,8 @@ export type NotificationEventType =
   | 'SLOT_BLOCKED'
   | 'SLOT_UNBLOCKED'
   | 'FEEDBACK_NEW'
-  | 'FEEDBACK_UPDATED';
+  | 'FEEDBACK_UPDATED'
+  | 'LOGIN_FAILED';
 
 export interface NotificationEvent {
   type: NotificationEventType;
@@ -60,6 +61,8 @@ export const NOTIFICATION_RECIPIENTS: Record<NotificationEventType, UserRole[]> 
   // New feedback goes to the Admins who review it; the sender is told of changes directly.
   FEEDBACK_NEW: ['ADMIN'],
   FEEDBACK_UPDATED: [],
+  // Repeated failed sign-ins on one account: possible password guessing.
+  LOGIN_FAILED: ['ADMIN'],
   // Barcode is part of gate identification, so a machine that reaches yard age without
   // one is a yard-manager problem, not just a data-entry one.
   BARCODE_MISSING: ['YARD_MANAGER', 'ADMIN'],

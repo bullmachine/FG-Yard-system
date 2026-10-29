@@ -121,6 +121,7 @@ model User {
   roleAccessChanges     RoleAccessLog[]        @relation("RoleAccessChangedBy")
   feedbackSent          Feedback[]             @relation("FeedbackBy")
   feedbackHandled       Feedback[]             @relation("FeedbackHandledBy")
+  loginEvents           LoginEvent[]
 }
 
 enum NotificationSeverity {
@@ -641,4 +642,24 @@ model Feedback {
 
   @@index([status])
   @@index([createdAt])
+}
+
+// Sign-in history (LOGIN attempts and LOGOUTs) with IP and device, Admin-only, kept
+// 90 days (loginHistoryService). email is what was typed, so failed attempts for an
+// unknown account are kept too; userId is set when the account exists.
+model LoginEvent {
+  id        String   @id @default(uuid())
+  event     String   @db.VarChar(10)
+  result    String   @db.VarChar(20)
+  email     String   @db.VarChar(190)
+  userId    String?
+  ip        String   @db.VarChar(64)
+  userAgent String   @db.VarChar(300)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([email, createdAt])
+  @@index([userId])
 }
