@@ -44,11 +44,11 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <div className="inline-flex items-center gap-3 rounded-xl bg-slate-950/40 px-3 py-2 backdrop-blur-sm">
-            <div className="bg-white rounded-md px-2 py-1">
-              <img src={asset("/company-logo.png")} alt="Bull" className="h-5 w-auto" />
+            <div className="bg-white rounded px-1.5 py-1">
+              <img src={asset("/company-logo.png")} alt="Bull" className="h-3.5 w-auto" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">FG Yard</p>
+              <p className="text-base font-bold leading-tight text-white">FG Yard</p>
               <p className="text-xs text-slate-300">Machine Location System</p>
             </div>
           </div>
@@ -79,8 +79,8 @@ export default function LoginPage() {
             <img src={asset("/bull_fg_yard.jpeg")} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10" />
             <div className="absolute bottom-3 left-3 flex items-center gap-3">
-              <div className="bg-white rounded-md px-2 py-1">
-                <img src={asset("/company-logo.png")} alt="Bull" className="h-4 w-auto" />
+              <div className="bg-white rounded px-1.5 py-1">
+                <img src={asset("/company-logo.png")} alt="Bull" className="h-3 w-auto" />
               </div>
               <div>
                 <p className="text-sm font-bold text-white">FG Yard</p>
