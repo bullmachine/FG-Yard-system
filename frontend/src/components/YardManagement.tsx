@@ -576,15 +576,38 @@ export default function YardManagement() {
                     grid keeps its dimensions, so rows*cols would overstate capacity. */}
                 <span className="tabular-nums">{yard.totalSlots ?? yard.rows * yard.cols} total slots</span>
               </div>
-              <div className="mt-2.5 flex items-center gap-2">
-                <span className={`text-xs font-semibold tabular-nums ${(yard.slotCounts?.AVAILABLE ?? 0) === 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {(yard.slotCounts?.AVAILABLE ?? 0)} free
-                </span>
-                <div className="h-1.5 flex-1 rounded-full bg-slate-100 overflow-hidden">
-                  <div className={`h-full rounded-full ${(yard.slotCounts?.AVAILABLE ?? 0) === 0 ? 'bg-red-400' : 'bg-emerald-400'}`} style={{ width: `${(yard.totalSlots ?? 0) === 0 ? 0 : (((yard.slotCounts?.AVAILABLE ?? 0) / (yard.totalSlots ?? 1)) * 100)}%` }} />
-                </div>
-                {(yard.slotCounts?.AVAILABLE ?? 0) === 0 && <Badge variant="red" dot>Full</Badge>}
-              </div>
+              {/* One bar per yard: free, occupied, reserved and other (blocked, inspection ...). */}
+              {(() => {
+                const c = yard.slotCounts ?? {};
+                const total = yard.totalSlots ?? Object.values(c).reduce((a, b) => a + b, 0);
+                const free = c.AVAILABLE ?? 0;
+                const parts = [
+                  { key: 'Free', n: free, bar: 'bg-emerald-500', dot: 'bg-emerald-500' },
+                  { key: 'Occupied', n: c.OCCUPIED ?? 0, bar: 'bg-red-400', dot: 'bg-red-400' },
+                  { key: 'Reserved', n: c.RESERVED ?? 0, bar: 'bg-yellow-400', dot: 'bg-yellow-400' },
+                  { key: 'Blocked / other', n: Math.max(0, total - free - (c.OCCUPIED ?? 0) - (c.RESERVED ?? 0)), bar: 'bg-slate-400', dot: 'bg-slate-400' },
+                ];
+                return (
+                  <div className="mt-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-semibold tabular-nums ${free === 0 ? 'text-red-600' : 'text-emerald-700'}`}>{free} free</span>
+                      {free === 0 ? <Badge variant="red" dot>Full</Badge> : <span className="text-[11px] tabular-nums text-slate-400">{total ? Math.round(((total - free) / total) * 100) : 0}% used</span>}
+                    </div>
+                    <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+                      {parts.map((pt) => pt.n > 0 && (
+                        <span key={pt.key} className={pt.bar} style={{ width: `${(pt.n / Math.max(1, total)) * 100}%` }} />
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                      {parts.map((pt) => (
+                        <span key={pt.key} className="inline-flex items-center gap-1 tabular-nums">
+                          <span className={`h-1.5 w-1.5 rounded-full ${pt.dot}`} />{pt.key} {pt.n}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

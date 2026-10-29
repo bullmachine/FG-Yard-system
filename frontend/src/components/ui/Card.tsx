@@ -25,6 +25,8 @@ interface StatCardProps {
   color?: 'blue' | 'green' | 'red' | 'amber' | 'indigo' | 'purple' | 'slate';
   onClick?: () => void;
   hint?: string;
+  /** The card is the selected filter (cards used as tabs). */
+  active?: boolean;
 }
 
 const colorClasses = {
@@ -42,13 +44,14 @@ const colorClasses = {
  * title on the second. Every tile has the same shape, so a row of tiles lines up. A long
  * text value (a date, "Admin only") takes the second line instead, so the title keeps its width.
  */
-export function StatCard({ label, value, icon, color = 'blue', onClick, hint }: StatCardProps) {
+export function StatCard({ label, value, icon, color = 'blue', onClick, hint, active = false }: StatCardProps) {
   const longValue = typeof value === 'string' && value.length > 8;
   return (
     <div
       onClick={onClick}
+      aria-pressed={onClick ? active : undefined}
       title={hint ? `${label}: ${hint}` : label}
-      className={`animate-card flex items-center gap-2 bg-white rounded-xl border border-slate-200 shadow-[0_1px_2px_0_rgb(2_6_23_/_0.05)] px-3 py-2.5 transition-[transform,box-shadow,border-color] duration-200 ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300 active:translate-y-0' : ''}`}
+      className={`animate-card flex items-center gap-2 bg-white rounded-xl border shadow-[0_1px_2px_0_rgb(2_6_23_/_0.05)] px-3 py-2.5 transition-[transform,box-shadow,border-color] duration-200 ${active ? 'border-blue-400 ring-2 ring-blue-500/20' : 'border-slate-200'} ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300 active:translate-y-0' : ''}`}
     >
       <div className={`p-1 rounded ${colorClasses[color]} text-white shrink-0 [&>svg]:w-3 [&>svg]:h-3`}>{icon}</div>
       <div className="min-w-0 flex-1">

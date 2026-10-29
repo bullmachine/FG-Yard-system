@@ -454,12 +454,12 @@ export default function DispatchList() {
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
         {!isMainGate && (
-          <StatCard label="In FG yard" value={count('IN_YARD')} icon={<Boxes className="w-4 h-4" />} color="purple" hint="To be taken out" onClick={() => setFilter('IN_YARD')} />
+          <StatCard label="In FG yard" value={count('IN_YARD')} icon={<Boxes className="w-4 h-4" />} color="purple" hint="To be taken out" onClick={() => setFilter('IN_YARD')} active={filter === 'IN_YARD'} />
         )}
-        <StatCard label="At PDI" value={count('AT_PDI')} icon={<ClipboardCheck className="w-4 h-4" />} color="amber" hint="Check pending or on hold" onClick={() => setFilter('AT_PDI')} />
-        <StatCard label="Ready for main gate" value={count('READY_GATE')} icon={<PackageCheck className="w-4 h-4" />} color="blue" hint="PDI passed" onClick={() => setFilter('READY_GATE')} />
+        <StatCard label="At PDI" value={count('AT_PDI')} icon={<ClipboardCheck className="w-4 h-4" />} color="amber" hint="Check pending or on hold" onClick={() => setFilter('AT_PDI')} active={filter === 'AT_PDI'} />
+        <StatCard label="Ready for main gate" value={count('READY_GATE')} icon={<PackageCheck className="w-4 h-4" />} color="blue" hint="PDI passed" onClick={() => setFilter('READY_GATE')} active={filter === 'READY_GATE'} />
         <StatCard label={`Over ${alertHours} h`} value={overdueCount} icon={<AlertTriangle className="w-4 h-4" />} color={overdueCount ? 'red' : 'slate'} hint="Not yet out of main gate" onClick={() => setFilter(overdueTab)} />
-        <StatCard label="Main gate out" value={count('MAIN_GATE_OUT')} icon={<Truck className="w-4 h-4" />} color="green" onClick={() => setFilter('MAIN_GATE_OUT')} />
+        <StatCard label="Main gate out" value={count('MAIN_GATE_OUT')} icon={<Truck className="w-4 h-4" />} color="green" onClick={() => setFilter('MAIN_GATE_OUT')} active={filter === 'MAIN_GATE_OUT'} />
       </div>
 
       <SectionCard
@@ -791,13 +791,24 @@ export default function DispatchList() {
         </div>
       </Modal>
 
-      <p className="text-[11px] text-slate-500">
-        Click a serial number to see the machine details and its progress.
-        A planned machine leaves the FG yard through the normal FG gate-out (driver badge and machine barcode); no exit request is needed.
-        After FG gate-out, PDI does the final check: Pass, or Hold with a remark and check again after rectification.
-        Main gate-out is allowed only after PDI passes the machine; it can be marked here or sent automatically by the main gate system.
-        The time since FG gate-out turns red after {alertHours} hours, and the production manager is e-mailed.
-      </p>
+      {/* How a dispatch moves, as a step strip instead of a paragraph. */}
+      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          ['1', 'FG gate-out', 'Driver badge + machine barcode at the FG gate. No exit request needed.'],
+          ['2', 'PDI check', 'Pass, or Hold with a remark and check again after rectification.'],
+          ['3', 'Main gate-out', 'Only after PDI passes. Marked here or sent by the main gate system.'],
+          ['!', `Over ${alertHours} h`, 'Time since FG gate-out turns red and the production manager is e-mailed.'],
+        ].map(([n, t, d]) => (
+          <li key={t} className="flex gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${n === '!' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{n}</span>
+            <span className="min-w-0">
+              <span className="block text-xs font-semibold text-slate-800">{t}</span>
+              <span className="block text-[11px] leading-snug text-slate-500">{d}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="text-[11px] text-slate-500">Click a serial number to see the machine details and its progress.</p>
     </div>
   );
 }

@@ -338,7 +338,7 @@ export default function DispatchPlanning() {
 
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-          <StatCard label="Open plans" value={summary.openPlans} icon={<ClipboardList />} color="indigo" hint="Not all out yet" onClick={() => showView('open')} />
+          <StatCard label="Open plans" value={summary.openPlans} icon={<ClipboardList />} color="indigo" hint="Not all out yet" onClick={() => showView('open')} active={view === 'open'} />
           <StatCard label="Waiting in FG yard" value={summary.inYard} icon={<Boxes />} color="purple" hint="Not yet out of FG yard" onClick={() => openCard('IN_YARD')} />
           <StatCard label="Waiting main gate" value={summary.outOfYard} icon={<PackageCheck />} color="amber" hint="Not yet out of main gate" onClick={() => openCard('OUT_OF_YARD')} />
           <StatCard label="Out of plant today" value={summary.mainGateOutToday} icon={<Truck />} color="green" hint="Since midnight" onClick={() => openCard('MAIN_GATE_OUT')} />
