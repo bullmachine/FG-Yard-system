@@ -150,6 +150,18 @@ body {
   animation: slowZoom 18s ease-out both;
 }
 
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+/* A form that was rejected (wrong password) shakes once. */
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
 /* A status badge whose value changed (e.g. PDI pending -> passed). */
 .animate-flash {
   animation: flash 0.9s ease-out;
