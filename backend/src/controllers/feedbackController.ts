@@ -1,6 +1,10 @@
+import fs from 'fs';
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { notifyEvent, notifyUser } from '../services/notificationService';
+import { sendMail } from '../services/mailService';
+import { getSettings } from '../services/settingsService';
+import { deleteFile, feedbackScreenshotPath, uploadedFile } from '../lib/upload';
 
 /**
  * Feedback, suggestions and issues from any signed-in user. The sender sees their
@@ -26,22 +30,59 @@ function param(req: Request, key: string): string {
   return Array.isArray(raw) ? raw[0] : raw;
 }
 
-/** Body: { type, message, page? } */
+const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+
+/**
+ * E-mail the feedback to Settings > feedback alert e-mails, or to every active Admin
+ * when that is empty. Best effort: the feedback is already saved and notified in-app.
+ */
+async function mailFeedback(f: { type: string; page: string | null; message: string; screenshot: string | null; createdBy: { name: string; email: string } }) {
+  try {
+    const s = await getSettings();
+    if (!s.smtpPassword) return;
+    let to = s.feedbackAlertEmails.split(/[,;\s]+/).filter(Boolean);
+    if (to.length === 0) {
+      const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { email: true } });
+      to = admins.map((a) => a.email);
+    }
+    if (to.length === 0) return;
+    await sendMail({
+      to,
+      subject: `FG Yard: new ${TYPE_LABEL[f.type].toLowerCase()} from ${f.createdBy.name}`,
+      html: `<p><b>${escapeHtml(TYPE_LABEL[f.type])}</b> from ${escapeHtml(f.createdBy.name)} (${escapeHtml(f.createdBy.email)})${f.page ? ` on <b>${escapeHtml(f.page)}</b>` : ''}</p>`
+        + `<p style="white-space:pre-wrap">${escapeHtml(f.message)}</p>`
+        + `<p style="color:#64748b">${f.screenshot ? 'A screenshot is attached in FG Yard. ' : ''}Open FG Yard &gt; Feedback to reply.</p>`
+    });
+  } catch (error) {
+    console.error('Feedback e-mail not sent:', error instanceof Error ? error.message : error);
+  }
+}
+
+/** Body (JSON or multipart): { type, message, page? } plus an optional screenshot file. */
 export const createFeedback = async (req: Request, res: Response) => {
+  const file = uploadedFile(req);
   try {
     const user = actor(req);
-    if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+    if (!user?.id) {
+      if (file) await deleteFile(file.path);
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const type = typeof req.body?.type === 'string' ? req.body.type : '';
     const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
     const page = typeof req.body?.page === 'string' ? req.body.page.trim().slice(0, 60) || null : null;
-    if (!TYPES.includes(type)) return res.status(400).json({ error: 'Choose Suggestion, Issue or Other' });
-    if (message.length < 5) return res.status(400).json({ error: 'Write a few words (at least 5 characters)' });
-    if (message.length > 4000) return res.status(400).json({ error: 'Keep it under 4000 characters' });
+    const invalid = !TYPES.includes(type) ? 'Choose Suggestion, Issue or Other'
+      : message.length < 5 ? 'Write a few words (at least 5 characters)'
+      : message.length > 4000 ? 'Keep it under 4000 characters' : '';
+    if (invalid) {
+      if (file) await deleteFile(file.path);
+      return res.status(400).json({ error: invalid });
+    }
 
     const saved = await prisma.feedback.create({
-      data: { type, message, page, createdById: user.id },
+      data: { type, message, page, screenshot: file?.filename ?? null, createdById: user.id },
       include
     });
+    void mailFeedback(saved);
     await notifyEvent({
       type: 'FEEDBACK_NEW',
       severity: type === 'ISSUE' ? 'WARNING' : 'INFO',
@@ -51,8 +92,26 @@ export const createFeedback = async (req: Request, res: Response) => {
     });
     res.status(201).json(saved);
   } catch (error) {
+    if (file) await deleteFile(file.path);
     console.error('createFeedback error:', error);
     res.status(500).json({ error: 'Failed to send feedback' });
+  }
+};
+
+/** The screenshot of one feedback, for its sender or an Admin. */
+export const getScreenshot = async (req: Request, res: Response) => {
+  try {
+    const user = actor(req);
+    if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+    const f = await prisma.feedback.findUnique({ where: { id: param(req, 'id') }, select: { createdById: true, screenshot: true } });
+    if (!f || (f.createdById !== user.id && user.role !== 'ADMIN')) return res.status(404).json({ error: 'Not found' });
+    const file = feedbackScreenshotPath(f.screenshot);
+    if (!file || !fs.existsSync(file)) return res.status(404).json({ error: 'No screenshot' });
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.sendFile(file);
+  } catch (error) {
+    console.error('getScreenshot error:', error);
+    res.status(500).json({ error: 'Failed to load the screenshot' });
   }
 };
 

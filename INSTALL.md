@@ -251,7 +251,43 @@ pm2 save && pm2 startup
 
 ## 12. Backups and re-runs
 
-- Back up the MySQL database regularly (phpMyAdmin *Export*, or `mysqldump`).
+### Daily database backup (built in)
+
+The backend writes a gzip backup of the whole database every night. Add to `backend/.env` and
+restart the backend:
+
+```ini
+# Folder for the backup files (created if missing)
+BACKUP_DIR=E:\fg-yard-backups\daily
+# Optional: found automatically in XAMPP on C:, D: or E:
+MYSQLDUMP_PATH=E:\xampp\mysql\bin\mysqldump.exe
+# Optional: default every night at 01:00
+BACKUP_CRON=0 1 * * *
+# Optional: default 14; the newest 3 files are always kept
+BACKUP_KEEP_DAYS=14
+```
+
+Without `BACKUP_DIR` the files go to `db-backups` in the project folder. Check
+**Settings › Database Backup** (Admin): it shows the folder and the files, and **Back up now**
+takes one immediately. A failed backup notifies every Admin.
+
+**For the Admin team:** share the `BACKUP_DIR` folder read-only with the Admin team's account and
+copy the newest `.sql.gz` file to the other system every day. The files contain user and driver
+personal data (DPDPA): keep the share and the copies restricted. The backup does not include
+`backend\.env` or the driver photos in `backend\uploads`; copy those after any change.
+
+**Restore** (to a test database first, never straight over the live one):
+
+```powershell
+# 7-Zip or `tar -xzf` extracts the .sql from the .gz
+E:\xampp\mysql\bin\mysql.exe -u root -p -e "CREATE DATABASE yard_management_restore"
+E:\xampp\mysql\bin\mysql.exe -u root -p yard_management_restore < fg-yard_2026-10-29_0100.sql
+```
+
+### Other notes
+
+- Before an update, also take a backup by hand (Settings › Database Backup › Back up now, or the
+  `mysqldump` line in section 13).
 - `npm run seed` **wipes** operational tables — never run it against data you need.
 - Read-only maintenance scripts (`verify:slots`, `slots:backfill`, `users:system`,
   `reconcile:ready-move`) are safe to re-run; see the Maintenance table in `README.md`.
@@ -293,6 +329,12 @@ curl http://localhost:5000/health
 
 `prisma db push` must be run while the backend is stopped: on Windows the running backend locks
 the database client files.
+
+**Tests (optional on the server).** `npm test` in `backend` runs the unit tests and needs nothing
+else. `npm run test:api` needs `TEST_DATABASE_URL` in `backend/.env` pointing to a separate
+database whose name ends in `_test` (it is wiped on every run), for example
+`mysql://root:<password>@localhost:3306/yard_management_test`. Never point it at the live database;
+the tests refuse any name that does not end in `_test`.
 
 **Is `npm install` needed?** Only when the package list changed. After `git pull`, run:
 

@@ -51,3 +51,10 @@ backend/uploads/
 
 # database backups (contain user and driver personal data)
 backend/prisma/backups/
+db-backups/
+
+# feedback screenshots (backend/src/lib/upload.ts)
+backend/private-uploads/
+
+# compiled tests
+backend/dist-test/

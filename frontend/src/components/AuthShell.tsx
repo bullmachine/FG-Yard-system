@@ -1,8 +1,9 @@
 'use client';
 
-import { forwardRef, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import { AlertCircle, Boxes, Eye, EyeOff, Loader2, ScanLine, Truck } from 'lucide-react';
 import { asset } from '@/lib/basePath';
+import { API_URL } from '@/lib/api';
 
 /**
  * Shared frame of the sign-in and register pages: the FG yard photo panel (desktop) or
@@ -160,5 +161,49 @@ export function AuthSubmit({ loading, label, busyLabel, icon }: { loading: boole
     >
       {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> {busyLabel}</> : <>{label} <span className="transition-transform group-hover:translate-x-0.5">{icon}</span></>}
     </button>
+  );
+}
+
+/** What the sign-in pages offer; Create account shows only when an Admin allows it. null while loading. */
+export function useAuthOptions() {
+  const [options, setOptions] = useState<{ allowRegistration: boolean; resetCodeMinutes: number } | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch(`${API_URL}/api/auth/options`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (live) setOptions(d ?? { allowRegistration: false, resetCodeMinutes: 15 }); })
+      .catch(() => { if (live) setOptions({ allowRegistration: false, resetCodeMinutes: 15 }); });
+    return () => { live = false; };
+  }, []);
+  return options;
+}
+
+/** 0-3: length 8+, letters and digits, 12+ or a symbol. Only a guide; the server requires 8+. */
+export function passwordStrength(p: string) {
+  if (p.length < 8) return 0;
+  let s = 1;
+  if (/[a-zA-Z]/.test(p) && /\d/.test(p)) s++;
+  if (p.length >= 12 || /[^a-zA-Z0-9]/.test(p)) s++;
+  return s;
+}
+
+const STRENGTH = [
+  { label: 'At least 8 characters', bar: 'bg-slate-200', text: 'text-slate-500' },
+  { label: 'Weak', bar: 'bg-red-500', text: 'text-red-700' },
+  { label: 'Good', bar: 'bg-amber-500', text: 'text-amber-700' },
+  { label: 'Strong', bar: 'bg-emerald-500', text: 'text-emerald-700' },
+];
+
+export function PasswordStrength({ id, password }: { id: string; password: string }) {
+  const level = passwordStrength(password);
+  return (
+    <div id={id} className="flex items-center gap-2 pt-0.5">
+      <div className="flex flex-1 gap-1" aria-hidden="true">
+        {[1, 2, 3].map((i) => (
+          <span key={i} className={`h-1 flex-1 rounded-full transition-colors ${level >= i ? STRENGTH[level].bar : 'bg-slate-200'}`} />
+        ))}
+      </div>
+      <span className={`w-36 text-right text-[11px] font-medium ${STRENGTH[level].text}`}>{STRENGTH[level].label}</span>
+    </div>
   );
 }

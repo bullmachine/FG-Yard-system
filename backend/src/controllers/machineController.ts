@@ -4,26 +4,10 @@ import { hasPermission } from '../services/roleAccessService';
 import { notifyEvent, pushSecurityQueueChanged, pushExitRequestsChanged } from '../services/notificationService';
 import { EXIT_REASONS, releaseMachine } from './exitRequestController';
 import { getSettings } from '../services/settingsService';
+import { autoVerifyIfCheckOff } from '../services/parkingRules';
+import { placeRows, checkRows, MAX_ROWS, StockRowInput } from '../services/stockLoadService';
 
-export const AUTO_VERIFY_NOTE = 'Auto-verified: security check is switched off in Settings';
-
-/**
- * With the security check switched off in Settings, a park is verified on the spot.
- * A SecurityVerification row is still written, marked as automatic, so the audit trail
- * shows the check was skipped rather than passed. Returns true when auto-verified.
- */
-async function autoVerifyIfCheckOff(machineId: string, slotId: string, actorId: string): Promise<boolean> {
-  const { securityVerifyRequired } = await getSettings();
-  if (securityVerifyRequired) return false;
-
-  await prisma.$transaction([
-    prisma.securityVerification.create({
-      data: { machineId, slotId, securityUserId: actorId, status: 'APPROVED', comments: AUTO_VERIFY_NOTE }
-    }),
-    prisma.machine.update({ where: { id: machineId }, data: { parkStatus: 'PARKED_VERIFIED' } })
-  ]);
-  return true;
-}
+export { AUTO_VERIFY_NOTE } from '../services/parkingRules';
 
 export const getAllMachines = async (req: Request, res: Response) => {
   try {
@@ -934,5 +918,49 @@ export const reserveReturnSlot = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('reserveReturnSlot error:', error);
     res.status(500).json({ error: 'Failed to reserve return slot' });
+  }
+};
+
+/**
+ * Bulk initial stock load from an Excel / CSV file the page has read.
+ * Body: { rows: [{ serial, yard, slot, inwardDate?, remark? }], commit?: boolean }.
+ * Without commit only the check runs; with commit the rows that pass are placed.
+ */
+export const bulkAllocate = async (req: Request, res: Response) => {
+  try {
+    const actorId = (req as Request & { user?: { id: string } }).user?.id;
+    if (!actorId) return res.status(401).json({ error: 'Authentication required' });
+    const { initialStockLoad } = await getSettings();
+    if (!initialStockLoad) {
+      return res.status(403).json({ error: 'Initial stock load is off. An Admin can switch it on in Settings.' });
+    }
+    const raw: unknown = req.body?.rows;
+    if (!Array.isArray(raw) || raw.length === 0) return res.status(400).json({ error: 'The file has no rows' });
+    if (raw.length > MAX_ROWS) return res.status(400).json({ error: `At most ${MAX_ROWS} rows per file. Split the file.` });
+    const text = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v).trim().slice(0, 120) : '');
+    const rows: StockRowInput[] = raw.map((r: Record<string, unknown>) => ({
+      serial: text(r?.serial), yard: text(r?.yard), slot: text(r?.slot), inwardDate: text(r?.inwardDate), remark: text(r?.remark)
+    }));
+
+    if (req.body?.commit !== true) {
+      const results = await checkRows(rows);
+      return res.json({ results, ok: results.filter((r) => r.ok).length });
+    }
+
+    const { results, placed, pending } = await placeRows(rows, actorId);
+    if (pending > 0) {
+      await notifyEvent({
+        type: 'SECURITY_REVIEW',
+        severity: 'WARNING',
+        title: 'Security review needed',
+        message: `${pending} machine${pending === 1 ? '' : 's'} placed by the initial stock load (bulk) ${pending === 1 ? 'is' : 'are'} awaiting verification.`,
+        link: 'security'
+      });
+      await pushSecurityQueueChanged('parked', { machineId: '', serialNumber: `${pending} machines` });
+    }
+    res.json({ results, placed, pending });
+  } catch (error) {
+    console.error('bulkAllocate error:', error);
+    res.status(500).json({ error: 'Failed to load the stock file' });
   }
 };

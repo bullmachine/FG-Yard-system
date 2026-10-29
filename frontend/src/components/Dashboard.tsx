@@ -11,10 +11,11 @@ import { ParkStatusBadge, SlotStatusBadge } from '@/components/ui/StatusBadge';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
+import { TrendChart, ActivityFeed, PlanProgress, TrendDay, ActivityItem, OpenPlan } from '@/components/DashboardWidgets';
 import { slotLabel, formatDateTime } from '@/lib/format';
 import {
   Truck, MapPin, Package, CheckCircle2, Search, ArrowRight, Map, RefreshCw, AlertTriangle,
-  Clock, Send, ShieldAlert, Fence, Shield, ChevronRight, Boxes, ClipboardList, LogOut, Undo2, CalendarDays
+  Clock, Send, ShieldAlert, Fence, Shield, Boxes, ClipboardList, LogOut, Undo2, CalendarDays, PauseCircle
 } from 'lucide-react';
 
 /**
@@ -48,6 +49,7 @@ interface DispatchMachine {
   driver: string | null;
   gateOutAt: string | null;
   overdue: boolean;
+  pdiStatus?: string | null;
 }
 
 interface Capped<T> { count: number; items: T[] }
@@ -86,7 +88,11 @@ interface DashboardData {
     toLoad: Capped<DispatchMachine>;
     awaitingMainGate: Capped<DispatchMachine>;
     overdue: Capped<DispatchMachine>;
+    pdiHold: Capped<DispatchMachine>;
+    openPlans: { count: number; items: OpenPlan[] };
   };
+  trend: TrendDay[];
+  activity: ActivityItem[];
   exitRequestsPending: number;
 }
 
@@ -268,7 +274,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
     { tab: 'parked', label: 'Confirm Parking', hint: 'Confirm a machine parked in its slot', icon: <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />, iconWrap: 'bg-amber-100 group-hover:bg-amber-200', hover: 'hover:bg-amber-50 hover:border-amber-200', arrow: 'group-hover:text-amber-600' },
     { tab: 'security', label: 'Security Verification', hint: 'Approve or reject parked machines', icon: <Shield className="w-3.5 h-3.5 text-red-600" />, iconWrap: 'bg-red-100 group-hover:bg-red-200', hover: 'hover:bg-red-50 hover:border-red-200', arrow: 'group-hover:text-red-600' },
     { tab: 'requests', label: 'Exit Requests', hint: 'Request or approve machines leaving', icon: <Send className="w-3.5 h-3.5 text-sky-600" />, iconWrap: 'bg-sky-100 group-hover:bg-sky-200', hover: 'hover:bg-sky-50 hover:border-sky-200', arrow: 'group-hover:text-sky-600' },
-  ].filter((action) => can(action.tab)).slice(0, 5);
+  ].filter((action) => can(action.tab)).slice(0, 4);
 
   if (loading) return <PageSpinner />;
 
@@ -301,6 +307,13 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
       hint: `Out of the FG yard over ${data.settings.dispatchAlertHours} h, not through the main gate`,
       tone: 'border-red-200 bg-red-50 text-red-800', iconTone: 'bg-red-600',
       onOpen: () => openDispatch('Overdue at main gate', dispatch.overdue), tab: 'pdi',
+    },
+    dispatch.pdiHold.count > 0 && {
+      key: 'pdihold', count: dispatch.pdiHold.count, icon: <PauseCircle className="w-4 h-4" />,
+      title: 'PDI hold',
+      hint: 'Out of the FG yard, held by PDI until rectified',
+      tone: 'border-amber-200 bg-amber-50 text-amber-800', iconTone: 'bg-amber-600',
+      onOpen: () => openDispatch('PDI hold', dispatch.pdiHold), tab: 'pdi',
     },
     inbound.stuck.count > 0 && {
       key: 'stuck', count: inbound.stuck.count, icon: <Clock className="w-4 h-4" />,
@@ -417,62 +430,111 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
         <StatCard label="Today In/Out" value={`${today.gateIn} / ${today.gateOut}`} icon={<CalendarDays className="w-4 h-4" />} color="slate" hint={`Main gate: ${today.mainGateOut}`} />
       </div>
 
-      {/* Needs attention */}
+      {/* Needs attention: one row of chips; each opens its list. */}
       {attention.length === 0 ? (
-        <div className="flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <p className="text-xs font-medium text-emerald-800">Nothing needs attention right now.</p>
+          <p className="text-xs font-medium text-emerald-800">All clear. Nothing needs attention right now.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          {attention.map((a) => (
-            <div key={a.key} className={`rounded-lg border p-3 ${a.tone}`}>
-              <button type="button" onClick={a.onOpen} className="flex w-full items-start gap-2.5 text-left">
-                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white ${a.iconTone}`}>{a.icon}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline gap-1.5">
-                    {a.count > 0 && <span className="text-lg font-bold tabular-nums leading-none">{a.count}</span>}
-                    <span className="text-[13px] font-semibold">{a.title}</span>
-                  </span>
-                  <span className="mt-0.5 block text-[11px] opacity-80">{a.hint}</span>
-                </span>
-              </button>
-              {can(a.tab) && onNavigate && (
-                <button type="button" onClick={() => onNavigate(a.tab)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold hover:underline">
-                  Open {tabName[a.tab]} <ArrowRight className="w-3 h-3" />
+        <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-[0_1px_2px_0_rgb(2_6_23_/_0.05)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1.5 px-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Needs attention
+            </span>
+            {attention.map((a) => (
+              <div key={a.key} className={`group flex items-center rounded-lg border ${a.tone}`}>
+                <button type="button" onClick={a.onOpen} title={a.hint} className="flex items-center gap-2 py-1.5 pl-1.5 pr-2.5 text-left">
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white [&>svg]:h-3.5 [&>svg]:w-3.5 ${a.iconTone}`}>{a.icon}</span>
+                  {a.count > 0 && <span className="text-sm font-bold tabular-nums leading-none">{a.count}</span>}
+                  <span className="text-xs font-semibold">{a.title}</span>
                 </button>
-              )}
-            </div>
-          ))}
+                {can(a.tab) && onNavigate && (
+                  <button type="button" onClick={() => onNavigate(a.tab)} title={`Open ${tabName[a.tab]}`} aria-label={`Open ${tabName[a.tab]}`}
+                    className="flex h-full items-center border-l border-current/15 px-2 py-1.5 opacity-60 transition-opacity hover:opacity-100">
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* FG yard flow: one count per step, left to right */}
+      {/* FG yard flow: one count per step, left to right, filling the width. */}
       <SectionCard title="FG Yard Flow" description="From release to the yard, through dispatch, to the main gate">
-        <div className="flex flex-wrap items-stretch gap-1.5">
+        <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
           {flow.map((step, index) => (
-            <div key={step.key} className="flex items-center gap-1.5">
+            <li key={step.key} className="relative">
               <button
                 type="button"
                 onClick={step.open}
-                className={`min-w-[96px] rounded-lg border px-3 py-2 text-left transition-shadow hover:shadow-sm ${step.tone} ${step.count === 0 ? 'opacity-60' : ''}`}
+                className={`w-full rounded-lg border px-3 py-2 text-left transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-sm ${step.tone} ${step.count === 0 ? 'opacity-60' : ''}`}
               >
-                <p className="text-lg font-bold tabular-nums leading-tight">{step.count}</p>
-                <p className="text-[11px] font-medium whitespace-nowrap">{step.label}</p>
+                <span className="flex items-center justify-between">
+                  <span className="text-xl font-bold tabular-nums leading-tight">{step.count}</span>
+                  <span className="text-[10px] font-semibold opacity-50">{index + 1}</span>
+                </span>
+                <span className="block truncate text-[11px] font-medium">{step.label}</span>
               </button>
-              {index < flow.length - 1 && <ChevronRight className="hidden sm:block w-4 h-4 text-slate-300 shrink-0" />}
-            </div>
+              {index < flow.length - 1 && (
+                <span className="pointer-events-none absolute -right-[7px] top-1/2 z-10 hidden h-3 w-3 -translate-y-1/2 rotate-45 border-r border-t border-slate-300 bg-white xl:block" aria-hidden="true" />
+              )}
+            </li>
           ))}
-        </div>
+        </ol>
       </SectionCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Trend and live activity */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <SectionCard title="Stock by Model-Type" description="Machines in the FG yard; oldest free age is from first inward">
+          <SectionCard className="h-full" title="Last 7 Days" description="Machines through the FG gate and the main gate, per day">
+            <TrendChart days={data.trend} />
+          </SectionCard>
+        </div>
+        <SectionCard className="h-full" title="Activity" description="Latest yard events, newest first" bodyClassName="max-h-[280px] overflow-y-auto">
+          <ActivityFeed items={data.activity} />
+        </SectionCard>
+      </div>
+
+      {/* Dispatch progress and stock age */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <SectionCard
+            className="h-full"
+            title="Open Dispatch Plans"
+            description={`${dispatch.openPlans.count} plan${dispatch.openPlans.count === 1 ? '' : 's'} with machines still on the way, oldest first`}
+          >
+            <PlanProgress plans={dispatch.openPlans.items} total={dispatch.openPlans.count} now={Date.parse(data.generatedAt)} onOpen={can('dispatch') && onNavigate ? () => onNavigate('dispatch') : undefined} />
+          </SectionCard>
+        </div>
+        <SectionCard className="h-full" title="Stock Age" description="Days since first inward, all machines in the yard">
+          <div className="space-y-2.5">
+            {stock.ageBands.map((b, i) => (
+              <div key={b.label}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600">{b.label}</span>
+                  <span className="font-semibold tabular-nums text-slate-900">{b.count}</span>
+                </div>
+                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className={`h-full rounded-full ${i === 3 ? 'bg-red-400' : i === 2 ? 'bg-amber-400' : 'bg-teal-400'}`} style={{ width: `${(b.count / maxBand) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+            {stock.undated > 0 && <p className="text-[11px] text-slate-500">{stock.undated} machine{stock.undated === 1 ? '' : 's'} with no inward date</p>}
+            {stock.exitPending > 0 && <p className="text-[11px] text-slate-500">{stock.exitPending} on an open exit request</p>}
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* Stock by model-type, with search and shortcuts beside it */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <SectionCard className="h-full" title="Stock by Model-Type" description="Machines in the FG yard; oldest free age is from first inward">
             {stock.byModelType.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-3">No machines in the FG yard</p>
             ) : (
-              <Table maxHeight={320}>
+              <Table maxHeight={300}>
                 <TableHeader sticky>
                   <TableHeaderCell>Model-Type</TableHeaderCell>
                   <TableHeaderCell align="right">In Yard</TableHeaderCell>
@@ -483,7 +545,13 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
                 <TableBody>
                   {stock.byModelType.map((g) => (
                     <TableRow key={g.modelType} onClick={can('stock') ? () => onNavigate?.('stock') : undefined}>
-                      <TableCell className="text-[13px] font-medium text-slate-900">{g.modelType}</TableCell>
+                      <TableCell className="text-[13px] font-medium text-slate-900">
+                        {g.modelType}
+                        <span className="mt-1 flex h-1.5 w-full max-w-[160px] overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+                          <span className="bg-emerald-500" style={{ width: `${(g.free / Math.max(1, g.total)) * 100}%` }} />
+                          <span className="bg-indigo-400" style={{ width: `${(g.planned / Math.max(1, g.total)) * 100}%` }} />
+                        </span>
+                      </TableCell>
                       <TableCell align="right" className="text-[13px] tabular-nums">{g.total}</TableCell>
                       <TableCell align="right" className={`text-[13px] tabular-nums font-semibold ${g.free > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>{g.free}</TableCell>
                       <TableCell align="right" className="text-[13px] tabular-nums text-indigo-700">{g.planned || '—'}</TableCell>
@@ -498,87 +566,47 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
           </SectionCard>
         </div>
 
-        <SectionCard title="Stock Age" description="Days since first inward, all machines in the yard">
-          <div className="space-y-2.5">
-            {stock.ageBands.map((b, i) => (
-              <div key={b.label}>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-600">{b.label}</span>
-                  <span className="font-semibold tabular-nums text-slate-900">{b.count}</span>
-                </div>
-                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div className={i === 3 ? 'h-full bg-red-400' : i === 2 ? 'h-full bg-amber-400' : 'h-full bg-teal-400'} style={{ width: `${(b.count / maxBand) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-            {stock.undated > 0 && <p className="text-[11px] text-slate-500">{stock.undated} machine{stock.undated === 1 ? '' : 's'} with no inward date</p>}
-            {stock.exitPending > 0 && <p className="text-[11px] text-slate-500">{stock.exitPending} on an open exit request</p>}
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <SectionCard title="Quick Search" description="Find FG yard machines by serial number, model, model-type or barcode">
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search by serial, model, model-type or barcode..."
-              icon={<Search className="w-4 h-4" />}
-            />
-            {searchResults.length > 0 && (
-              <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto">
-                {searchResults.slice(0, LIST_CAP).map((m: any) => (
-                  <div key={m.id} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-md border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 bg-blue-100 rounded-md flex items-center justify-center shrink-0">
-                        <Truck className="w-3.5 h-3.5 text-blue-600" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-slate-900 truncate">{m.serialNumber}</p>
-                        <p className="text-xs text-slate-500 truncate">{m.model || 'N/A'} — {machineLocation(m)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="hidden sm:inline"><ParkStatusBadge status={m.parkStatus} /></span>
-                      <button onClick={() => handleViewDetails(m.id)} className="text-xs font-medium text-blue-700 hover:text-blue-900 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors">
-                        View
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {searchQuery.length >= 2 && searchPool && searchResults.length === 0 && (
-              <p className="text-xs text-slate-500 mt-2 text-center">No FG yard machines found for &quot;{searchQuery}&quot;</p>
-            )}
-            <MoreHint total={searchResults.length} cap={LIST_CAP} label="matches not shown — keep typing to narrow" />
-          </SectionCard>
-        </div>
-
-        {quickActions.length > 0 && (
-          <SectionCard title="Quick Actions">
-            <div className="space-y-1.5">
+        <SectionCard className="h-full" title="Find & Go" description="Search FG yard machines, or jump to a screen">
+          <Input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Serial, model, model-type or barcode..."
+            icon={<Search className="w-4 h-4" />}
+          />
+          {searchResults.length > 0 && (
+            <div className="mt-2 space-y-1 max-h-56 overflow-y-auto">
+              {searchResults.slice(0, LIST_CAP).map((m: any) => (
+                <button type="button" key={m.id} onClick={() => handleViewDetails(m.id)} className="flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 text-left transition-colors hover:border-blue-200 hover:bg-blue-50">
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] font-medium text-slate-900">{m.serialNumber}</span>
+                    <span className="block truncate text-xs text-slate-500">{m.model || 'N/A'} — {machineLocation(m)}</span>
+                  </span>
+                  <span className="shrink-0"><ParkStatusBadge status={m.parkStatus} /></span>
+                </button>
+              ))}
+            </div>
+          )}
+          {searchQuery.length >= 2 && searchPool && searchResults.length === 0 && (
+            <p className="text-xs text-slate-500 mt-2 text-center">No FG yard machines found for &quot;{searchQuery}&quot;</p>
+          )}
+          <MoreHint total={searchResults.length} cap={LIST_CAP} label="matches not shown — keep typing to narrow" />
+          {quickActions.length > 0 && searchQuery.length < 2 && (
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
               {quickActions.map((action) => (
                 <button
                   key={action.tab}
                   onClick={() => onNavigate?.(action.tab)}
-                  className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-200 ${action.hover} transition-colors text-left group`}
+                  title={action.hint}
+                  className={`group flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-left transition-colors ${action.hover}`}
                 >
-                  <div className={`w-7 h-7 rounded-md flex items-center justify-center ${action.iconWrap} transition-colors shrink-0`}>
-                    {action.icon}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium text-slate-900">{action.label}</p>
-                    <p className="text-xs text-slate-500">{action.hint}</p>
-                  </div>
-                  <ArrowRight className={`w-3.5 h-3.5 text-slate-400 ml-auto ${action.arrow} transition-colors shrink-0`} />
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors ${action.iconWrap}`}>{action.icon}</span>
+                  <span className="min-w-0 text-xs font-medium leading-tight text-slate-800">{action.label}</span>
                 </button>
               ))}
             </div>
-          </SectionCard>
-        )}
+          )}
+        </SectionCard>
       </div>
 
       {/* Yard capacity */}
@@ -587,7 +615,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
           title="Yard Capacity"
           description={`${slots.available} of ${slots.total} slots free across ${data.yards.length} yard${data.yards.length === 1 ? '' : 's'}`}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {data.yards.map((yard) => {
               const total = yard.totalSlots;
               const counts = yard.slotCounts;
@@ -631,15 +659,15 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
         </SectionCard>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <SectionCard title="In Transit" description="Checked in at the gate, not yet parked">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <SectionCard className="h-full" title="In Transit" description="Checked in at the gate, not yet parked">
           {machineList(
             inbound.inTransit, 'bg-blue-500', 'bg-blue-50 border border-blue-200 hover:border-blue-300', 'Nothing on the road',
             (m) => [m.driver ? `Driver ${m.driver}` : location(m), m.since ? `${elapsed(m.since)} ago` : ''].filter(Boolean).join(' · ')
           )}
         </SectionCard>
 
-        <SectionCard title="Awaiting Verification" description="Parked machines a guard still has to check">
+        <SectionCard className="h-full" title="Awaiting Verification" description="Parked machines a guard still has to check">
           {machineList(
             { count: inbound.awaitingVerify.count + inbound.rejected.count, items: [...inbound.rejected.items, ...inbound.awaitingVerify.items] },
             'bg-amber-500', 'bg-amber-50 border border-amber-200 hover:border-amber-300', 'All clear — nothing awaiting a guard',
@@ -647,7 +675,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
           )}
         </SectionCard>
 
-        <SectionCard title="Awaiting Main Gate" description="Out of the FG yard, not yet out of the plant">
+        <SectionCard className="h-full" title="Awaiting Main Gate" description="Out of the FG yard, not yet out of the plant">
           {dispatch.awaitingMainGate.count === 0 ? (
             <p className="text-sm text-slate-500 text-center py-3">Nothing between the FG yard and the main gate</p>
           ) : (

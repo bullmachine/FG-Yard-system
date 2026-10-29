@@ -122,6 +122,25 @@ model User {
   feedbackSent          Feedback[]             @relation("FeedbackBy")
   feedbackHandled       Feedback[]             @relation("FeedbackHandledBy")
   loginEvents           LoginEvent[]
+  passwordResets        PasswordReset[]
+  // Set when the password changes (reset or by an Admin); older sign-in tokens stop working.
+  passwordChangedAt     DateTime?
+}
+
+// Forgot-password codes (passwordResetService). Only the hash is kept; a code is valid
+// 15 minutes, for 5 tries, and is deleted when a newer one is asked for or it is used.
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String    @db.VarChar(64)
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 enum NotificationSeverity {
@@ -589,6 +608,13 @@ model SystemSetting {
   initialStockLoad       Boolean @default(false)
   // Alert when a machine stays IN_TRANSIT this long after gate IN (0 = off).
   inTransitAlertMinutes  Int     @default(30)
+  // On = the login page shows Create account and anyone can register (as View Only).
+  // Off (default) = only an Admin creates accounts in User Management.
+  allowRegistration      Boolean @default(false)
+  // On = the person who confirmed a parking cannot also approve it; a second person must.
+  parkingTwoPersonRule   Boolean @default(true)
+  // Who is e-mailed when feedback arrives. Empty = every active Admin user.
+  feedbackAlertEmails    String  @default("") @db.VarChar(500)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -634,6 +660,8 @@ model Feedback {
   createdById String
   handledById String?
   handledAt   DateTime?
+  // Optional screenshot, stored under backend/private-uploads/feedback (not public).
+  screenshot  String?   @db.VarChar(120)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

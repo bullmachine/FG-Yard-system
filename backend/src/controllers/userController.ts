@@ -137,7 +137,8 @@ export const updateUser = async (req: Request, res: Response) => {
         email: normalizedEmail,
         role: nextRole,
         isActive: nextIsActive,
-        ...(password ? { password: await hashPassword(password) } : {}),
+        // A new password set for someone else signs them out everywhere.
+        ...(password ? { password: await hashPassword(password), ...(userId !== currentUserId && { passwordChangedAt: new Date() }) } : {}),
       },
       select: userSelect,
     });

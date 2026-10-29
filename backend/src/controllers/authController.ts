@@ -5,14 +5,60 @@ import { permissionsFor } from '../services/roleAccessService';
 import { recordLogin, recordLogout } from '../services/loginHistoryService';
 import { hashPassword, comparePassword, generateToken } from '../lib/auth';
 import { notifyEvent } from '../services/notificationService';
+import { getSettings } from '../services/settingsService';
+import { requestReset, resetPassword, CODE_MINUTES } from '../services/passwordResetService';
 
 type AuthenticatedRequest = Request & { userId?: string };
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isUniqueConstraintError = (error: unknown) => error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 
+/** Public: what the login page offers (Create account only when an Admin allows it). */
+export const authOptions = async (_req: Request, res: Response) => {
+  try {
+    const { allowRegistration } = await getSettings();
+    res.json({ allowRegistration, resetCodeMinutes: CODE_MINUTES });
+  } catch {
+    res.json({ allowRegistration: false, resetCodeMinutes: CODE_MINUTES });
+  }
+};
+
+/** Body: { email }. The same answer whether or not the account exists. */
+export const forgotPassword = async (req: Request, res: Response) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Enter a valid e-mail address' });
+  try {
+    await requestReset(req, email);
+  } catch (error) {
+    console.error('forgotPassword error:', error);
+  }
+  res.json({ ok: true });
+};
+
+/** Body: { email, code, password }. */
+export const resetPasswordHandler = async (req: Request, res: Response) => {
+  try {
+    const email = typeof req.body?.email === 'string' ? req.body.email : '';
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+    const password = req.body?.password;
+    if (typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ error: 'The new password needs at least 8 characters' });
+    }
+    const result = await resetPassword(req, email, code, password);
+    if (!result.ok) return res.status(400).json({ error: result.error });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('resetPassword error:', error);
+    res.status(500).json({ error: 'Failed to reset the password' });
+  }
+};
+
 export const register = async (req: Request, res: Response) => {
   try {
+    const { allowRegistration } = await getSettings();
+    if (!allowRegistration) {
+      return res.status(403).json({ error: 'Creating an account here is switched off. Ask your administrator for an account.' });
+    }
     const { name, email, password } = req.body;
     const normalizedName = typeof name === 'string' ? name.trim() : '';
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';

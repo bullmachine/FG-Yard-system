@@ -9,6 +9,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { API_URL, authHeaders } from '@/lib/api';
+import BackupCard from '@/components/BackupCard';
 
 interface Settings {
   productionApiUrl: string;
@@ -40,6 +41,9 @@ interface Settings {
   securityVerifyRequired: boolean;
   initialStockLoad: boolean;
   inTransitAlertMinutes: number;
+  parkingTwoPersonRule: boolean;
+  feedbackAlertEmails: string;
+  allowRegistration: boolean;
 }
 
 interface ProbeResult {
@@ -76,7 +80,10 @@ const EMPTY: Settings = {
   mainGateApiKey: '',
   securityVerifyRequired: true,
   initialStockLoad: false,
-  inTransitAlertMinutes: 30
+  inTransitAlertMinutes: 30,
+  parkingTwoPersonRule: true,
+  feedbackAlertEmails: '',
+  allowRegistration: false
 };
 
 export default function SettingsPage() {
@@ -181,7 +188,10 @@ export default function SettingsPage() {
           dispatchAlertEnabled: settings.dispatchAlertEnabled,
           securityVerifyRequired: settings.securityVerifyRequired,
           initialStockLoad: settings.initialStockLoad,
-          inTransitAlertMinutes: Number(settings.inTransitAlertMinutes)
+          inTransitAlertMinutes: Number(settings.inTransitAlertMinutes),
+          parkingTwoPersonRule: settings.parkingTwoPersonRule,
+          feedbackAlertEmails: settings.feedbackAlertEmails,
+          allowRegistration: settings.allowRegistration
         })
       });
 
@@ -552,6 +562,27 @@ export default function SettingsPage() {
       </SectionCard>
 
       <SectionCard
+        title="Accounts"
+        description="How people get an account. Forgot password always works: a 6-digit code is e-mailed (with the SMTP settings above), or the Admins are notified when it cannot be sent."
+      >
+        <div className={`flex items-start gap-3 rounded-lg border p-3 ${settings.allowRegistration ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50/60'}`}>
+          <input
+            type="checkbox"
+            id="allowRegistration"
+            checked={settings.allowRegistration}
+            onChange={(e) => update('allowRegistration', e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="allowRegistration" className="text-xs text-slate-700">
+            <span className="font-semibold">Show Create account</span> on the login page, so anyone can register (as View Only).
+            <span className="mt-1 block text-[11px] text-slate-500">
+              Off (recommended): only an Admin creates accounts in User Management. Admins are notified of every new registration.
+            </span>
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard
         title="Parking & Security Check"
         description="After the driver confirms parking, security verifies the machine in its slot. Only verified machines count as free stock and can be planned for dispatch."
       >
@@ -566,6 +597,21 @@ export default function SettingsPage() {
             />
             <label htmlFor="securityVerifyRequired" className="text-xs text-slate-700">
               Security must verify every parked machine (recommended).
+            </label>
+          </div>
+          <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <input
+              type="checkbox"
+              id="parkingTwoPersonRule"
+              checked={settings.parkingTwoPersonRule}
+              onChange={(e) => update('parkingTwoPersonRule', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="parkingTwoPersonRule" className="text-xs text-slate-700">
+              <span className="font-semibold">Two-person rule</span>: the person who confirmed a parking cannot also approve it (recommended).
+              <span className="mt-1 block text-[11px] text-slate-500">
+                For example, a guard who confirms parking for a driver needs another guard to approve it. Rejecting is always allowed.
+              </span>
             </label>
           </div>
           {!settings.securityVerifyRequired && (
@@ -584,7 +630,7 @@ export default function SettingsPage() {
             />
             <label htmlFor="initialStockLoad" className="text-xs text-slate-700">
               <span className="font-semibold">Initial stock load</span>: let an Admin or Yard Manager place machines that are already parked
-              in the yard straight into their slot (Machine Tracking &gt; Allocate), without Gate Control.
+              in the yard straight into their slot (Machine Tracking &gt; Allocate, or Upload Stock List from Excel), without Gate Control.
               <span className="mt-1 block text-[11px] text-slate-500">
                 Keep this off. Switch it on only while entering the machines parked before go-live, then switch it off again.
                 When off, machines enter the yard only through Gate Control.
@@ -659,6 +705,22 @@ export default function SettingsPage() {
           </div>
         </div>
       </SectionCard>
+
+      <SectionCard
+        title="Feedback Alert"
+        description="New feedback, suggestions and issues are e-mailed here (with the SMTP settings above), as well as shown in Feedback."
+      >
+        <Input
+          label="Send to"
+          value={settings.feedbackAlertEmails}
+          onChange={(e) => update('feedbackAlertEmails', e.target.value)}
+          error={fieldErrors.feedbackAlertEmails}
+          placeholder="Empty = every active Admin user"
+          hint="Separate several addresses with commas. Leave empty to e-mail every active Admin."
+        />
+      </SectionCard>
+
+      <BackupCard />
 
       <SectionCard
         title="Main Gate Integration"

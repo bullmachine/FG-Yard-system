@@ -3,6 +3,68 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 29 October 2026, second update
+
+**Update needs:** `npx prisma db push` (new columns and one new table, PasswordReset; nothing
+removed), backend and frontend rebuild. No new packages, so `npm install` is
+not needed. Add the backup lines to `backend/.env` (INSTALL.md › 12). Take a database backup first.
+
+### Dashboard
+- New layout without empty gaps: top cards, a single **Needs attention** row (now also PDI hold),
+  the FG Yard Flow across the full width, then two-column rows.
+- **Last 7 Days** chart: FG gate in, FG gate out and main gate out per day, with hover numbers and
+  a table view.
+- **Activity**: the latest yard events (gate in / out, parking verified / rejected, PDI, main gate
+  out) with who and when.
+- **Open Dispatch Plans**: progress of each open plan (out of plant, out of FG yard, in yard) and
+  its PDI holds.
+- **Find & Go** puts machine search and the screen shortcuts in one card.
+
+### Forgot password and Create account
+- **Forgot your password?** on the login page: enter the work e-mail, a 6-digit code is e-mailed
+  (valid 15 minutes, 5 tries), then set a new password. The page never says whether an account
+  exists. When the code cannot be e-mailed (SMTP not set up, or it failed), the Admins get a
+  *Password reset requested* alert and reset it in User Management.
+- A password reset, or a new password set by an Admin, signs that account out of every device.
+  Reset requests and results appear in Login History.
+- **Create account** on the login page is now **off by default**. **Settings › Accounts › Show
+  Create account** switches it on; when off, only an Admin creates accounts (the server refuses
+  self-registration too).
+
+### Daily database backup
+- The backend saves the whole database every night at 01:00 into a folder on the server
+  (`BACKUP_DIR`, gzip files named `fg-yard_YYYY-MM-DD_HHMM.sql.gz`). Kept 14 days; the newest 3 are
+  always kept. The Admin team copies the files from that folder to another system.
+- **Settings › Database Backup** (Admin): folder, last result, the files, and **Back up now**.
+- A failed backup notifies every Admin.
+
+### Two-person rule for parking
+- The person who confirmed a parking (driver, yard office or security) cannot also approve it;
+  another person must. Rejecting is always allowed. On by default; **Settings › Parking & Security
+  Check** switches it off (for a shift with only one guard, for example).
+- **Security Verification** shows who parked each machine and greys out Approve on your own.
+
+### Bulk stock load from Excel
+- **Machine Tracking › Upload Stock List** (Admin, Yard Manager, only while Initial stock load is
+  on): an Excel (.xlsx) or CSV file with Serial Number, Yard, Slot and optional Inward Date and
+  Remark. Every row is checked first (Stage 18, barcode, slot free, no duplicates) and shown; only
+  the rows that pass are placed, and each still goes to Security. Template download included.
+
+### Feedback
+- A screenshot can be added to feedback (choose a file, or Print Screen then Ctrl+V). It is kept
+  outside the public folder and only the sender and Admins can open it.
+- New feedback is e-mailed to **Settings › Feedback Alert** addresses, or every active Admin
+  when that is empty (needs the SMTP settings).
+
+### Other
+- **Login page:** "How to use FG Yard" opens a short getting-started note.
+- **SOP:** the role checklists are marked *Version 0.1 DRAFT, not yet reviewed by Quality*, on the
+  page and on every printout, until Quality reviews them.
+- **Fix:** a Settings e-mail list containing the letter "s" (for example `sales@...`) was split
+  into broken addresses on save. Commas, semicolons and spaces now separate addresses.
+- **For IT:** automated tests (`npm test`, `npm run test:api` in `backend`) and a GitHub Actions
+  check on every push. See README › Tests.
+
 ## 29 October 2026
 
 **Update needs:** `npx prisma db push` (two new tables: Feedback and LoginEvent, nothing removed),
@@ -28,6 +90,15 @@ already on the 28 October update. Take a database backup first.
 - Login page with the FG yard photo and the Bull logo in its real colours beside the FG Yard name;
   on phones the photo sits at the top with the form under it, no empty space, no zoom on iPhone.
 - Opening the app without signing in now goes to the login page (Help needs a sign-in).
+- Login and Create account pages redesigned and made more compact: show/hide password, Caps Lock
+  warning, password strength and match check on Create account.
+- All screens refreshed: darker sidebar with the section and page in the top bar, the signed-in
+  user beside the bell, tighter tables and form fields, popups as bottom sheets on phones.
+- Gate Control shows the three steps as numbered circles, bigger scan fields, and a clear
+  Authorized / Refused result. Dispatch Machine List shows the four dispatch steps; FG Yard cards
+  show a free / occupied / reserved / blocked bar.
+- Short, subtle animations (page change, popups, status changes); off when Windows "reduce motion"
+  is on.
 - Popups always open in the middle of the screen (the Feedback popup was stuck to the top bar).
 
 ## 28 October 2026

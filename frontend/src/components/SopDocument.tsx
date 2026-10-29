@@ -115,6 +115,7 @@ const roleGuides: RoleGuide[] = [
       'Do not let in a driver without the red or green T-shirt.',
       'Do not type a barcode from paper or memory in place of scanning the label.',
       'Do not approve parking without seeing the machine in the slot.',
+      'Do not approve a parking you confirmed yourself; another guard approves it.',
     ],
   },
   {
@@ -206,6 +207,21 @@ const roleGuides: RoleGuide[] = [
 ];
 
 // Each user opens on the checklist for their own role; other roles see all of them.
+/**
+ * Review status of the checklists below. They were drafted from the SOP for the app and
+ * are not yet reviewed by Quality. When Quality approves them, fill in reviewedBy and
+ * date (and the version) here; the draft notice then disappears from the page and print.
+ */
+const CHECKLIST_REVIEW: { version: string; reviewedBy: string | null; date: string | null } = {
+  version: '0.1',
+  reviewedBy: null,
+  date: null,
+};
+const CHECKLIST_DRAFT = !CHECKLIST_REVIEW.reviewedBy;
+const REVIEW_LINE = CHECKLIST_DRAFT
+  ? `Version ${CHECKLIST_REVIEW.version} DRAFT - not yet reviewed by Quality`
+  : `Version ${CHECKLIST_REVIEW.version} - reviewed by ${CHECKLIST_REVIEW.reviewedBy}, ${CHECKLIST_REVIEW.date}`;
+
 const GUIDE_FOR_ROLE: Record<string, GuideKey> = { SECURITY: 'security', DRIVER: 'operator', PLANNER: 'planner', PDI: 'pdi' };
 
 const esc = (v: string) =>
@@ -223,7 +239,7 @@ function printChecklists(guides: RoleGuide[], printedBy: string) {
           <h1>Checklist: ${esc(g.role)}</h1>
           <p class="meta">SOP – FG Yard Gate System (Quality Department, Oct 23, 2026) · ${esc(g.steps)}</p>
         </div>
-        <p class="meta right">FG Yard</p>
+        <p class="meta right">FG Yard${CHECKLIST_DRAFT ? '<br><span class="draft">DRAFT</span>' : ''}</p>
       </div>
       ${g.checklist.map((c) => `
         ${c.heading ? `<h2>${esc(c.heading)}</h2>` : ''}
@@ -235,7 +251,7 @@ function printChecklists(guides: RoleGuide[], printedBy: string) {
       </div>
       <div class="sign"><span>Name</span><span>Date</span><span>Signature</span></div>
       <p class="foot">App guidance: how this role carries out its SOP steps in FG Yard. Not part of the issued SOP.
-        Printed ${esc(formatDateTime(new Date().toISOString()))}${printedBy ? ` by ${esc(printedBy)}` : ''}.</p>
+        ${esc(REVIEW_LINE)}. Printed ${esc(formatDateTime(new Date().toISOString()))}${printedBy ? ` by ${esc(printedBy)}` : ''}.</p>
     </section>`).join('');
 
   const w = window.open('', '_blank', 'width=900,height=700');
@@ -265,6 +281,7 @@ function printChecklists(guides: RoleGuide[], printedBy: string) {
       .sign { display: flex; gap: 24px; margin-top: 36px; }
       .sign span { flex: 1; border-top: 1px solid #333; padding-top: 4px; text-align: center; font-size: 11px; }
       .foot { margin-top: 14px; font-size: 10px; color: #666; }
+      .draft { display: inline-block; margin-top: 4px; border: 1.5px solid #b45309; color: #b45309; padding: 1px 6px; border-radius: 3px; font-size: 10px; letter-spacing: .08em; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     </style></head><body>${pages}
     <script>window.onload = function () { window.print(); };</script>
@@ -366,6 +383,9 @@ export default function SopDocument() {
           <h2 className="text-sm font-semibold text-slate-900">Checklists and Do&apos;s &amp; Don&apos;ts</h2>
           <p className="text-xs text-slate-500">
             App guidance: how each role carries out its SOP steps in FG Yard. This is not part of the issued SOP.
+          </p>
+          <p className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ${CHECKLIST_DRAFT ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+            {REVIEW_LINE}{CHECKLIST_DRAFT ? '. Print and send to Quality for review before using as an official checklist.' : ''}
           </p>
         </div>
         <Button variant="secondary" onClick={() => printChecklists(shownGuides, user?.name ?? '')} icon={<Printer className="w-4 h-4" />}>

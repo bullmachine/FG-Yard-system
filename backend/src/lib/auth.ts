@@ -22,9 +22,9 @@ export const generateToken = (userId: string, role: string): string => {
   return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
 };
 
-export const verifyToken = (token: string): { userId: string; role: string } | null => {
+export const verifyToken = (token: string): { userId: string; role: string; iat?: number } | null => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; role: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; role: string; iat?: number };
     return decoded;
   } catch {
     return null;

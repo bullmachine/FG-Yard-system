@@ -14,8 +14,9 @@ import { MachineStatusBadge, ParkStatusBadge } from '@/components/ui/StatusBadge
 import EmptyState from '@/components/ui/EmptyState';
 import { PageSpinner } from '@/components/ui/Spinner';
 import MachineHistoryModal, { HistoryTab, Movement } from '@/components/MachineHistoryModal';
+import StockUploadModal from '@/components/StockUploadModal';
 import { slotLabel } from '@/lib/format';
-import { Search, Plus, MapPin, Clock, Truck } from 'lucide-react';
+import { Search, Plus, MapPin, Clock, Truck, FileSpreadsheet } from 'lucide-react';
 
 interface Machine {
   id: string; serialNumber: string; model: string; productionDate: string;
@@ -73,6 +74,7 @@ export default function MachineTracking() {
   const [initialStockLoad, setInitialStockLoad] = useState(false);
   const [allocateRemark, setAllocateRemark] = useState('');
   const [allocateError, setAllocateError] = useState<string | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
   const [newMachine, setNewMachine] = useState({ serialNumber: '', model: '', productionDate: '', status: 'AVAILABLE' as Machine['status'] });
   const { token, isAuthenticated, can } = useAuth();
   const canManageMachines = isAuthenticated && can('machines.add');
@@ -185,14 +187,20 @@ export default function MachineTracking() {
       <PageHeader
         title="Machine Tracking"
         description={`${machines.length} machines total`}
-        actions={canManageMachines ? <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowAddModal(true)}>Add Machine</Button> : undefined}
+        actions={canManageMachines || canStockLoad ? (
+          <div className="flex flex-wrap gap-2">
+            {canStockLoad && <Button variant="secondary" icon={<FileSpreadsheet className="w-4 h-4" />} onClick={() => setShowUpload(true)}>Upload Stock List</Button>}
+            {canManageMachines && <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowAddModal(true)}>Add Machine</Button>}
+          </div>
+        ) : undefined}
       />
+      <StockUploadModal open={showUpload} onClose={() => setShowUpload(false)} onDone={() => { void fetchMachines(); }} />
 
       {initialStockLoad && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <span className="font-semibold">Initial stock load is ON.</span>{' '}
           {canStockLoad
-            ? 'You can place machines that are already parked in the yard with Allocate. Each needs Stage 18, a barcode and a remark, and still goes to Security.'
+            ? 'You can place machines that are already parked in the yard with Allocate, or many at once with Upload Stock List (Excel). Each needs Stage 18 and a barcode, and still goes to Security.'
             : 'An Admin or Yard Manager is entering the machines already parked in the yard.'}
           {' '}Switch it off in Settings when the yard stock is entered.
         </p>

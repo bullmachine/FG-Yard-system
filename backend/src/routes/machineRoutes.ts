@@ -9,6 +9,7 @@ import {
   updateMachine,
   deleteMachine,
   allocateMachine,
+  bulkAllocate,
   removeMachineFromSlot,
   confirmMachineParked
 } from '../controllers/machineController';
@@ -38,6 +39,8 @@ router.post('/', auth, requirePermission('machines.add'), createMachine);
 router.put('/:id', auth, requirePermission('machines.edit'), updateMachine);
 router.delete('/:id', auth, requirePermission('machines.delete'), deleteMachine);
 router.post('/:id/allocate', auth, requirePermission('yards.move', 'machines.allocate'), allocateMachine);
+// Initial stock load from an Excel / CSV file: check, then place.
+router.post('/bulk-allocate', auth, requirePermission('machines.allocate'), bulkAllocate);
 router.post('/:id/remove', auth, requirePermission('yards.releaseExit'), removeMachineFromSlot);
 // Reserve a slot for a machine coming back to the yard, so the gate-in checkpoint
 // will admit it. Managers and the operator plan returns; everyone else reads.

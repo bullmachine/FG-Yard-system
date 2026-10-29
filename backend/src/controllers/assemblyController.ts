@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { getSettings } from '../services/settingsService';
+import { blocksOwnApproval, parkedBy } from '../services/parkingRules';
 import { assignSlotToMachine } from '../services/locationAssignmentService';
 import { triggerManualSync, getSchedulerStatus } from '../services/scheduler';
 import { getSyncStatus, getStageStats } from '../services/syncService';
@@ -231,6 +233,13 @@ export const verifyParking = async (req: Request, res: Response) => {
     // nothing to verify. Without this the security queue would be skippable.
     if (!['PARKED_PENDING', 'PARKED_REJECTED'].includes(machine.parkStatus)) {
       return res.status(400).json({ error: `Machine is not awaiting verification (park status is ${machine.parkStatus})` });
+    }
+
+    // Two-person rule: the person who parked it cannot also approve it.
+    const { parkingTwoPersonRule } = await getSettings();
+    const parker = await parkedBy(machineId, machine.currentSlotId);
+    if (blocksOwnApproval(parkingTwoPersonRule, parker?.id, actorId, status)) {
+      return res.status(403).json({ error: 'You confirmed this parking yourself. Another person must approve it (two-person rule).' });
     }
 
     // Create security verification record

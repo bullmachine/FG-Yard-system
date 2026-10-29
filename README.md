@@ -422,6 +422,19 @@ The setup section above covers the seed, demo, snapshot and KMAT scripts.
 | `npm run slots:backfill` | Backfills `Slot.reservedAt` and `Machine.slotWaitingSince` for rows that predate those columns. Dry run unless you pass `--execute`. Reserved slots are backfilled exactly; waiting machines use `createdAt`, which is a lower bound but better than `NULL`, which would make the queue order arbitrary |
 | `npm run users:system` | Ensures the inactive **System** service account exists. Automatic movements (stage-13 assignment, reservation release) write `userId: 'system'`, and because `Movement.user` is a required foreign key, every one of those writes threw and lost its audit trail until this account existed. The account can never be signed into and collects no notifications |
 
+## Tests
+
+Run in `backend`. GitHub Actions runs both on every push and pull request
+(`.github/workflows/ci.yml`), together with the frontend type check and build.
+
+| Command | What it checks | Needs |
+| --- | --- | --- |
+| `npm test` | Unit tests: role access defaults and the driver lock, the two-person rule, Excel stock-load parsing (slot labels, dates, duplicates), backup file names and retention | Nothing |
+| `npm run test:api` | The real API against a test database: access (401 / 403), yard creation, gate in (refusals and admit), parking confirm and the two-person verify, dispatch plan and FIFO stock, gate out, PDI hold / pass and main gate-out, bulk stock load, feedback | `TEST_DATABASE_URL` in `backend/.env`, a database whose name ends in `_test`; it is recreated on every run |
+
+Add a test with every change to the flows above. Tests are in `backend/tests` and compile to
+`backend/dist-test` (not committed).
+
 ## Project Structure
 
 ```
@@ -653,7 +666,10 @@ UI is a convenience and not the enforcement point.
 
 ## API Endpoints
 
-- `POST /api/auth/register` - Register new user
+- `GET /api/auth/options` - Public: whether Create account is on
+- `POST /api/auth/register` - Register new user (refused unless Settings › Accounts allows it)
+- `POST /api/auth/forgot-password` - E-mail a 6-digit reset code (`email`); same answer whether or not the account exists
+- `POST /api/auth/reset-password` - Set a new password with the code (`email`, `code`, `password`); ends the account's other sign-ins
 - `POST /api/auth/login` - User login
 - `GET /api/yards` - List all yards, each with `totalSlots` and per-status `slotCounts`
 - `POST /api/yards` - Create new yard and its slots
@@ -665,8 +681,9 @@ UI is a convenience and not the enforcement point.
 - `POST /api/machines` - Add new machine
 - `GET /api/machines` - List all machines
 - `POST /api/machines/:id/allocate` - Allocate machine to slot
+- `POST /api/machines/bulk-allocate` - Initial stock load from a file the page has read: `rows` of `{ serial, yard, slot, inwardDate?, remark? }`; checks only, or places the rows that pass with `commit: true` (Admin, Yard Manager; Initial stock load must be on)
 - `POST /api/machines/:id/parked` - Driver confirms the machine is physically parked (assigned driver or admin)
-- `POST /api/machines/:id/verify-parking` - Security approves or rejects a parked machine
+- `POST /api/machines/:id/verify-parking` - Security approves or rejects a parked machine; with the two-person rule on, the person who parked it cannot approve it
 - `GET /api/drivers` - List drivers
 - `POST /api/drivers` - Create a driver (Admin, Yard Manager)
 - `PUT /api/drivers/:id` - Edit a driver (Admin, Yard Manager)
@@ -686,9 +703,10 @@ UI is a convenience and not the enforcement point.
 - `GET /api/gate/logs` - Recent gate attempts (Admin, Yard Manager, Security)
 - `GET /api/dispatch-plans` - Paged plans (`view`, `q`, `from`, `to`, `page`, `pageSize`); `POST` creates a plan (`lines`, optional `soNumber`)
 - `GET /api/dispatch-plans/items` - Dispatch machine list; `POST .../items/:id/pdi` records PDI Pass / Hold; `POST .../items/:id/main-gate-out` marks main gate-out (refused until PDI passed)
-- `GET /api/settings/stock-load` - Whether Initial stock load is on
+- `GET /api/settings/stock-load` - Whether Initial stock load and the parking two-person rule are on
+- `GET /api/backups` - Backup folder, schedule, last result and files; `POST /api/backups/run` - back up now (Admin)
 - `GET /api/role-access/me` - The signed-in user's permissions; `GET/PUT /api/role-access` and `POST /api/role-access/reset` manage the matrix (Admin)
-- `POST /api/feedback` - Send feedback (`type`, `message`, `page`); `GET /api/feedback/mine` - own feedback; `GET /api/feedback` and `PUT /api/feedback/:id` - review (Admin)
+- `POST /api/feedback` - Send feedback (`type`, `message`, `page`; JSON, or multipart with an optional `screenshot` image up to 2 MB); `GET /api/feedback/:id/screenshot` - the screenshot (sender or Admin); `GET /api/feedback/mine` - own feedback; `GET /api/feedback` and `PUT /api/feedback/:id` - review (Admin)
 - `POST /api/auth/logout` - Record a sign-out; `GET /api/login-history` - Login history with `result`, `q`, `from`, `to`, paging (Admin)
 
 Role names next to endpoints are the **default** access. Apart from Users, Settings and Role

@@ -50,7 +50,7 @@ function validateEmailList(value: unknown, field: string, errors: FieldErrors): 
     errors[field] = 'Must be text';
     return undefined;
   }
-  const list = value.split(/[,;s]+/).map((v) => v.trim()).filter(Boolean);
+  const list = value.split(/[,;\s]+/).map((v) => v.trim()).filter(Boolean);
   const bad = list.filter((v) => !EMAIL_RE.test(v));
   if (bad.length) {
     errors[field] = `Not a valid e-mail address: ${bad.join(', ')}`;
@@ -336,6 +336,19 @@ export const updateSettingsHandler = async (req: Request, res: Response) => {
       else update.securityVerifyRequired = body.securityVerifyRequired;
     }
 
+    const feedbackAlertEmails = validateEmailList(body.feedbackAlertEmails, 'feedbackAlertEmails', errors);
+    if (feedbackAlertEmails !== undefined) update.feedbackAlertEmails = feedbackAlertEmails;
+
+    if (body.allowRegistration !== undefined) {
+      if (typeof body.allowRegistration !== 'boolean') errors.allowRegistration = 'Must be a boolean';
+      else update.allowRegistration = body.allowRegistration;
+    }
+
+    if (body.parkingTwoPersonRule !== undefined) {
+      if (typeof body.parkingTwoPersonRule !== 'boolean') errors.parkingTwoPersonRule = 'Must be a boolean';
+      else update.parkingTwoPersonRule = body.parkingTwoPersonRule;
+    }
+
     if (body.initialStockLoad !== undefined) {
       if (typeof body.initialStockLoad !== 'boolean') errors.initialStockLoad = 'Must be a boolean';
       else update.initialStockLoad = body.initialStockLoad;
@@ -413,11 +426,11 @@ export const rotateMainGateKeyHandler = async (req: Request, res: Response) => {
   }
 };
 
-/** Whether the initial stock load is on. Any signed-in user may read it. */
+/** Whether the initial stock load and the parking two-person rule are on. Any signed-in user may read it. */
 export const getStockLoadHandler = async (_req: Request, res: Response) => {
   try {
-    const { initialStockLoad } = await getSettings();
-    res.json({ initialStockLoad });
+    const { initialStockLoad, parkingTwoPersonRule } = await getSettings();
+    res.json({ initialStockLoad, parkingTwoPersonRule });
   } catch (error) {
     console.error('getStockLoad error:', error);
     res.status(500).json({ error: 'Failed to load the setting' });

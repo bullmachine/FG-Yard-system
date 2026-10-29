@@ -1,4 +1,5 @@
 import { purgeOldLoginEvents } from './loginHistoryService';
+import { backupConfig, runBackup } from './backupService';
 import cron from 'node-cron';
 import { syncProductionOrders, syncProductionOrderWindow } from './syncService';
 import { syncMaterialMaster } from './materialMasterService';
@@ -144,6 +145,17 @@ export async function startScheduler(): Promise<void> {
     purgeOldLoginEvents().catch((error) => console.error('Login history clean-up failed:', error));
   });
   purgeOldLoginEvents().catch((error) => console.error('Login history clean-up failed:', error));
+
+  // Database backup into BACKUP_DIR (backupService), every night by default.
+  const backup = backupConfig();
+  if (cron.validate(backup.cron)) {
+    cron.schedule(backup.cron, () => {
+      void runBackup('scheduled');
+    });
+    console.log(`Database backup scheduled with cron: ${backup.cron} into ${backup.dir}`);
+  } else {
+    console.error(`BACKUP_CRON "${backup.cron}" is not a valid cron expression; daily backup is OFF`);
+  }
 
   console.log('Scheduler started successfully');
 }

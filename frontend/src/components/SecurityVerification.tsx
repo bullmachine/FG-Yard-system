@@ -10,6 +10,7 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { slotLabel, formatDateTime } from '@/lib/format';
 import { exitReasonLabel } from '@/lib/exitReasons';
 import { useRealtimeEvent, useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle2, XCircle, WifiOff, RefreshCw, Shield, LogOut } from 'lucide-react';
 
 interface Machine {
@@ -18,6 +19,12 @@ interface Machine {
   model?: string;
   parkStatus: string;
   currentSlot?: { id: string; yard: { name: string }; row: number; col: number };
+  movements?: { toSlotId?: string | null; user?: { id: string; name: string } | null }[];
+}
+
+/** Who put the machine into its current slot (newest movement into that slot). */
+function parkerOf(m: Machine) {
+  return m.movements?.find((mv) => mv.toSlotId === m.currentSlot?.id)?.user ?? null;
 }
 
 interface Verification {
@@ -53,7 +60,16 @@ export default function SecurityVerification() {
   const [recent, setRecent] = useState<Verification[]>([]);
   const [approvedExits, setApprovedExits] = useState<ApprovedExit[]>([]);
   const { connectionState } = useNotifications();
+  const { user } = useAuth();
+  const [twoPerson, setTwoPerson] = useState(true);
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/settings/stock-load`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && typeof d.parkingTwoPersonRule === 'boolean') setTwoPerson(d.parkingTwoPersonRule); })
+      .catch(() => undefined);
+  }, []);
 
   // Only the two statuses that need a guard. The server filters both the park
   // status and the demo rows, so this never downloads the full machine list.
@@ -206,6 +222,8 @@ export default function SecurityVerification() {
           {pending.map(m => {
             const isRejected = m.parkStatus === 'PARKED_REJECTED';
             const busy = verifying === m.id;
+            const parker = parkerOf(m);
+            const ownPark = twoPerson && !!parker && parker.id === user?.id;
             return (
               <div key={m.id} className={`rounded-lg border p-4 ${isRejected ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
                 <div className="flex items-start justify-between mb-2.5">
@@ -216,8 +234,12 @@ export default function SecurityVerification() {
                   <Badge variant={isRejected ? 'red' : 'amber'} dot>{isRejected ? 'RED' : 'YELLOW'}</Badge>
                 </div>
 
+                {parker && <p className="mb-2 text-[11px] text-slate-500">Parked by {ownPark ? 'you' : parker.name}</p>}
                 {isRejected && (
                   <p className="mb-2.5 text-xs text-red-700">Rejected. The driver has been notified to re-park in this same slot.</p>
+                )}
+                {ownPark && (
+                  <p className="mb-2.5 text-xs text-amber-800">You confirmed this parking, so another person must approve it (two-person rule). You can still reject it.</p>
                 )}
 
                 {rejectedId === m.id ? (
@@ -236,7 +258,7 @@ export default function SecurityVerification() {
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <Button variant="success" size="sm" className="flex-1" onClick={() => handleVerify(m.id, 'APPROVED')} disabled={busy} loading={busy} icon={<CheckCircle2 className="w-3.5 h-3.5" />}>Approve</Button>
+                    <Button variant="success" size="sm" className="flex-1" onClick={() => handleVerify(m.id, 'APPROVED')} disabled={busy || ownPark} loading={busy} icon={<CheckCircle2 className="w-3.5 h-3.5" />}>Approve</Button>
                     <Button variant="danger" size="sm" className="flex-1" onClick={() => { setRejectedId(m.id); setReason(''); }} disabled={busy} icon={<XCircle className="w-3.5 h-3.5" />}>Reject</Button>
                   </div>
                 )}

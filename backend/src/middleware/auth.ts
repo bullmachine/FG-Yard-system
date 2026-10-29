@@ -12,6 +12,12 @@ type AuthenticatedRequest = Request & {
   };
 };
 
+/** A token from before the last password change no longer signs in (1 s tolerance for iat rounding). */
+export function issuedBeforePasswordChange(iat: number | undefined, changedAt: Date | null): boolean {
+  if (!changedAt || !iat) return false;
+  return iat * 1000 < changedAt.getTime() - 1000;
+}
+
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
   const authorization = req.headers.authorization;
 
@@ -29,11 +35,14 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, role: true, isActive: true },
+      select: { id: true, role: true, isActive: true, passwordChangedAt: true },
     });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ error: 'User is inactive' });
+    }
+    if (issuedBeforePasswordChange(decoded.iat, user.passwordChangedAt)) {
+      return res.status(401).json({ error: 'Your password was changed. Sign in again.' });
     }
 
     const authenticatedRequest = req as AuthenticatedRequest;
@@ -79,10 +88,10 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
   try {
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, role: true, isActive: true },
+      select: { id: true, role: true, isActive: true, passwordChangedAt: true },
     });
 
-    if (user?.isActive) {
+    if (user?.isActive && !issuedBeforePasswordChange(decoded.iat, user.passwordChangedAt)) {
       const authenticatedRequest = req as AuthenticatedRequest;
       authenticatedRequest.userId = user.id;
       authenticatedRequest.userRole = user.role;

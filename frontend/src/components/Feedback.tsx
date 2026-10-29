@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Bug, Lightbulb, MessageSquarePlus, MessageSquareText, RefreshCw, Search } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bug, ImagePlus, Lightbulb, MessageSquarePlus, MessageSquareText, Paperclip, RefreshCw, Search, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -29,6 +29,46 @@ interface FeedbackItem {
   handledAt: string | null;
   createdBy: { id: string; name: string; email: string; role: string };
   handledBy: { id: string; name: string } | null;
+  screenshot: string | null;
+}
+
+/** Shrink a screenshot to at most 1600 px wide JPEG, so it uploads fast and stays under 2 MB. */
+async function shrinkImage(file: Blob): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / bitmap.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('No canvas');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not read the image'))), 'image/jpeg', 0.82));
+}
+
+/** A feedback screenshot, fetched with the sign-in token (it is not a public file). Click opens it full size. */
+function Screenshot({ id, className = '' }: { id: string; className?: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let live = true;
+    fetch(`${API_URL}/api/feedback/${id}/screenshot`, { headers: authHeaders() })
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error())))
+      .then((b) => { objectUrl = URL.createObjectURL(b); if (live) setUrl(objectUrl); })
+      .catch(() => { if (live) setFailed(true); });
+    return () => { live = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [id]);
+  if (failed) return <p className="text-[11px] text-slate-400">Screenshot not available</p>;
+  if (!url) return <div className={`animate-pulse rounded-md bg-slate-100 ${className}`} />;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" title="Open full size" className="block">
+      {/* eslint-disable-next-line @next/next/no-img-element -- a local object URL, not an optimisable asset */}
+      <img src={url} alt="Screenshot sent with the feedback" className={`rounded-md border border-slate-200 object-contain object-left-top bg-slate-50 ${className}`} />
+    </a>
+  );
 }
 
 const TYPES: { value: FeedbackType; label: string; hint: string; icon: React.ReactNode }[] = [
@@ -64,6 +104,28 @@ export function FeedbackButton({ page }: { page: string }) {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [mine, setMine] = useState<FeedbackItem[] | null>(null);
+  const [shot, setShot] = useState<{ blob: Blob; url: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const clearShot = () => setShot((s) => { if (s) URL.revokeObjectURL(s.url); return null; });
+
+  const attach = async (file: Blob | null | undefined) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setError(null);
+    try {
+      const blob = await shrinkImage(file);
+      clearShot();
+      setShot({ blob, url: URL.createObjectURL(blob) });
+    } catch {
+      setError('Could not read that image. Try a PNG or JPG.');
+    }
+  };
+
+  // Print Screen, then Ctrl+V anywhere in the form attaches the screenshot.
+  const onPaste = (e: React.ClipboardEvent) => {
+    const item = [...e.clipboardData.items].find((i) => i.type.startsWith('image/'));
+    if (item) { e.preventDefault(); void attach(item.getAsFile()); }
+  };
 
   const loadMine = useCallback(() => {
     setMine(null);
@@ -86,14 +148,24 @@ export function FeedbackButton({ page }: { page: string }) {
     setSending(true);
     setError(null);
     try {
-      const r = await fetch(`${API_URL}/api/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ type, message, page }),
-      });
+      let body: BodyInit;
+      const headers: Record<string, string> = authHeaders();
+      if (shot) {
+        const form = new FormData();
+        form.append('type', type);
+        form.append('message', message);
+        form.append('page', page);
+        form.append('screenshot', shot.blob, 'screenshot.jpg');
+        body = form;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify({ type, message, page });
+      }
+      const r = await fetch(`${API_URL}/api/feedback`, { method: 'POST', headers, body });
       const d = await r.json().catch(() => null);
       if (!r.ok) { setError(d?.error || `Could not send (${r.status})`); return; }
       setMessage('');
+      clearShot();
       setSent(true);
     } catch {
       setError('Connection error - try again');
@@ -152,7 +224,7 @@ export function FeedbackButton({ page }: { page: string }) {
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3" onPaste={onPaste}>
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Type">
               {TYPES.map((t) => (
                 <button
@@ -183,6 +255,25 @@ export function FeedbackButton({ page }: { page: string }) {
               />
               <p className="text-[11px] text-slate-500">Sent from: {page}. Your name and the time are included.</p>
             </div>
+            <div>
+              <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { void attach(e.target.files?.[0]); e.target.value = ''; }} />
+              {shot ? (
+                <div className="flex items-start gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a local object URL */}
+                  <img src={shot.url} alt="Screenshot to send" className="h-20 max-w-[60%] rounded-md border border-slate-200 object-contain bg-slate-50" />
+                  <Button size="sm" variant="ghost" onClick={clearShot} icon={<X className="w-3.5 h-3.5" />}>Remove</Button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2.5 text-xs text-slate-600 hover:border-blue-400 hover:bg-blue-50/40 transition-colors"
+                >
+                  <ImagePlus className="h-4 w-4 text-blue-600" />
+                  <span>Add a screenshot (optional) <span className="text-slate-400">· or press Ctrl+V to paste one</span></span>
+                </button>
+              )}
+            </div>
             {error && <p className="text-xs font-medium text-red-700">{error}</p>}
           </div>
         ))}
@@ -200,6 +291,7 @@ export function FeedbackButton({ page }: { page: string }) {
                         <span className="text-[11px] text-slate-400">{formatDateTime(f.createdAt)}{f.page ? ` · ${f.page}` : ''}</span>
                       </div>
                       <p className="mt-1 whitespace-pre-wrap text-[13px] text-slate-800">{f.message}</p>
+                      {f.screenshot && <div className="mt-1.5"><Screenshot id={f.id} className="h-24 max-w-full" /></div>}
                       {f.adminNote && (
                         <p className="mt-1.5 rounded-md bg-slate-50 px-2 py-1.5 text-xs text-slate-700">
                           <span className="font-semibold">Reply{f.handledBy ? ` from ${f.handledBy.name}` : ''}:</span> {f.adminNote}
@@ -355,6 +447,7 @@ export default function FeedbackAdmin() {
                       <Badge variant={STATUS_META[f.status].variant}>{STATUS_META[f.status].label}</Badge>
                       <span className="text-xs font-medium text-slate-800">{f.createdBy.name}</span>
                       <span className="text-[11px] text-slate-400">{formatDateTime(f.createdAt)}{f.page ? ` · ${f.page}` : ''}</span>
+                      {f.screenshot && <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500" title="Has a screenshot"><Paperclip className="h-3 w-3" />Screenshot</span>}
                     </div>
                     <p className="mt-1 line-clamp-2 text-[13px] text-slate-700">{f.message}</p>
                     {f.adminNote && <p className="mt-0.5 truncate text-[11px] text-slate-500">Reply: {f.adminNote}</p>}
@@ -383,6 +476,7 @@ export default function FeedbackAdmin() {
         {selected && (
           <div className="space-y-3">
             <p className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-800">{selected.message}</p>
+            {selected.screenshot && <Screenshot id={selected.id} className="max-h-64 w-full" />}
             <Select
               label="Status"
               value={editStatus}

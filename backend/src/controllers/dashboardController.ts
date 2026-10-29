@@ -65,13 +65,119 @@ function row(m: MachineSel, since: Date | null = null) {
 
 const list = <T>(items: T[]) => ({ count: items.length, items: items.slice(0, LIST_CAP) });
 
+const TREND_DAYS = 7;
+const ACTIVITY_CAP = 12;
+
+/** YYYY-MM-DD of a moment, in India time. */
+export function istDay(d: Date): string {
+  return new Date(d.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** The last `days` India dates, oldest first, each with zero counts. */
+export function emptyTrend(today: Date, days = TREND_DAYS) {
+  return Array.from({ length: days }, (_, i) => ({
+    day: istDay(new Date(today.getTime() - (days - 1 - i) * 86_400_000)),
+    gateIn: 0,
+    gateOut: 0,
+    mainGateOut: 0
+  }));
+}
+
+/** Gate in / gate out / main gate out per day for the last 7 days. */
+async function loadTrend(today: Date) {
+  const from = new Date(today.getTime() - (TREND_DAYS - 1) * 86_400_000);
+  const [gate, mainGate] = await Promise.all([
+    prisma.gateLog.findMany({
+      where: { result: 'AUTHORIZED', createdAt: { gte: from }, machine: { isDemo: false } },
+      select: { direction: true, createdAt: true }
+    }),
+    prisma.dispatchItem.findMany({
+      where: { status: 'MAIN_GATE_OUT', mainGateOutAt: { gte: from }, machine: { isDemo: false } },
+      select: { mainGateOutAt: true }
+    })
+  ]);
+  const days = emptyTrend(today);
+  const byDay = new Map(days.map((d) => [d.day, d]));
+  for (const g of gate) {
+    const d = byDay.get(istDay(g.createdAt));
+    if (d) d[g.direction === 'OUT' ? 'gateOut' : 'gateIn']++;
+  }
+  for (const m of mainGate) {
+    const d = m.mainGateOutAt && byDay.get(istDay(m.mainGateOutAt));
+    if (d) d.mainGateOut++;
+  }
+  return days;
+}
+
+type Activity = { at: string; kind: 'GATE_IN' | 'GATE_OUT' | 'VERIFIED' | 'REJECTED' | 'PDI_PASS' | 'PDI_HOLD' | 'MAIN_GATE_OUT'; serialNumber: string; by: string | null; detail: string | null };
+
+/** The latest yard events of the last 7 days, newest first. */
+async function loadActivity(now: Date): Promise<Activity[]> {
+  const since = new Date(now.getTime() - TREND_DAYS * 86_400_000);
+  const [gate, checks, pdi, mainGate] = await Promise.all([
+    prisma.gateLog.findMany({
+      where: { result: 'AUTHORIZED', createdAt: { gte: since }, machine: { isDemo: false } },
+      select: { createdAt: true, direction: true, machine: { select: { serialNumber: true } }, driver: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' }, take: ACTIVITY_CAP
+    }),
+    prisma.securityVerification.findMany({
+      where: { verifiedAt: { gte: since }, machine: { isDemo: false } },
+      select: { verifiedAt: true, status: true, comments: true, machine: { select: { serialNumber: true } }, user: { select: { name: true } }, slot: { select: { row: true, col: true, yard: { select: { name: true } } } } },
+      orderBy: { verifiedAt: 'desc' }, take: ACTIVITY_CAP
+    }),
+    prisma.dispatchItem.findMany({
+      where: { pdiAt: { gte: since }, machine: { isDemo: false } },
+      select: { pdiAt: true, pdiStatus: true, pdiRemark: true, machine: { select: { serialNumber: true } }, pdiBy: { select: { name: true } } },
+      orderBy: { pdiAt: 'desc' }, take: ACTIVITY_CAP
+    }),
+    prisma.dispatchItem.findMany({
+      where: { mainGateOutAt: { gte: since }, status: 'MAIN_GATE_OUT', machine: { isDemo: false } },
+      select: { mainGateOutAt: true, mainGateSource: true, machine: { select: { serialNumber: true } }, mainGateOutBy: { select: { name: true } }, plan: { select: { planNo: true } } },
+      orderBy: { mainGateOutAt: 'desc' }, take: ACTIVITY_CAP
+    })
+  ]);
+  const slotText = (s: { row: number; col: number; yard: { name: string } }) => `${s.yard.name} ${String.fromCharCode(64 + s.row)}${s.col}`;
+  const all: Activity[] = [
+    ...gate.map((g) => ({ at: g.createdAt.toISOString(), kind: (g.direction === 'OUT' ? 'GATE_OUT' : 'GATE_IN') as Activity['kind'], serialNumber: g.machine.serialNumber, by: g.driver?.name ?? null, detail: null })),
+    ...checks.map((c) => ({ at: c.verifiedAt.toISOString(), kind: (c.status === 'APPROVED' ? 'VERIFIED' : 'REJECTED') as Activity['kind'], serialNumber: c.machine.serialNumber, by: c.user?.name ?? null, detail: c.status === 'APPROVED' ? slotText(c.slot) : c.comments })),
+    ...pdi.map((p) => ({ at: p.pdiAt!.toISOString(), kind: (p.pdiStatus === 'PASSED' ? 'PDI_PASS' : 'PDI_HOLD') as Activity['kind'], serialNumber: p.machine.serialNumber, by: p.pdiBy?.name ?? null, detail: p.pdiStatus === 'PASSED' ? null : p.pdiRemark })),
+    ...mainGate.map((m) => ({ at: m.mainGateOutAt!.toISOString(), kind: 'MAIN_GATE_OUT' as const, serialNumber: m.machine.serialNumber, by: m.mainGateOutBy?.name ?? (m.mainGateSource === 'API' ? 'Main gate system' : null), detail: m.plan.planNo }))
+  ];
+  return all.sort((a, b) => b.at.localeCompare(a.at)).slice(0, ACTIVITY_CAP);
+}
+
+/** Plans with machines still on the way, oldest first: planned / out of FG yard / main gate out. */
+async function loadOpenPlans() {
+  const plans = await prisma.dispatchPlan.findMany({
+    where: { items: { some: { status: { in: ['PLANNED', 'DRIVER_ASSIGNED', 'OUT_OF_YARD'] } } } },
+    select: { id: true, planNo: true, soNumber: true, createdAt: true, items: { where: { status: { not: 'CANCELLED' } }, select: { status: true, pdiStatus: true } } },
+    orderBy: { createdAt: 'asc' },
+    take: 8
+  });
+  const total = await prisma.dispatchPlan.count({ where: { items: { some: { status: { in: ['PLANNED', 'DRIVER_ASSIGNED', 'OUT_OF_YARD'] } } } } });
+  return {
+    count: total,
+    items: plans.map((p) => ({
+      id: p.id,
+      planNo: p.planNo,
+      soNumber: p.soNumber,
+      createdAt: p.createdAt.toISOString(),
+      total: p.items.length,
+      inYard: p.items.filter((i) => i.status === 'PLANNED' || i.status === 'DRIVER_ASSIGNED').length,
+      outOfYard: p.items.filter((i) => i.status === 'OUT_OF_YARD').length,
+      mainGateOut: p.items.filter((i) => i.status === 'MAIN_GATE_OUT').length,
+      pdiHold: p.items.filter((i) => i.status === 'OUT_OF_YARD' && i.pdiStatus === 'HOLD').length
+    }))
+  };
+}
+
 export const getFgDashboard = async (_req: Request, res: Response) => {
   try {
     const now = new Date();
     const today = startOfTodayIst(now);
     const settings = await getSettings();
 
-    const [yards, pipeline, stock, dispatchItems, gateToday, exitPending, mainGateToday] = await Promise.all([
+    const [yards, pipeline, stock, dispatchItems, gateToday, exitPending, mainGateToday, trend, activity, openPlans] = await Promise.all([
       prisma.yard.findMany({ select: { id: true, name: true, slots: { select: { status: true } } }, orderBy: { createdAt: 'desc' } }),
       prisma.machine.findMany({
         where: { isDemo: false, parkStatus: { in: ['READY_TO_MOVE', 'IN_TRANSIT', 'AT_GATE', 'PARKED_PENDING', 'PARKED_REJECTED'] } },
@@ -84,6 +190,7 @@ export const getFgDashboard = async (_req: Request, res: Response) => {
           id: true,
           status: true,
           gateOutAt: true,
+          pdiStatus: true,
           driver: { select: { name: true } },
           plan: { select: { planNo: true } },
           line: { select: { modelType: true } },
@@ -97,7 +204,10 @@ export const getFgDashboard = async (_req: Request, res: Response) => {
         _count: { _all: true }
       }),
       prisma.machineExitRequest.count({ where: { status: 'PENDING' } }),
-      prisma.dispatchItem.count({ where: { status: 'MAIN_GATE_OUT', mainGateOutAt: { gte: today }, machine: { isDemo: false } } })
+      prisma.dispatchItem.count({ where: { status: 'MAIN_GATE_OUT', mainGateOutAt: { gte: today }, machine: { isDemo: false } } }),
+      loadTrend(today),
+      loadActivity(now),
+      loadOpenPlans()
     ]);
 
     // Slot counts per yard, with the plant total.
@@ -184,11 +294,13 @@ export const getFgDashboard = async (_req: Request, res: Response) => {
       model: i.machine.model,
       driver: i.driver?.name ?? null,
       gateOutAt: i.gateOutAt ? i.gateOutAt.toISOString() : null,
-      overdue: i.status === 'OUT_OF_YARD' && !!i.gateOutAt && alertMs > 0 && now.getTime() - i.gateOutAt.getTime() > alertMs
+      overdue: i.status === 'OUT_OF_YARD' && !!i.gateOutAt && alertMs > 0 && now.getTime() - i.gateOutAt.getTime() > alertMs,
+      pdiStatus: i.pdiStatus
     });
     const toLoad = dispatchItems.filter((i) => i.status !== 'OUT_OF_YARD').map(dispatchRow);
     const awaitingMainGate = dispatchItems.filter((i) => i.status === 'OUT_OF_YARD').map(dispatchRow);
     const overdue = awaitingMainGate.filter((i) => i.overdue);
+    const pdiHold = awaitingMainGate.filter((i) => i.pdiStatus === 'HOLD');
 
     const gateCount = (direction: string) => gateToday.find((g) => g.direction === direction)?._count._all ?? 0;
 
@@ -224,8 +336,12 @@ export const getFgDashboard = async (_req: Request, res: Response) => {
       dispatch: {
         toLoad: list(toLoad),
         awaitingMainGate: list(awaitingMainGate),
-        overdue: list(overdue)
+        overdue: list(overdue),
+        pdiHold: list(pdiHold),
+        openPlans
       },
+      trend,
+      activity,
       exitRequestsPending: exitPending
     });
   } catch (error) {

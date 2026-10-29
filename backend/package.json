@@ -6,6 +6,8 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/tests/unit/**/*.test.js\"",
+    "test:api": "node tests/api/setup-db.js && tsc -p tsconfig.test.json && node --test --test-concurrency=1 \"dist-test/tests/api/**/*.test.js\"",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "seed": "node prisma/seed.js",

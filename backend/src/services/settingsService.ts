@@ -33,6 +33,9 @@ export interface SystemSettings {
   securityVerifyRequired: boolean;
   initialStockLoad: boolean;
   inTransitAlertMinutes: number;
+  parkingTwoPersonRule: boolean;
+  allowRegistration: boolean;
+  feedbackAlertEmails: string;
 }
 
 /**
@@ -74,7 +77,10 @@ function bootstrapDefaults(): SystemSettings {
     mainGateApiKey: '',
     securityVerifyRequired: true,
     initialStockLoad: false,
-    inTransitAlertMinutes: 30
+    inTransitAlertMinutes: 30,
+    parkingTwoPersonRule: true,
+    allowRegistration: false,
+    feedbackAlertEmails: ''
   };
 }
 
@@ -119,6 +125,9 @@ function rowToSettings(row: {
   securityVerifyRequired: boolean;
   initialStockLoad: boolean;
   inTransitAlertMinutes: number;
+  parkingTwoPersonRule: boolean;
+  allowRegistration: boolean;
+  feedbackAlertEmails: string;
 }): SystemSettings {
   return {
     productionApiUrl: row.productionApiUrl,
@@ -149,7 +158,10 @@ function rowToSettings(row: {
     mainGateApiKey: row.mainGateApiKey,
     securityVerifyRequired: row.securityVerifyRequired,
     initialStockLoad: row.initialStockLoad,
-    inTransitAlertMinutes: row.inTransitAlertMinutes
+    inTransitAlertMinutes: row.inTransitAlertMinutes,
+    parkingTwoPersonRule: row.parkingTwoPersonRule,
+    allowRegistration: row.allowRegistration,
+    feedbackAlertEmails: row.feedbackAlertEmails
   };
 }
 
@@ -218,6 +230,9 @@ export interface SettingsUpdate {
   securityVerifyRequired?: boolean;
   initialStockLoad?: boolean;
   inTransitAlertMinutes?: number;
+  parkingTwoPersonRule?: boolean;
+  allowRegistration?: boolean;
+  feedbackAlertEmails?: string;
 }
 
 /**
@@ -260,7 +275,10 @@ export async function updateSettings(
     mainGateApiKey: update.mainGateApiKey ?? current.mainGateApiKey,
     securityVerifyRequired: update.securityVerifyRequired ?? current.securityVerifyRequired,
     initialStockLoad: update.initialStockLoad ?? current.initialStockLoad,
-    inTransitAlertMinutes: update.inTransitAlertMinutes ?? current.inTransitAlertMinutes
+    inTransitAlertMinutes: update.inTransitAlertMinutes ?? current.inTransitAlertMinutes,
+    parkingTwoPersonRule: update.parkingTwoPersonRule ?? current.parkingTwoPersonRule,
+    allowRegistration: update.allowRegistration ?? current.allowRegistration,
+    feedbackAlertEmails: update.feedbackAlertEmails ?? current.feedbackAlertEmails
   };
 
   await prisma.systemSetting.update({
@@ -316,7 +334,10 @@ export function toPublicSettings(settings: SystemSettings) {
     mainGateApiKey: settings.mainGateApiKey,
     securityVerifyRequired: settings.securityVerifyRequired,
     initialStockLoad: settings.initialStockLoad,
-    inTransitAlertMinutes: settings.inTransitAlertMinutes
+    inTransitAlertMinutes: settings.inTransitAlertMinutes,
+    parkingTwoPersonRule: settings.parkingTwoPersonRule,
+    allowRegistration: settings.allowRegistration,
+    feedbackAlertEmails: settings.feedbackAlertEmails
   };
 }
 

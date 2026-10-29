@@ -13,9 +13,16 @@ import multer from 'multer';
 export const UPLOADS_ROOT = path.resolve(__dirname, '../../uploads');
 export const DRIVERS_UPLOAD_DIR = path.join(UPLOADS_ROOT, 'drivers');
 
+/**
+ * Feedback screenshots can show any page, so they are kept outside the public
+ * /uploads folder and served only through the signed-in feedback API.
+ */
+export const FEEDBACK_UPLOAD_DIR = path.resolve(__dirname, '../../private-uploads/feedback');
+
 /** Create the directories on boot so the first upload cannot fail on ENOENT. */
 export function ensureUploadDirs(): void {
   fs.mkdirSync(DRIVERS_UPLOAD_DIR, { recursive: true });
+  fs.mkdirSync(FEEDBACK_UPLOAD_DIR, { recursive: true });
 }
 
 /** Extension for the mimetypes the gate accepts. */
@@ -59,6 +66,27 @@ export const driverPhotoUpload = multer({
   // near this limit was sent by something other than our own upload control.
   limits: { fileSize: 1024 * 1024 }
 }).single('photo');
+
+export const feedbackScreenshotUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, FEEDBACK_UPLOAD_DIR),
+    filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${extensionFor(file.mimetype)}`)
+  }),
+  fileFilter: (_req, file, cb) => cb(null, ALLOWED_TYPES.has(file.mimetype)),
+  // The client shrinks the screenshot to at most 1600 px wide JPEG first.
+  limits: { fileSize: 2 * 1024 * 1024 }
+}).single('screenshot');
+
+/** Full path of a stored feedback screenshot; null for anything that is not a bare file name. */
+export function feedbackScreenshotPath(name: string | null | undefined): string | null {
+  if (!name || !/^[0-9a-f-]{36}\.(jpg|png|webp)$/.test(name)) return null;
+  return path.join(FEEDBACK_UPLOAD_DIR, name);
+}
+
+/** Remove a file multer has just stored, when the request is then refused. */
+export async function deleteFile(fullPath: string): Promise<void> {
+  await fs.promises.unlink(fullPath).catch(() => undefined);
+}
 
 /**
  * Delete an uploaded file given the stored `photoUrl`.

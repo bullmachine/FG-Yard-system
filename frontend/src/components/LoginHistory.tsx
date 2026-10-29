@@ -16,8 +16,8 @@ import { formatDateTime } from '@/lib/format';
 
 interface LoginEvent {
   id: string;
-  event: 'LOGIN' | 'LOGOUT';
-  result: 'SUCCESS' | 'WRONG_PASSWORD' | 'UNKNOWN_USER' | 'INACTIVE';
+  event: 'LOGIN' | 'LOGOUT' | 'RESET';
+  result: 'SUCCESS' | 'WRONG_PASSWORD' | 'UNKNOWN_USER' | 'INACTIVE' | 'REQUESTED' | 'WRONG_CODE';
   email: string;
   ip: string;
   device: string;
@@ -44,6 +44,15 @@ const FILTERS: { value: ResultFilter; label: string }[] = [
 
 function outcome(e: LoginEvent): { label: string; variant: 'green' | 'red' | 'amber' | 'gray' } {
   if (e.event === 'LOGOUT') return { label: 'Signed out', variant: 'gray' };
+  if (e.event === 'RESET') {
+    switch (e.result) {
+      case 'SUCCESS': return { label: 'Password reset', variant: 'green' };
+      case 'REQUESTED': return { label: 'Reset code asked', variant: 'amber' };
+      case 'WRONG_CODE': return { label: 'Wrong reset code', variant: 'red' };
+      case 'UNKNOWN_USER': return { label: 'Reset: unknown account', variant: 'red' };
+      default: return { label: 'Reset: inactive account', variant: 'amber' };
+    }
+  }
   switch (e.result) {
     case 'SUCCESS': return { label: 'Signed in', variant: 'green' };
     case 'WRONG_PASSWORD': return { label: 'Wrong password', variant: 'red' };

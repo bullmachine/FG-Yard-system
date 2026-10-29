@@ -26,7 +26,10 @@ export type NotificationEventType =
   | 'SLOT_UNBLOCKED'
   | 'FEEDBACK_NEW'
   | 'FEEDBACK_UPDATED'
-  | 'LOGIN_FAILED';
+  | 'LOGIN_FAILED'
+  | 'BACKUP_FAILED'
+  | 'PASSWORD_RESET_REQUEST'
+  | 'PASSWORD_CHANGED';
 
 export interface NotificationEvent {
   type: NotificationEventType;
@@ -63,6 +66,12 @@ export const NOTIFICATION_RECIPIENTS: Record<NotificationEventType, UserRole[]> 
   FEEDBACK_UPDATED: [],
   // Repeated failed sign-ins on one account: possible password guessing.
   LOGIN_FAILED: ['ADMIN'],
+  // The nightly database backup did not write a file.
+  BACKUP_FAILED: ['ADMIN'],
+  // Forgot password, but the code could not be e-mailed: an Admin resets it by hand.
+  PASSWORD_RESET_REQUEST: ['ADMIN'],
+  // Told to the account owner directly.
+  PASSWORD_CHANGED: [],
   // Barcode is part of gate identification, so a machine that reaches yard age without
   // one is a yard-manager problem, not just a data-entry one.
   BARCODE_MISSING: ['YARD_MANAGER', 'ADMIN'],

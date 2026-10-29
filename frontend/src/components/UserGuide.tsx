@@ -51,7 +51,7 @@ const ROLE_SUMMARY: Record<string, string> = {
 };
 
 const QUICK_START = [
-  { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open FG Yard and sign in with your work email and password. New users can register, but start with View Only access until an Administrator changes the role. Sign-ins are recorded (time, IP address and device) for security.' },
+  { icon: <LogIn className="w-4 h-4" />, title: 'Sign in', text: 'Open FG Yard and sign in with your work email and password. Your Administrator creates your account (or, if switched on in Settings, you can create one yourself and start with View Only access). Forgot your password? Press Forgot your password on the login page: a 6-digit code is e-mailed to you, valid 15 minutes. If no e-mail comes, ask the Administrator. Sign-ins are recorded (time, IP address and device) for security.' },
   { icon: <PanelLeft className="w-4 h-4" />, title: 'Use the menu', text: 'The left menu lists only the screens your role can open. On a phone or tablet, tap the ☰ button at the top left to open it. On a computer, use the arrow at the top of the menu to collapse it.' },
   { icon: <LayoutDashboard className="w-4 h-4" />, title: 'Start at the Dashboard', text: 'The Dashboard shows the FG yard today: stock, free slots, dispatch and a "Needs attention" list. Click any card to see the machines behind the number.' },
   { icon: <Bell className="w-4 h-4" />, title: 'Watch the bell', text: 'The bell at the top right shows alerts for your role (yard full, gate rejected, sync failed and so on). Critical alerts also pop up on screen. Open Notifications for the full list.' },
@@ -75,10 +75,13 @@ const SCREENS: ScreenGuide[] = [
     purpose: 'A live summary of the FG yard: stock, inward, dispatch and slots. Assembly is not shown here; use Assembly Line for that.',
     steps: [
       'Read the top cards: machines in the FG yard, free stock, planned for dispatch, awaiting main gate, free slots, and today’s gate in, gate out and main gate out.',
-      'Check "Needs attention" first: dispatch overdue at the main gate, parking not confirmed in time, parking rejected, machines returned after dispatch (on hold), yards full and pending exit requests. Each card opens its list or the screen that fixes it.',
+      'Check the "Needs attention" row first: dispatch overdue at the main gate, PDI hold, parking not confirmed in time, parking rejected, machines returned after dispatch (on hold), yards full and pending exit requests. Click a chip for its list; the arrow opens the screen that fixes it. "All clear" means nothing is waiting.',
       'Use "FG Yard Flow" to see how many machines are at each step, from Ready to Move to Main Gate Out. Click a step to list them.',
+      '"Last 7 Days" shows, per day, machines in and out of the FG gate and out of the main gate. Point at a day for its numbers, or press Show table.',
+      '"Activity" lists the latest yard events (gate in and out, parking verified or rejected, PDI, main gate out) with who did it and when.',
+      '"Open Dispatch Plans" shows each plan with machines still on the way: a bar of out of plant, out of the FG yard and still in the yard, and any PDI hold.',
       '"Stock by Model-Type" shows, per model-type, the machines in the yard, free, planned and the age of the oldest free machine (red after 30 days). "Stock Age" groups all yard machines by days since first inward.',
-      'Use "Quick Search" to find an FG yard machine by serial number, model, model-type or barcode, then click View for its location and movement history.',
+      'Use "Find & Go" to search an FG yard machine by serial number, model, model-type or barcode (click it for its location and movement history), or to jump to a screen.',
       '"Yard Capacity" shows each yard’s free, reserved and occupied slots as a bar. The lists at the bottom show machines in transit, awaiting verification and awaiting the main gate.',
     ],
     tips: ['The page refreshes itself every minute and when new alerts arrive. The time of the last update is shown at the top right.', 'Overdue and parking alert times are the ones set by the Administrator in Settings.'],
@@ -147,6 +150,7 @@ const SCREENS: ScreenGuide[] = [
       'Search by serial number or model, and filter by status or park status.',
       'Click "Stage X/18" to see the assembly stage history, or History for slot movements.',
       'Machines enter the yard only through Gate Control. Allocate (place a machine straight into a slot) appears only while an Administrator has Initial stock load switched on in Settings, for machines already parked before go-live. It needs stage 18, a barcode and a remark, and the machine still goes to Security.',
+      'Many machines at once (initial stock load only): press Upload Stock List, download the Template, fill one row per machine (Serial Number, Yard, Slot such as B7, optional Inward Date and Remark) in Excel, and choose the file. Every row is checked and shown; press Place to put in the rows marked Ready. Fix the other rows and upload them again.',
       'Administrators, Yard Managers and Operators can add a machine manually with Add Machine.',
     ],
   },
@@ -198,7 +202,8 @@ const SCREENS: ScreenGuide[] = [
     purpose: 'Create user accounts and control their role and access.',
     steps: [
       'Add User: name, email, role and a password of at least 8 characters.',
-      'Pencil icon: change name, role or password. Leave password empty to keep the current one.',
+      'Pencil icon: change name, role or password. Leave password empty to keep the current one. A new password signs that person out of every device.',
+      'A "Password reset requested" alert means someone used Forgot your password but the code could not be e-mailed. Check it is really them (phone or in person), then set a new password with the pencil icon.',
       'Power icon: deactivate or reactivate an account. You cannot deactivate your own account or change your own role.',
     ],
     tips: ['A role change applies on the user’s next action. Deactivating is safer than deleting because history stays linked to the person.'],
@@ -218,6 +223,7 @@ const SCREENS: ScreenGuide[] = [
     purpose: 'Send a suggestion, report an issue or give feedback from any screen, and follow what happens to it.',
     steps: [
       'Press Feedback in the top bar. Choose Suggestion, Issue or Other, write a few words and press Send. The screen you were on is sent with it.',
+      'To show the problem, add a screenshot: press Print Screen, then Ctrl+V in the Feedback form, or choose an image file. Only you and the Administrators can see it.',
       'Open Feedback > My feedback to see the status (New, In progress, Done, Closed) and the Administrator’s reply. You get a notification when it changes.',
       'Administrators: open Administration > Feedback, filter by status or type, open an item, set the status and write a reply.',
     ],
@@ -242,9 +248,12 @@ const SCREENS: ScreenGuide[] = [
       'Press Test Connection before saving to confirm the server can reach the system.',
       'Gate Boom Barrier: set the Open and Close URLs and the auto-close time. Optionally enable the Manual Open button for the gate.',
       'E-mail (SMTP): enter the sender mailbox and its app password, then press Send Test.',
-      'Parking & Security Check: choose whether Security must verify each parked machine, and the minutes after gate in before an alert is raised for parking that is not confirmed.',
-      'Initial stock load: switch on only while entering the machines already parked in the yard before go-live (Machine Tracking > Allocate), then switch it off. When off, machines enter only through Gate Control.',
+      'Parking & Security Check: choose whether Security must verify each parked machine, whether the two-person rule applies (the person who parked it cannot approve it), and the minutes after gate in before an alert is raised for parking that is not confirmed.',
+      'Initial stock load: switch on only while entering the machines already parked in the yard before go-live (Machine Tracking > Allocate or Upload Stock List), then switch it off. When off, machines enter only through Gate Control.',
       'Dispatch Overdue Alert: set the hours a machine may wait between FG gate-out and main gate out, and the e-mail address that receives the alert.',
+      'Accounts: Show Create account lets anyone register from the login page (as View Only). Keep it off so only Administrators create accounts.',
+      'Feedback Alert: the e-mail addresses that receive new feedback. Empty sends it to every active Administrator.',
+      'Database Backup: shows the backup folder, the last backup and the files. The backup runs every night by itself; press Back up now before an update. The Admin team copies the files from the folder to another system.',
       'Main Gate Integration: press Create Key only when the main gate system team is ready to connect.',
       'Press Save Changes. New schedules take effect immediately.',
     ],
@@ -283,6 +292,7 @@ const SCREENS: ScreenGuide[] = [
     ],
     tips: [
       'Drivers only see their own machines. Yard office staff can confirm on a driver’s behalf.',
+      'Two-person rule: if you confirm the parking (for example a guard confirming for a driver), another person must approve it in Security Verification.',
       'If the security check is switched off in Settings, the machine is verified as soon as parking is confirmed and the card says so.',
       'If parking is not confirmed within the set time after gate in (30 minutes by default), the yard team and the driver are alerted.',
     ],
@@ -294,6 +304,7 @@ const SCREENS: ScreenGuide[] = [
       'Each card is a machine waiting for a check, with its yard and slot.',
       'Walk to the slot. If the right machine is there, press Approve.',
       'If not, press Reject, type the reason, and Confirm reject. The driver is told to re-park.',
+      'Each card shows who parked the machine. If it was you, Approve is greyed out: another guard must approve it (two-person rule). You can still reject it.',
       '"Authorized Exits" lists machines approved to leave. They drop off once the gate checks them out.',
       '"Recent Verifications" keeps the last 8 decisions as a record.',
     ],
@@ -336,7 +347,7 @@ const SCREENS: ScreenGuide[] = [
   {
     tab: 'sop', title: 'SOP', roles: 'All signed-in users',
     purpose: 'The Quality Department SOP for the FG yard gate system: process steps, the shortage rule and who does what.',
-    steps: ['Read the 13 process steps and the roles table.', 'Click Download PDF for the issued copy.'],
+    steps: ['Read the 13 process steps and the roles table.', 'Click Open SOP PDF for the issued copy.', 'Checklists: choose your role, then Print or Save as PDF. They show DRAFT until Quality has reviewed them.'],
   },
   {
     tab: 'notifications', title: 'Notifications', roles: 'All signed-in users',
