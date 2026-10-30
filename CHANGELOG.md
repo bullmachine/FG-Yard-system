@@ -3,6 +3,23 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 30 October 2026
+
+**Update needs:** `npx prisma db push` (one new column, MachineStageHistory.endState; nothing
+removed), backend and frontend rebuild. No new packages. Take a database backup first.
+
+### Assembly: stage done only after inspection
+- The plant API now sends `end_state_cd` for every operation. A stage counts as done only when it
+  is **INSPECTION-COMPLETED**. The plant sends quantity 1.00 and an end time while the stage is
+  still **IN-INSPECTION**, so the quantity alone is no longer used. Older data without the field
+  still uses the quantity.
+- A machine reaches Ready to Move, and can come in at the gate, only after **stage 18 inspection
+  is completed**. A Ready to Move machine whose stage 18 goes back to IN-INSPECTION returns to
+  Planned. Machines already past the gate keep their stage.
+- **Assembly Line** shows the plant status of each machine's latest operation, for example
+  *S18 In inspection*. **Stage History** has a Plant Status column and an *In inspection at stage*
+  chip.
+
 ## 29 October 2026, second update
 
 **Update needs:** `npx prisma db push` (new columns and one new table, PasswordReset; nothing

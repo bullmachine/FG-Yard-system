@@ -9,6 +9,11 @@ export interface ProductionOrderTrx {
   end_dt_time: string;
   work_center_cd: PlantText;
   operation_completed_qty: PlantText;
+  /**
+   * The plant's state for the operation: "INSPECTION-COMPLETED", "IN-INSPECTION" or
+   * "RUN". Older responses did not carry it, so it is optional.
+   */
+  end_state_cd?: PlantText;
 }
 
 /**
@@ -353,16 +358,26 @@ export function parsePlantDateTime(value?: string | null): Date | null {
   );
 }
 
+export const INSPECTION_COMPLETED = 'INSPECTION-COMPLETED';
+
+/** The plant's operation state, upper-cased, or null when the plant did not send one. */
+export function trxEndState(trx: ProductionOrderTrx): string | null {
+  return toNullableString(trx.end_state_cd)?.toUpperCase() ?? null;
+}
+
 /**
- * A stage counts as completed once the plant has closed it off (end time
- * present) and reported a non-zero completed quantity. The plant sends "1.00"
- * for a finished operation, so any value above zero means done.
+ * A stage counts as completed once the plant has closed it off (end time present)
+ * and passed its inspection.
  *
- * This is deliberately a numeric check: an empty quantity would previously slip
- * through the old `!== '0.00'` comparison and mark a stage complete.
+ * The plant reports quantity "1.00" and an end time as soon as the work is done,
+ * while the operation is still "IN-INSPECTION", so the quantity alone would let a
+ * machine leave stage 18 before Quality has signed it off. When `end_state_cd` is
+ * sent it decides; only a response without it falls back to the quantity check.
  */
 export function isTrxCompleted(trx: ProductionOrderTrx): boolean {
   if (!toNullableString(trx.end_dt_time)) return false;
+  const state = trxEndState(trx);
+  if (state !== null) return state === INSPECTION_COMPLETED;
   const qty = parseFloat(toNullableString(trx.operation_completed_qty) ?? '');
   return Number.isFinite(qty) && qty > 0;
 }

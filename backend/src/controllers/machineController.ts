@@ -143,12 +143,24 @@ export const getAllMachines = async (req: Request, res: Response) => {
         list.push(row.isCompleted);
         rowsByMachine.set(row.machineId, list);
       }
+      // The plant's state for the latest operation of each machine still in assembly,
+      // so the list can show "S18 In inspection" rather than only a stage number.
+      const inAssembly = machines.filter((m) => m.parkStatus === 'PLANNED' || m.parkStatus === 'READY_TO_MOVE');
+      const plantRows = await prisma.machineStageHistory.findMany({
+        where: { machineId: { in: inAssembly.map((m) => m.id) }, source: 'PLANT_SYNC' },
+        select: { machineId: true, stage: true, endState: true }
+      });
+      const latestByMachine = new Map<string, { stage: number; state: string | null }>();
+      for (const row of plantRows) {
+        const seen = latestByMachine.get(row.machineId);
+        if (!seen || row.stage > seen.stage) latestByMachine.set(row.machineId, { stage: row.stage, state: row.endState });
+      }
       return res.json(machines.map((m) => {
         const rows = rowsByMachine.get(m.id) ?? [];
         const assemblyCompleted = m.assemblyStage >= 18 && (
           m.parkStatus !== 'PLANNED' || (rows.length > 0 && rows.every(Boolean))
         );
-        return { ...m, assemblyCompleted };
+        return { ...m, assemblyCompleted, plantStatus: latestByMachine.get(m.id) ?? null };
       }));
     }
 
@@ -728,11 +740,13 @@ export const getMachineStageHistory = async (req: Request, res: Response) => {
       const stage = index + 1;
       const row = plantByStage.get(stage) ?? manualByStage.get(stage);
 
-      let status: 'COMPLETED' | 'IN_PROGRESS' | 'NOT_STARTED';
+      let status: 'COMPLETED' | 'IN_INSPECTION' | 'IN_PROGRESS' | 'NOT_STARTED';
       if (!row) {
         status = 'NOT_STARTED';
       } else if (row.isCompleted) {
         status = 'COMPLETED';
+      } else if (row.endState === 'IN-INSPECTION') {
+        status = 'IN_INSPECTION';
       } else {
         status = 'IN_PROGRESS';
       }
@@ -744,6 +758,7 @@ export const getMachineStageHistory = async (req: Request, res: Response) => {
         startedAt: row?.startedAt ?? null,
         endedAt: row?.endedAt ?? null,
         completedQty: row?.completedQty ?? null,
+        endState: row?.endState ?? null,
         source: row?.source ?? null,
         syncedAt: row?.syncedAt ?? null,
         durationMinutes:
@@ -765,6 +780,7 @@ export const getMachineStageHistory = async (req: Request, res: Response) => {
         recordedCount: recordedCount,
         currentStage: machine.assemblyStage,
         inProgressStage: inProgress ? inProgress.stage : null,
+        inInspectionStages: stages.filter((s) => s.status === 'IN_INSPECTION').map((s) => s.stage),
         hasHistory: recordedCount > 0,
         lastRecordedAt: rows.reduce<Date | null>(
           (latest, row) => (!latest || row.syncedAt > latest ? row.syncedAt : latest),

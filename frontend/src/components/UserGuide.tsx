@@ -60,7 +60,7 @@ const QUICK_START = [
 
 const JOURNEY = [
   { step: 'Assembly', status: 'Stages 1–18', text: 'Production orders are read from the plant every morning. Each machine moves through 18 assembly stages.' },
-  { step: 'Completed', status: 'Stage 18 done', text: 'When stage 18 is finished the machine appears under Assembly Line → Completed. It needs a barcode before it can leave the plant.' },
+  { step: 'Completed', status: 'Stage 18 done', text: 'When the plant marks stage 18 Inspection completed, the machine appears under Assembly Line → Completed. Until then it shows S18 In inspection and cannot come in at the gate. It needs a barcode before it can leave the plant.' },
   { step: 'Ready to Move', status: 'READY TO MOVE', text: 'With a barcode, the machine is released and waits for a driver.' },
   { step: 'Gate In', status: 'IN TRANSIT', text: 'At the gate the driver badge and machine barcode are scanned. If authorized, the barrier opens and the driver is told which yard slot to go to.' },
   { step: 'Parked', status: 'PARKED PENDING', text: 'The driver (or the yard office) confirms the machine is in its slot.' },
@@ -360,6 +360,7 @@ const SCREENS: ScreenGuide[] = [
 const GLOSSARY = [
   { term: 'Slot label (A1, B5…)', meaning: 'The letter is the row and the number is the column of the yard grid. B5 = row B, column 5.' },
   { term: 'Stage 1–18', meaning: 'The assembly stages a machine passes on the production line. Stage 18 is the last one.' },
+  { term: 'Plant status', meaning: 'The state the plant reports for an operation: Running, In inspection or Inspection completed. A stage counts as done only when it is Inspection completed.' },
   { term: 'Completed', meaning: 'Every stage-18 operation is finished. The machine has left assembly.' },
   { term: 'Barcode', meaning: 'The machine’s identification label, scanned at the gate. A machine without one cannot be released.' },
   { term: 'Employee code / badge', meaning: 'The driver’s identity code, printed as a barcode on the driver badge and scanned at the gate.' },
@@ -380,7 +381,7 @@ const GLOSSARY = [
 
 const FAQ = [
   { q: 'I cannot see a screen my colleague can see.', a: 'The menu shows only the screens your role can open. Ask an Administrator to check your role in User Management.' },
-  { q: 'The gate rejected a machine. What now?', a: 'Read the red reason. Common causes: driver badge not found, machine not at stage 18, machine has no barcode, machine already parked in the yard, or no free slot in any yard. Fix the cause (for example free a slot or add the barcode in the plant system), then Reset and scan again.' },
+  { q: 'The gate rejected a machine. What now?', a: 'Read the red reason. Common causes: driver badge not found, stage 18 inspection not completed, machine has no barcode, machine already parked in the yard, or no free slot in any yard. Fix the cause (for example free a slot or add the barcode in the plant system), then Reset and scan again.' },
   { q: 'A completed machine shows "No Barcode".', a: 'The barcode is missing in the plant system. The machine cannot be released until it is added there; the next sync updates it automatically.' },
   { q: 'The camera icon does not open the camera.', a: 'Tap Allow when the browser asks for the camera. Camera scanning only works over a secure (https) address or on the same computer. Otherwise use the barcode reader or type the code.' },
   { q: 'Numbers look out of date.', a: 'Press Refresh on the screen, or reload the page. The Dashboard also refreshes every minute.' },

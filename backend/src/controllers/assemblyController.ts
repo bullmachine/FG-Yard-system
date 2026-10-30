@@ -155,7 +155,7 @@ export const assignDriver = async (req: Request, res: Response) => {
     }
 
     if (machine.assemblyStage < 18) {
-      return res.status(400).json({ error: 'Machine must be at stage 18 to assign driver' });
+      return res.status(400).json({ error: 'Stage 18 inspection must be completed before a driver is assigned' });
     }
 
     const driver = await prisma.driver.findUnique({

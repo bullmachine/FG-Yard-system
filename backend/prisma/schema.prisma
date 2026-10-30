@@ -298,6 +298,8 @@ model MachineStageHistory {
   startedAt      DateTime?
   endedAt        DateTime?
   completedQty   String?
+  // Plant end_state_cd: INSPECTION-COMPLETED, IN-INSPECTION or RUN.
+  endState       String?
   isCompleted    Boolean            @default(false)
   source         StageHistorySource @default(PLANT_SYNC)
   syncedAt       DateTime           @default(now())

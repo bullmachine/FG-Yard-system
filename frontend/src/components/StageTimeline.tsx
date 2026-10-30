@@ -2,7 +2,8 @@
 
 import Badge from '@/components/ui/Badge';
 import { formatDateTime } from '@/lib/format';
-import { CheckCircle2, CircleDashed, CircleDot, Loader2, Info } from 'lucide-react';
+import { plantStateMeta } from '@/lib/plantState';
+import { CheckCircle2, CircleDashed, CircleDot, ClipboardCheck, Loader2, Info } from 'lucide-react';
 
 /**
  * Presentational stage timeline, shared by every screen that shows assembly stage
@@ -11,7 +12,7 @@ import { CheckCircle2, CircleDashed, CircleDot, Loader2, Info } from 'lucide-rea
  * page showing the same timeline instead of two copies that can drift apart.
  */
 
-export type StageStatus = 'COMPLETED' | 'IN_PROGRESS' | 'NOT_STARTED';
+export type StageStatus = 'COMPLETED' | 'IN_INSPECTION' | 'IN_PROGRESS' | 'NOT_STARTED';
 
 export interface StageRow {
   stage: number;
@@ -20,6 +21,7 @@ export interface StageRow {
   startedAt: string | null;
   endedAt: string | null;
   completedQty: string | null;
+  endState?: string | null;
   source: 'PLANT_SYNC' | 'MANUAL' | null;
   durationMinutes: number | null;
 }
@@ -30,6 +32,7 @@ export interface StageSummary {
   recordedCount: number;
   currentStage: number;
   inProgressStage: number | null;
+  inInspectionStages?: number[];
   hasHistory: boolean;
   lastRecordedAt: string | null;
 }
@@ -50,6 +53,12 @@ const statusMeta: Record<StageStatus, { icon: React.ReactNode; label: string; ro
     label: 'Completed',
     row: 'bg-emerald-50/40',
     badge: 'bg-emerald-100 text-emerald-800'
+  },
+  IN_INSPECTION: {
+    icon: <ClipboardCheck className="h-4 w-4 text-purple-600" />,
+    label: 'In inspection',
+    row: 'bg-purple-50/50',
+    badge: 'bg-purple-100 text-purple-800'
   },
   IN_PROGRESS: {
     icon: <Loader2 className="h-4 w-4 text-amber-600" />,
@@ -86,6 +95,12 @@ export default function StageTimeline({ summary, stages }: StageTimelineProps) {
             In progress at stage {summary.inProgressStage}
           </span>
         )}
+        {summary.inInspectionStages && summary.inInspectionStages.length > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-purple-100 text-purple-800">
+            <ClipboardCheck className="h-3.5 w-3.5" />
+            In inspection at stage {summary.inInspectionStages.join(', ')}
+          </span>
+        )}
         {summary.lastRecordedAt && (
           <span className="text-[11px] text-slate-500">
             Last recorded {formatDateTime(summary.lastRecordedAt)}
@@ -108,7 +123,7 @@ export default function StageTimeline({ summary, stages }: StageTimelineProps) {
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              {['Stage', 'Status', 'Work Centre', 'Started', 'Ended', 'Duration', 'Source'].map((h) => (
+              {['Stage', 'Status', 'Plant Status', 'Work Centre', 'Started', 'Ended', 'Duration', 'Source'].map((h) => (
                 <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">
                   {h}
                 </th>
@@ -119,6 +134,7 @@ export default function StageTimeline({ summary, stages }: StageTimelineProps) {
             {stages.map((s) => {
               const meta = statusMeta[s.status];
               const duration = formatDuration(s.durationMinutes);
+              const plant = plantStateMeta(s.endState);
               return (
                 <tr key={s.stage} className={meta.row}>
                   <td className="px-3 py-2 text-[13px] font-semibold text-slate-900 tabular-nums whitespace-nowrap">
@@ -131,6 +147,9 @@ export default function StageTimeline({ summary, stages }: StageTimelineProps) {
                         {meta.label}
                       </span>
                     </span>
+                  </td>
+                  <td className="px-3 py-2 text-[12px] whitespace-nowrap">
+                    {plant ? <Badge variant={plant.variant}>{plant.label}</Badge> : <span className="text-slate-300">—</span>}
                   </td>
                   <td className="px-3 py-2 text-[12px] font-mono text-slate-600 whitespace-nowrap">
                     {s.workCenter || '—'}

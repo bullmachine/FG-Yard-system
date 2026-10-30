@@ -161,7 +161,7 @@ export const authenticateGate = async (req: Request, res: Response) => {
     // identical to what the dropdown pre-filters. Rejects go through rejectGate
     // so the operator gets a visible reason and a CRITICAL is raised.
     if (machine.assemblyStage < 18) {
-      return res.json(await rejectGate('Machine is not ready to move (stage 18+ required)', { barcode }));
+      return res.json(await rejectGate('Machine is not ready to move (stage 18 inspection not completed)', { barcode }));
     }
     if (!machine.barcode || machine.barcode.trim() === '') {
       return res.json(await rejectGate('Machine has no barcode. Cannot be checked in at the gate.', { barcode }));

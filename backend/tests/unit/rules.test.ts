@@ -125,3 +125,21 @@ test('dashboard: India dates for the 7-day trend', async () => {
   const days = emptyTrend(new Date(Date.UTC(2026, 9, 28, 18, 30)));
   assert.deepEqual(days.map((d) => d.day), ['2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29']);
 });
+
+test('assembly: a stage is done only when the plant reports INSPECTION-COMPLETED', async () => {
+  const { isTrxCompleted, getHighestCompletedStage } = await import('../../src/services/productionApiService');
+  const op = (seq: string, state?: string, qty = '1.00', end = '2026-10-30 10:00:00') => ({
+    operation_seq_no: seq, start_dt_time: '2026-10-30 09:00:00', end_dt_time: end,
+    work_center_cd: `STAGE-${Number(seq) / 10}`, operation_completed_qty: qty,
+    ...(state === undefined ? {} : { end_state_cd: state })
+  });
+  assert.equal(isTrxCompleted(op('180', 'INSPECTION-COMPLETED')), true);
+  assert.equal(isTrxCompleted(op('180', 'IN-INSPECTION')), false, 'qty 1.00 but still in inspection');
+  assert.equal(isTrxCompleted(op('10', 'RUN')), false);
+  assert.equal(isTrxCompleted(op('180', 'INSPECTION-COMPLETED', '1.00', '')), false, 'no end time');
+  // Older responses without end_state_cd keep the quantity rule.
+  assert.equal(isTrxCompleted(op('180')), true);
+  assert.equal(isTrxCompleted(op('180', undefined, '0.00')), false);
+  assert.equal(getHighestCompletedStage([op('170', 'INSPECTION-COMPLETED'), op('180', 'IN-INSPECTION')]), 17);
+  assert.equal(getHighestCompletedStage([op('170', 'IN-INSPECTION'), op('180', 'INSPECTION-COMPLETED')]), 18);
+});

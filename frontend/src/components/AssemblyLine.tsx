@@ -8,6 +8,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import Input from '@/components/ui/Input';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '@/components/ui/Table';
 import { AssemblyStageBadge, ParkStatusBadge } from '@/components/ui/StatusBadge';
+import { plantStateMeta } from '@/lib/plantState';
 import Badge from '@/components/ui/Badge';
 import { PageSpinner } from '@/components/ui/Spinner';
 import StageHistoryModal from '@/components/StageHistoryModal';
@@ -15,7 +16,7 @@ import { formatDateTime, slotLabel } from '@/lib/format';
 import { RefreshCw, Factory, Clock, Zap, Activity, Calendar, AlertCircle, CheckCircle2, Search, X, MapPin } from 'lucide-react';
 
 interface SlotRef { row: number; col: number; yard?: { name: string } }
-interface Machine { id: string; serialNumber: string; barcode?: string; model: string; machineType?: string; modelType?: string; assemblyStage: number; orderNo?: string; itemCode?: string; itemDescription?: string; parkStatus: string; lastSyncAt?: string; isDemo?: boolean; assemblyCompleted?: boolean; currentSlot?: SlotRef | null; plannedSlot?: SlotRef | null; }
+interface Machine { id: string; serialNumber: string; barcode?: string; model: string; machineType?: string; modelType?: string; assemblyStage: number; orderNo?: string; itemCode?: string; itemDescription?: string; parkStatus: string; lastSyncAt?: string; isDemo?: boolean; assemblyCompleted?: boolean; plantStatus?: { stage: number; state: string | null } | null; currentSlot?: SlotRef | null; plannedSlot?: SlotRef | null; }
 
 // Where a machine that has finished stage 18 is now. Parking states are grouped
 // because the yard cares that it is in a slot, not which security step it is at.
@@ -45,6 +46,17 @@ const locationLabel = (m: Machine) => {
   // show the machine numbers and quote the operation numbers as a hint.
   interface StageStats { byStage: Record<string, StageStat>; startedTodayTotal: number; machinesStartedToday: number; inProgressTotal: number; machinesInProgress: number; }
 interface SyncNotice { type: 'success' | 'error'; message: string; }
+
+// The plant's state for the machine's latest operation, e.g. "S18 In inspection".
+function PlantStatusTag({ status }: { status?: Machine['plantStatus'] }) {
+  const meta = plantStateMeta(status?.state);
+  if (!status || !meta) return null;
+  return (
+    <span className="mt-1 block">
+      <Badge variant={meta.variant}>S{status.stage} {meta.label}</Badge>
+    </span>
+  );
+}
 
 export default function AssemblyLine() {
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -419,7 +431,10 @@ export default function AssemblyLine() {
                   </TableCell>
                   <TableCell>{m.model}</TableCell>
                   <TableCell><span className="text-xs font-mono text-slate-600">{m.orderNo || '—'}</span></TableCell>
-                  <TableCell><AssemblyStageBadge stage={m.assemblyStage} completed={!!m.assemblyCompleted} /></TableCell>
+                  <TableCell>
+                    <AssemblyStageBadge stage={m.assemblyStage} completed={!!m.assemblyCompleted} />
+                    {!m.assemblyCompleted && <PlantStatusTag status={m.plantStatus} />}
+                  </TableCell>
                   <TableCell><ParkStatusBadge status={m.parkStatus} /></TableCell>
                   {showingCompleted && (
                     <TableCell>

@@ -13,7 +13,8 @@ import {
   isTrxCompleted,
   getOrderTrxs,
   toNullableString,
-  toStageNumber
+  toStageNumber,
+  trxEndState
 } from './productionApiService';
 import { alertIfMissingBarcode, notifyEvent } from './notificationService';
 import { getSettings } from './settingsService';
@@ -348,6 +349,7 @@ async function persistStageHistory(
         startedAt: parsePlantDateTime(trx.start_dt_time),
         endedAt: parsePlantDateTime(trx.end_dt_time),
         completedQty: toNullableString(trx.operation_completed_qty),
+        endState: trxEndState(trx),
         isCompleted: isTrxCompleted(trx),
         source: 'PLANT_SYNC' as const,
         syncedAt
@@ -374,6 +376,7 @@ async function persistStageHistory(
           startedAt: row.startedAt,
           endedAt: row.endedAt,
           completedQty: row.completedQty,
+          endState: row.endState,
           isCompleted: row.isCompleted,
           syncedAt: row.syncedAt
         }
@@ -433,11 +436,16 @@ async function processOrder(order: ProductionOrder): Promise<void> {
   });
 
   if (existingMachine) {
-    // Update existing machine
+    // A machine that has already gone through the gate keeps the stage it left with.
+    // Without this, a plant that later reopens an inspection would push a parked or
+    // dispatched machine back into assembly on the screens.
+    const stillInAssembly = existingMachine.parkStatus === 'PLANNED' || existingMachine.parkStatus === 'READY_TO_MOVE';
+    const assemblyStage = stillInAssembly ? highestStage : Math.max(highestStage, existingMachine.assemblyStage);
+
     await prisma.machine.update({
       where: { id: existingMachine.id },
       data: {
-        assemblyStage: highestStage,
+        assemblyStage,
         barcode,
         itemCode,
         itemDescription,
@@ -471,10 +479,12 @@ async function processOrder(order: ProductionOrder): Promise<void> {
         type: 'READY_TO_MOVE',
         severity: 'INFO',
         title: 'Machine ready to move',
-        message: `${existingMachine.serialNumber} (${existingMachine.model}) reached stage 18 and is ready for driver assignment.`,
+        message: `${existingMachine.serialNumber} (${existingMachine.model}) completed stage 18 inspection and is ready for driver assignment.`,
         link: 'assembly'
       });
-    } else if (existingMachine.parkStatus === 'READY_TO_MOVE' && !hasBarcode) {
+    } else if (existingMachine.parkStatus === 'READY_TO_MOVE' && (!hasBarcode || highestStage < 18)) {
+      // Also covers stage 18 going back to "IN-INSPECTION": the machine must not
+      // reach the gate until Quality has completed the inspection.
       await prisma.machine.update({
         where: { id: existingMachine.id },
         data: { parkStatus: 'PLANNED' }

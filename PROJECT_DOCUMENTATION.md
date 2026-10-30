@@ -280,7 +280,8 @@ http://192.168.1.102/bdf/apps/bafrestapi.php/PRODUCTION_API/REST
         "start_dt_time": "2026-05-13 15:35:21",
         "end_dt_time": "2026-05-13 15:45:51",
         "work_center_cd": "STAGE-1",
-        "operation_completed_qty": "1.00"
+        "operation_completed_qty": "1.00",
+        "end_state_cd": "INSPECTION-COMPLETED"
       }
     ]
   }
@@ -296,6 +297,11 @@ http://192.168.1.102/bdf/apps/bafrestapi.php/PRODUCTION_API/REST
 | 13 | 130 | STAGE-13 | **Barcode pasting + Auto location assignment** |
 | ... | ... | ... | ... |
 | 18 | 180 | STAGE-18 | **Final quality check + Driver assignment** |
+
+**Stage completion:** a stage is complete when it has an end time and `end_state_cd` is
+`INSPECTION-COMPLETED`. `IN-INSPECTION` (work done, Quality inspection pending) and `RUN` are not
+complete, even though the plant already sends quantity `1.00`. Responses without
+`end_state_cd` fall back to `operation_completed_qty > 0`.
 
 **Sync Schedule:** Every 2 hours via node-cron
 
