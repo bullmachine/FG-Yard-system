@@ -268,3 +268,14 @@ test('dashboard: 7-day trend, activity and open plans', async () => {
   assert.equal(r.data.dispatch.openPlans.count, 0, 'the only plan is complete');
   assert.ok(Array.isArray(r.data.dispatch.pdiHold.items));
 });
+
+test('settings: e-mail addresses with the letter s are accepted', async () => {
+  let r = await call('admin', 'PUT', '/api/settings', { smtpUser: 'sudhakar.a@bullmachine.com', smtpFrom: 'sudhakar.a@bullmachine.com', feedbackAlertEmails: 'sales@bullmachine.com; stores@bullmachine.com' });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.smtpUser, 'sudhakar.a@bullmachine.com');
+  assert.equal(r.data.feedbackAlertEmails, 'sales@bullmachine.com, stores@bullmachine.com');
+  r = await call('admin', 'PUT', '/api/settings', { smtpFrom: 'not-an-email' });
+  assert.equal(r.status, 400);
+  r = await call('admin', 'PUT', '/api/settings', { smtpFrom: 'a@bullmachinecom' });
+  assert.equal(r.status, 400, 'needs a dot in the domain');
+});

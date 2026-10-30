@@ -21,7 +21,7 @@ const MIN_TIMEOUT_MS = 1000;
 const MAX_TIMEOUT_MS = 120000;
 const MAX_AUTO_CLOSE_SECONDS = 300;
 const MAX_ALERT_HOURS = 72;
-const EMAIL_RE = /^[^s@,;]+@[^s@,;]+.[^s@,;]+$/;
+const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
 function validateWholeNumber(value: unknown, field: string, min: number, max: number, errors: FieldErrors): number | undefined {
   if (value === undefined) return undefined;
