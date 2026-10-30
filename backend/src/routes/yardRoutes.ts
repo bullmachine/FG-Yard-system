@@ -15,11 +15,11 @@ import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
-// Public routes (read-only)
-router.get('/', getAllYards);
+// Reads need a signed-in user (any role).
+router.get('/', auth, getAllYards);
 // Registered before /:id so "availability" is not swallowed as a yard id.
-router.get('/availability', getYardAvailability);
-router.get('/:id', getYardById);
+router.get('/availability', auth, getYardAvailability);
+router.get('/:id', auth, getYardById);
 
 // Protected routes (require authentication)
 router.post('/', auth, requirePermission('yards.edit'), createYard);

@@ -9,7 +9,7 @@ import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
-router.get('/', getAllMaterialMasters);
+router.get('/', auth, getAllMaterialMasters);
 router.post('/sync', auth, requirePermission('materials.sync'), syncMaterialMasters);
 router.get('/sync/status', auth, requirePermission('materials.sync'), getMaterialMasterStatusEndpoint);
 

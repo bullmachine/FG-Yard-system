@@ -666,6 +666,10 @@ UI is a convenience and not the enforcement point.
 
 ## API Endpoints
 
+Every endpoint needs a signed-in token except login, register, forgot / reset password,
+`GET /api/auth/options` and the main gate integration (its own API key). The read endpoints for
+machines, yards, drivers and the masters are open to any signed-in role.
+
 - `GET /api/auth/options` - Public: whether Create account is on
 - `POST /api/auth/register` - Register new user (refused unless Settings › Accounts allows it)
 - `POST /api/auth/forgot-password` - E-mail a 6-digit reset code (`email`); same answer whether or not the account exists

@@ -16,8 +16,9 @@ import { driverPhotoUpload } from '../lib/upload';
 
 const router = Router();
 
-router.get('/', getAllDrivers);
-router.get('/:id', getDriverById);
+// Reads need a signed-in user: the roster holds names, phones and badge codes.
+router.get('/', auth, getAllDrivers);
+router.get('/:id', auth, getDriverById);
 router.post('/', auth, requirePermission('drivers.manage'), createDriver);
 router.put('/:id', auth, requirePermission('drivers.manage'), updateDriver);
 router.delete('/:id', auth, requirePermission('drivers.admin'), deleteDriver);

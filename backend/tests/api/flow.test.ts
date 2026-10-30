@@ -59,6 +59,12 @@ after(async () => {
 
 test('access: no token is 401, the wrong role is 403', async () => {
   assert.equal((await call(null, 'GET', '/api/dispatch-plans')).status, 401);
+  // Master data and the driver roster are not readable without signing in.
+  for (const path of ['/api/machines', '/api/machines/x', '/api/yards', '/api/yards/availability', '/api/drivers',
+    '/api/fert-categories', '/api/vehicle-model-masters', '/api/material-masters', '/api/sap-check']) {
+    assert.equal((await call(null, 'GET', path)).status, 401, path);
+  }
+  assert.equal((await call('viewer', 'GET', '/api/yards')).status, 200, 'any signed-in role can read');
   assert.equal((await call('viewer', 'POST', '/api/yards', { name: 'X', rows: 1, cols: 1 })).status, 403);
   assert.equal((await call('viewer', 'POST', '/api/dispatch-plans', { lines: [{ modelType: 'MT-A', qty: 1 }] })).status, 403);
   assert.equal((await call('viewer', 'GET', '/api/backups')).status, 403);

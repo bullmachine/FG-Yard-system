@@ -19,19 +19,18 @@ import {
   assignDriver,
   verifyParking
 } from '../controllers/assemblyController';
-import { auth, requireRole, optionalAuth } from '../middleware/auth';
+import { auth, requireRole } from '../middleware/auth';
 import { requirePermission } from '../services/roleAccessService';
 
 const router = Router();
 
-// Public routes (read-only). optionalAuth lets ?mine=true resolve the caller's
-// own driver record from a token, while other callers keep the existing
-// unauthenticated read behaviour.
-router.get('/', optionalAuth, getAllMachines);
+// Reads need a signed-in user (any role). The token also lets ?mine=true resolve
+// the caller's own driver record.
+router.get('/', auth, getAllMachines);
 // Returns must be declared before GET /:id, which would otherwise treat "returns"
 // as a machine id.
 router.get('/returns', auth, getReturnMachines);
-router.get('/:id', getMachineById);
+router.get('/:id', auth, getMachineById);
 
 // Protected routes (require authentication)
 router.get('/:id/history', auth, getMachineStageHistory);

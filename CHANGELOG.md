@@ -3,6 +3,15 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 30 October 2026, third update
+
+**Update needs:** backend rebuild only. No database change.
+
+### Security
+- Machines, yards, drivers, FERT categories, vehicle models and material master can no longer be
+  read without signing in (they were open to anyone on the network, including driver names,
+  phones and badge codes). Every signed-in role reads them as before.
+
 ## 30 October 2026, second update
 
 **Update needs:** `npx prisma db push` (three new tables: SapStockItem, SapDelivery, SapSyncRun;
