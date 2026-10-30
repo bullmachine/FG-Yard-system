@@ -693,3 +693,51 @@ model LoginEvent {
   @@index([email, createdAt])
   @@index([userId])
 }
+
+// SAP FG stock (API_TYP FG_API) as of the last SAP check: the whole list is replaced on
+// every successful run, so it always shows what SAP holds now. One row per serial.
+model SapStockItem {
+  serialNumber String    @id
+  material     String
+  description  String?
+  storageLoc   String?
+  matGroup     String?
+  // CONF_DATE; SAP sends 00000000 when it has none.
+  confDate     DateTime?
+  syncedAt     DateTime
+}
+
+// SAP delivery / invoice documents (API_TYP UM_API), one row per machine on a document.
+// SAP packs several serials into one MSNO ("10.HN2392/HN2393,20.HN2399") and cuts the
+// field at 132 characters; cutRow marks rows from such a cut-off line, where some
+// serials of the document are missing.
+model SapDelivery {
+  id           String   @id @default(uuid())
+  invoice      String
+  serialNumber String
+  material     String
+  description  String?
+  deliveryDate DateTime
+  cutRow       Boolean  @default(false)
+  syncedAt     DateTime
+
+  @@unique([invoice, serialNumber])
+  @@index([serialNumber])
+  @@index([deliveryDate])
+}
+
+// One SAP check run (sapCheckService): what was pulled and the delivery dates covered.
+model SapSyncRun {
+  id           String    @id @default(uuid())
+  trigger      String
+  startedAt    DateTime
+  finishedAt   DateTime?
+  ok           Boolean   @default(false)
+  stockRows    Int       @default(0)
+  deliveryRows Int       @default(0)
+  deliveryFrom DateTime?
+  deliveryTo   DateTime?
+  error        String?   @db.VarChar(1000)
+
+  @@index([startedAt])
+}

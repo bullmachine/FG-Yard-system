@@ -15,7 +15,7 @@ import { TrendChart, ActivityFeed, PlanProgress, TrendDay, ActivityItem, OpenPla
 import { slotLabel, formatDateTime } from '@/lib/format';
 import {
   Truck, MapPin, Package, CheckCircle2, Search, ArrowRight, Map, RefreshCw, AlertTriangle,
-  Clock, Send, ShieldAlert, Fence, Shield, Boxes, ClipboardList, LogOut, Undo2, CalendarDays, PauseCircle
+  Clock, Send, ShieldAlert, Fence, Shield, Boxes, ClipboardList, LogOut, Undo2, CalendarDays, PauseCircle, Scale
 } from 'lucide-react';
 
 /**
@@ -94,6 +94,7 @@ interface DashboardData {
   trend: TrendDay[];
   activity: ActivityItem[];
   exitRequestsPending: number;
+  sapCheck: { total: number; lastOkAt: string } | null;
 }
 
 type ModalView =
@@ -295,7 +296,7 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
   const { inbound, stock, dispatch, slots, today } = data;
   const tabName: Record<string, string> = {
     yards: 'FG Yard', parked: 'Confirm Parking', security: 'Security Verification',
-    stock: 'Yard Stock', pdi: 'Dispatch Machine List', requests: 'Exit Requests',
+    stock: 'Yard Stock', pdi: 'Dispatch Machine List', requests: 'Exit Requests', sap: 'SAP Check',
   };
 
   // Only problems that need a person to act. Each one opens its list, and the
@@ -342,6 +343,13 @@ export default function Dashboard({ onNavigate, allowedTabs }: DashboardProps) {
       hint: 'No slot is free for the next machine',
       tone: 'border-red-200 bg-red-50 text-red-800', iconTone: 'bg-red-600',
       onOpen: () => onNavigate?.('yards'), tab: 'yards',
+    },
+    can('sap') && data.sapCheck && data.sapCheck.total > 0 && {
+      key: 'sap', count: data.sapCheck.total, icon: <Scale className="w-4 h-4" />,
+      title: 'SAP mismatch',
+      hint: `FG Yard and SAP stock / invoices disagree (checked ${formatDateTime(data.sapCheck.lastOkAt)})`,
+      tone: 'border-violet-200 bg-violet-50 text-violet-800', iconTone: 'bg-violet-600',
+      onOpen: () => onNavigate?.('sap'), tab: 'sap',
     },
     can('requests') && data.exitRequestsPending > 0 && {
       key: 'requests', count: data.exitRequestsPending, icon: <Send className="w-4 h-4" />,

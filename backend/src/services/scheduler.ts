@@ -1,5 +1,6 @@
 import { purgeOldLoginEvents } from './loginHistoryService';
 import { backupConfig, runBackup } from './backupService';
+import { runSapCheck, sapCheckCron } from './sapCheckService';
 import cron from 'node-cron';
 import { syncProductionOrders, syncProductionOrderWindow } from './syncService';
 import { syncMaterialMaster } from './materialMasterService';
@@ -155,6 +156,17 @@ export async function startScheduler(): Promise<void> {
     console.log(`Database backup scheduled with cron: ${backup.cron} into ${backup.dir}`);
   } else {
     console.error(`BACKUP_CRON "${backup.cron}" is not a valid cron expression; daily backup is OFF`);
+  }
+
+  // SAP check: FG stock and deliveries from SAP, every 2 hours by default (SAP_CHECK_CRON).
+  const sapCron = sapCheckCron();
+  if (cron.validate(sapCron)) {
+    cron.schedule(sapCron, () => {
+      void runSapCheck('scheduled');
+    });
+    console.log(`SAP check scheduled with cron: ${sapCron}`);
+  } else {
+    console.error(`SAP_CHECK_CRON "${sapCron}" is not a valid cron expression; the SAP check is OFF`);
   }
 
   console.log('Scheduler started successfully');

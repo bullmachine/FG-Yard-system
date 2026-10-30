@@ -705,6 +705,7 @@ UI is a convenience and not the enforcement point.
 - `GET /api/dispatch-plans/items` - Dispatch machine list; `POST .../items/:id/pdi` records PDI Pass / Hold; `POST .../items/:id/main-gate-out` marks main gate-out (refused until PDI passed)
 - `GET /api/settings/stock-load` - Whether Initial stock load and the parking two-person rule are on
 - `GET /api/backups` - Backup folder, schedule, last result and files; `POST /api/backups/run` - back up now (Admin)
+- `GET /api/sap-check` - SAP Check status and mismatch lists (`page.sap`); `POST /api/sap-check/run` - read SAP now (`sap.sync`); `GET /api/sap-check/machine/:serial` - SAP stock entry and invoices of one machine
 - `GET /api/role-access/me` - The signed-in user's permissions; `GET/PUT /api/role-access` and `POST /api/role-access/reset` manage the matrix (Admin)
 - `POST /api/feedback` - Send feedback (`type`, `message`, `page`; JSON, or multipart with an optional `screenshot` image up to 2 MB); `GET /api/feedback/:id/screenshot` - the screenshot (sender or Admin); `GET /api/feedback/mine` - own feedback; `GET /api/feedback` and `PUT /api/feedback/:id` - review (Admin)
 - `POST /api/auth/logout` - Record a sign-out; `GET /api/login-history` - Login history with `result`, `q`, `from`, `to`, paging (Admin)

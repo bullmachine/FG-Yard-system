@@ -10,9 +10,10 @@ import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } f
 import { slotLabel, formatDateTime } from '@/lib/format';
 import { useAuth } from '@/contexts/AuthContext';
 import { canViewSecurityHistory, isYardRecorder } from '@/lib/roles';
-import { AlertCircle, History, Info, ArrowLeftRight, Lock, CarFront, Shield } from 'lucide-react';
+import { AlertCircle, History, Info, ArrowLeftRight, Lock, CarFront, Shield, Receipt } from 'lucide-react';
+import MachineSapPanel from '@/components/MachineSapPanel';
 
-export type HistoryTab = 'stages' | 'movements' | 'parking' | 'security';
+export type HistoryTab = 'stages' | 'movements' | 'parking' | 'security' | 'sap';
 
 export interface Movement {
   id: string;
@@ -161,6 +162,7 @@ export default function MachineHistoryModal({
   // Parking is stored as YARD_ENTRY movements, so this tab is a filtered view of
   // the movements the caller already supplied rather than a second request.
   const parkRows = rows.filter(mv => mv.reason === 'YARD_ENTRY');
+  const sapSerial = serialNumber || machine?.serialNumber || null;
 
   // Verifications have no other source, so they are fetched, and only when the
   // tab is actually shown and the caller's role allows reading them.
@@ -214,6 +216,7 @@ export default function MachineHistoryModal({
     if (id === 'stages') return <History className="h-3.5 w-3.5" />;
     if (id === 'movements') return <ArrowLeftRight className="h-3.5 w-3.5" />;
     if (id === 'parking') return <CarFront className="h-3.5 w-3.5" />;
+    if (id === 'sap') return <Receipt className="h-3.5 w-3.5" />;
     return <Shield className="h-3.5 w-3.5" />;
   };
 
@@ -299,6 +302,7 @@ export default function MachineHistoryModal({
           {tabButton('movements', 'Movements', rows.length)}
           {tabButton('parking', 'Parking', parkRows.length)}
           {canViewVerifications && tabButton('security', 'Security', verificationRows?.length ?? null)}
+          {sapSerial && user && tabButton('sap', 'SAP', null)}
         </div>
 
         {tab === 'stages' && (
@@ -354,6 +358,8 @@ export default function MachineHistoryModal({
             </Table>
           )
         )}
+        {tab === 'sap' && sapSerial && <MachineSapPanel serialNumber={sapSerial} />}
+
         {tab === 'parking' && (
           parkRows.length === 0 ? (
             <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">

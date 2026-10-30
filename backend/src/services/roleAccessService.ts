@@ -68,6 +68,9 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'page.materials', group: 'Material Master', label: 'Open page', defaults: [YM] },
   { key: 'materials.sync', group: 'Material Master', label: 'Sync and sync status', defaults: [YM] },
 
+  { key: 'page.sap', group: 'SAP Check', label: 'Open page', defaults: [YM] },
+  { key: 'sap.sync', group: 'SAP Check', label: 'Check SAP now', defaults: [YM] },
+
   { key: 'page.drivers', group: 'Drivers', label: 'Open page', defaults: [YM] },
   { key: 'drivers.manage', group: 'Drivers', label: 'Add / edit drivers and photos', defaults: [YM] },
   { key: 'drivers.admin', group: 'Drivers', label: 'Delete drivers, driver logins', defaults: [] },

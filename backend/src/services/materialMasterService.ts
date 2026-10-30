@@ -1,8 +1,8 @@
-import http from 'http';
 import dotenv from 'dotenv';
 import prisma from '../lib/prisma';
 import { getSettings } from './settingsService';
 import { toNullableString } from './productionApiService';
+import { sapRequest } from './sapClient';
 
 dotenv.config();
 
@@ -217,76 +217,17 @@ export async function getDefaultDateRange(): Promise<{ fromDt: string; toDt: str
 /**
  * Fetch material master records from the SAP API (GET with JSON body + Basic auth)
  * API_TYP: FERT_API
- *
- * Uses Node core http directly: built-in fetch (undici) rejects GET requests with a body,
- * while the SAP endpoint requires the params as a raw JSON body (same as Postman).
  */
 export async function fetchMaterialMaster(
   fromDt: string,
   toDt: string,
   timeoutOverrideMs?: number
 ): Promise<MaterialMasterRecord[]> {
-  const { apiUrl, username, password, plant, timeoutMs } = await getConfig();
-  const effectiveTimeoutMs = timeoutOverrideMs ?? timeoutMs;
-
-  const auth = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
-  const body = JSON.stringify({
-    API_TYP: 'FERT_API',
-    PLANT: plant,
-    FROM_DT: fromDt,
-    TO_DT: toDt
-  });
-
-  const parsed = new URL(apiUrl);
-
-  const raw = await new Promise<string>((resolve, reject) => {
-    const req = http.request(
-      {
-        hostname: parsed.hostname,
-        port: parsed.port || 80,
-        path: `${parsed.pathname}${parsed.search}`,
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body),
-          Authorization: auth
-        }
-      },
-      (res) => {
-        let data = '';
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => {
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(data);
-          } else {
-            reject(new Error(`Material master API request failed with status ${res.statusCode}: ${data.slice(0, 300)}`));
-          }
-        });
-      }
-    );
-
-    req.setTimeout(effectiveTimeoutMs, () => {
-      req.destroy(new Error(`Material master API request timed out after ${effectiveTimeoutMs}ms`));
-    });
-
-    req.on('error', (err) => reject(err));
-    req.write(body);
-    req.end();
-  });
-
-  let data: unknown;
-  try {
-    data = JSON.parse(raw);
-  } catch (error) {
-    throw new Error(`Invalid material master API response: not valid JSON (${raw.slice(0, 200)})`);
-  }
-
-  if (!Array.isArray(data)) {
-    throw new Error(`Invalid material master API response: expected array, got ${JSON.stringify(data).slice(0, 200)}`);
-  }
-
-  return data as MaterialMasterRecord[];
+  return sapRequest<MaterialMasterRecord>(
+    { API_TYP: 'FERT_API', FROM_DT: fromDt, TO_DT: toDt },
+    'Material master',
+    timeoutOverrideMs
+  );
 }
 
 /**

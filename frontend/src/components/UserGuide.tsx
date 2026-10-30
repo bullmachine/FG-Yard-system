@@ -188,6 +188,22 @@ const SCREENS: ScreenGuide[] = [
     tips: ['SAP is only reachable from the office network. A sync from guest Wi-Fi will fail.'],
   },
   {
+    tab: 'sap', title: 'SAP Check', roles: 'Administrator, Yard Manager',
+    purpose: 'Compares SAP FG stock and SAP invoices with FG Yard, and lists the machines where they disagree. It is a report: nothing is blocked or changed.',
+    steps: [
+      'SAP is read every 2 hours. Check SAP now reads it immediately. The first check reads invoices from 1 April.',
+      'Click a card to see its list. Invoiced, still in FG Yard: SAP has invoiced it but FG Yard still shows it here. Main gate out, no invoice: it left the plant but SAP has no document.',
+      'In FG Yard, not in SAP: parked here but not in SAP FG stock. SAP stock, still in assembly: SAP holds it while the plant line still shows a stage open. SAP stock, not in FG Yard: usually stock parked before go-live; load it with Upload Stock List.',
+      'Waiting for the FG gate is the normal queue and is not counted as a mismatch.',
+      'This list or All downloads a CSV file for Excel.',
+    ],
+    tips: [
+      'A machine is listed only after 2 days, so a normal invoice or gate out on the same day does not show up.',
+      'SAP cuts the serial list of a multi-machine invoice line at 132 characters. Machines after the cut can show as Main gate out, no invoice; the note names the likely invoice.',
+      'The SAP tab in a machine’s History window shows whether it is in SAP stock and its invoices.',
+    ],
+  },
+  {
     tab: 'drivers', title: 'Drivers', roles: 'Administrator, Yard Manager',
     purpose: 'The driver roster, badges and driver logins.',
     steps: [

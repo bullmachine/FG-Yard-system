@@ -143,3 +143,61 @@ test('assembly: a stage is done only when the plant reports INSPECTION-COMPLETED
   assert.equal(getHighestCompletedStage([op('170', 'INSPECTION-COMPLETED'), op('180', 'IN-INSPECTION')]), 17);
   assert.equal(getHighestCompletedStage([op('170', 'IN-INSPECTION'), op('180', 'INSPECTION-COMPLETED')]), 18);
 });
+
+test('SAP check: MSNO serials, dates and financial year', async () => {
+  const { splitMsno, parseSapDate, fyStart } = await import('../../src/services/sapCheckService');
+  assert.deepEqual(splitMsno('HDSS8546'), { serials: ['HDSS8546'], cut: false });
+  assert.deepEqual(splitMsno('10.HN2392/hn2393,20.HN2399').serials, ['HN2392', 'HN2393', 'HN2399']);
+  assert.deepEqual(splitMsno('10.HH50000008F').serials, ['HH50000008F']);
+  // SAP cuts MSNO at 132 characters: the half serial at the end is dropped.
+  const long = '10.' + Array.from({ length: 30 }, (_, i) => `HH${3800 + i}`).join('/');
+  const cut = splitMsno(long.slice(0, 132));
+  assert.equal(cut.cut, true);
+  assert.equal(cut.serials.includes('HH3'), false);
+  assert.equal(cut.serials[0], 'HH3800');
+  assert.deepEqual(parseSapDate('20261007'), new Date(2026, 9, 7));
+  assert.equal(parseSapDate('00000000'), null);
+  assert.equal(parseSapDate('20260231'), null);
+  assert.deepEqual(fyStart(new Date(2026, 9, 30)), new Date(2026, 3, 1));
+  assert.deepEqual(fyStart(new Date(2027, 1, 10)), new Date(2026, 3, 1));
+});
+
+test('SAP check: mismatch groups', async () => {
+  const { reconcile } = await import('../../src/services/sapCheckService');
+  const now = new Date(2026, 9, 30, 10);
+  const day = (n: number) => new Date(2026, 9, 30 - n);
+  const m = (id: string, parkStatus: string, itemCode = 'M1') => ({ id, serialNumber: id, model: 'SS76', itemCode, parkStatus, location: null });
+  const s = (serialNumber: string) => ({ serialNumber, material: 'M1', description: null, storageLoc: '1509', matGroup: 'DOMESTIC', confDate: null });
+  const d = (serialNumber: string, n: number, cutRow = false) => ({ invoice: `INV-${serialNumber}`, serialNumber, material: 'M1', deliveryDate: day(n), cutRow });
+  const g = reconcile({
+    machines: [
+      m('A-PARKED', 'PARKED_VERIFIED'),   // in SAP stock: fine
+      m('B-PLANNED', 'PLANNED'),          // in SAP stock, still in assembly here
+      m('C-READY', 'READY_TO_MOVE'),      // in SAP stock, waiting for the gate
+      m('D-INV', 'PARKED_VERIFIED'),      // invoiced 5 days ago, still parked here
+      m('E-INV-NEW', 'PARKED_VERIFIED'),  // invoiced today: inside the grace days
+      m('F-GHOST', 'PARKED_VERIFIED'),    // not in SAP stock, no invoice
+      m('G-OUT', 'EXITED'),               // main gate out 5 days ago, no invoice
+      m('H-OUT-OK', 'EXITED'),            // main gate out with invoice
+      m('I-OUT-OLD', 'EXITED')            // main gate out before the SAP dates covered
+    ],
+    stock: [s('A-PARKED'), s('B-PLANNED'), s('C-READY'), s('Z-UNKNOWN')],
+    deliveries: [d('D-INV', 5), d('E-INV-NEW', 0), d('H-OUT-OK', 6), d('X', 7, true)],
+    gateOuts: [
+      { machineId: 'G-OUT', mainGateOutAt: day(5) },
+      { machineId: 'H-OUT-OK', mainGateOutAt: day(5) },
+      { machineId: 'I-OUT-OLD', mainGateOutAt: day(60) }
+    ],
+    coverageFrom: day(30),
+    now
+  });
+  const serials = (k: keyof typeof g) => g[k].map((r) => r.serialNumber);
+  assert.deepEqual(serials('stockNoRecord'), ['Z-UNKNOWN']);
+  assert.deepEqual(serials('stockInAssembly'), ['B-PLANNED']);
+  assert.deepEqual(serials('stockAwaitingGate'), ['C-READY']);
+  assert.deepEqual(serials('invoicedNotClosed'), ['D-INV']);
+  assert.equal(g.invoicedNotClosed[0].invoice, 'INV-D-INV');
+  assert.deepEqual(serials('yardNotInStock'), ['F-GHOST']);
+  assert.deepEqual(serials('leftNoInvoice'), ['G-OUT']);
+  assert.match(g.leftNoInvoice[0].note ?? '', /INV-X/);
+});

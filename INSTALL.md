@@ -284,6 +284,16 @@ E:\xampp\mysql\bin\mysql.exe -u root -p -e "CREATE DATABASE yard_management_rest
 E:\xampp\mysql\bin\mysql.exe -u root -p yard_management_restore < fg-yard_2026-10-29_0100.sql
 ```
 
+### SAP Check schedule
+
+The SAP Check reads SAP FG stock and invoices with the Material Master SAP settings, every 2 hours
+by default. To change it, add to `backend/.env` and restart the backend:
+
+```ini
+# Optional: default at 20 minutes past every second hour
+SAP_CHECK_CRON=20 */2 * * *
+```
+
 ### Other notes
 
 - Before an update, also take a backup by hand (Settings › Database Backup › Back up now, or the

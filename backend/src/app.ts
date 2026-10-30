@@ -24,6 +24,7 @@ import roleAccessRoutes from './routes/roleAccessRoutes';
 import feedbackRoutes from './routes/feedbackRoutes';
 import loginHistoryRoutes from './routes/loginHistoryRoutes';
 import backupRoutes from './routes/backupRoutes';
+import sapCheckRoutes from './routes/sapCheckRoutes';
 import { UPLOADS_ROOT, ensureUploadDirs } from './lib/upload';
 
 /** The Express app with every route. index.ts starts it; the API tests use it directly. */
@@ -69,6 +70,7 @@ app.use('/api/role-access', roleAccessRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/login-history', loginHistoryRoutes);
 app.use('/api/backups', backupRoutes);
+app.use('/api/sap-check', sapCheckRoutes);
 
 // Multer raises its own errors (oversized file, unexpected end of stream) which would
 // otherwise reach Express' default HTML handler. Turn them into the same JSON shape

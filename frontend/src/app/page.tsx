@@ -7,7 +7,7 @@ import {
   LayoutDashboard, MapPin, Truck, Users, Shield,
   Clock, LogOut, Menu, X, Factory, Package, Fence, Database, Layers,
   PanelLeftClose, PanelLeftOpen, BookOpen, Bell, Settings, ParkingCircle, Send,
-  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText, KeyRound, MessageSquareText, History
+  RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText, KeyRound, MessageSquareText, History, Scale
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import DashboardV2 from '@/components/DashboardV2';
@@ -20,6 +20,7 @@ import AssemblyLine from '@/components/AssemblyLine';
 import FertCategories from '@/components/FertCategories';
 import VehicleModelMasters from '@/components/VehicleModelMasters';
 import MaterialMasters from '@/components/MaterialMasters';
+import SapCheck from '@/components/SapCheck';
 import Drivers from '@/components/Drivers';
 import UserManagement from '@/components/UserManagement';
 import GateControl from '@/components/GateControl';
@@ -38,7 +39,7 @@ import SettingsPage from '@/components/SettingsPage';
 import UserGuide from '@/components/UserGuide';
 import { asset } from '@/lib/basePath';
 
-type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'drivers' | 'users' | 'settings' | 'access' | 'feedback' | 'logins' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
+type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'sap' | 'drivers' | 'users' | 'settings' | 'access' | 'feedback' | 'logins' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
@@ -52,6 +53,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   fert: <Package className="w-5 h-5" />,
   models: <Layers className="w-5 h-5" />,
   materials: <Database className="w-5 h-5" />,
+  sap: <Scale className="w-5 h-5" />,
   drivers: <Users className="w-5 h-5" />,
   users: <Users className="w-5 h-5" />,
   settings: <Settings className="w-5 h-5" />,
@@ -82,6 +84,7 @@ const TAB_LABELS: Record<Tab, string> = {
   fert: 'FERT Categories',
   models: 'Vehicle Models',
   materials: 'Material Master',
+  sap: 'SAP Check',
   drivers: 'Drivers',
   users: 'User Management',
   settings: 'Settings',
@@ -102,7 +105,7 @@ const TAB_LABELS: Record<Tab, string> = {
 
 const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
   { label: 'OVERVIEW', tabs: ['dashboard', 'dashboard2'] },
-  { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers'] },
+  { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'sap', 'drivers'] },
   { label: 'ADMINISTRATION', tabs: ['users', 'settings', 'access', 'feedback', 'logins'] },
   { label: 'CONTROL', tabs: ['gate', 'parked', 'security', 'returns', 'requests', 'history'] },
   { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'sop', 'notifications'] },
@@ -110,7 +113,7 @@ const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
 
 // Pages whose access is set per role on the Role Access page (permission page.<tab>).
 // The Admin-only pages are fixed in code; Help, Docs, SOP and Notifications are open.
-const PERMISSION_TABS: Tab[] = ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'drivers', 'gate', 'parked', 'security', 'returns', 'requests', 'history'];
+const PERMISSION_TABS: Tab[] = ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'sap', 'drivers', 'gate', 'parked', 'security', 'returns', 'requests', 'history'];
 const ADMIN_ONLY_TABS: Tab[] = ['users', 'settings', 'access', 'feedback', 'logins'];
 
 const ROLE_COLORS: Record<string, string> = {
@@ -311,6 +314,7 @@ export default function Home() {
       case 'fert': return <FertCategories />;
       case 'models': return <VehicleModelMasters />;
       case 'materials': return <MaterialMasters />;
+      case 'sap': return <SapCheck />;
       case 'drivers': return <Drivers />;
       case 'users': return <UserManagement />;
       case 'settings': return <SettingsPage />;

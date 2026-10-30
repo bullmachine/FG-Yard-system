@@ -3,6 +3,26 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 30 October 2026, second update
+
+**Update needs:** `npx prisma db push` (three new tables: SapStockItem, SapDelivery, SapSyncRun;
+nothing changed or removed), backend and frontend rebuild. No new packages. Optional
+`SAP_CHECK_CRON` in `backend/.env` (INSTALL.md › 12). Take a database backup first.
+
+### SAP Check (new page)
+- Reads SAP FG stock (`FG_API`) and SAP delivery / invoice documents (`UM_API`) every 2 hours,
+  with the SAP address, user and password already set for Material Master. The first run reads
+  invoices from 1 April.
+- Lists where SAP and FG Yard disagree: invoiced but still in FG Yard, main gate out with no
+  invoice, in FG Yard but not in SAP stock, in SAP stock but still in assembly, and in SAP stock
+  with no FG Yard record. The normal queue to the gate is shown apart and not counted.
+- CSV download per list or for all. A **SAP mismatch** chip on the Dashboard opens the page.
+- The machine History window has a new **SAP** tab: in SAP stock or not, and its invoices.
+- New permissions **SAP Check › Open page** and **Check SAP now** (Yard Manager by default).
+- Report only: nothing at the gate is blocked by SAP data. A failed SAP read notifies the Admins.
+- SAP packs several serials into one invoice line and cuts the list at 132 characters; the page
+  shows how many invoices are cut. Raised with IT to widen the field.
+
 ## 30 October 2026
 
 **Update needs:** `npx prisma db push` (one new column, MachineStageHistory.endState; nothing

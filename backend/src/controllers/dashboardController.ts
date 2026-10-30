@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { loadStock } from '../services/yardStockService';
 import { getSettings } from '../services/settingsService';
+import { sapMismatchSummary } from '../services/sapCheckService';
 
 /**
  * Main dashboard: FG yard only. Assembly data is deliberately left out; the yard's
@@ -342,7 +343,9 @@ export const getFgDashboard = async (_req: Request, res: Response) => {
       },
       trend,
       activity,
-      exitRequestsPending: exitPending
+      exitRequestsPending: exitPending,
+      // A failing SAP check must not take the dashboard down with it.
+      sapCheck: await sapMismatchSummary().catch(() => null)
     });
   } catch (error) {
     console.error('getFgDashboard error:', error);
