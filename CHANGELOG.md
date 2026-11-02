@@ -3,6 +3,18 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 2 November 2026
+
+**Update needs:** backend and frontend rebuild. No database change.
+
+### SAP Check
+- Only SAP storage location **1509 (FG Yard)** is compared with the yard. **1501 (Stores)** is
+  shown as its own list, not counted. A machine parked in the yard that SAP still has in Stores
+  is listed under *In FG Yard, not in SAP FG Yard* with a note.
+- New list **Not confirmed in SAP**: machines in the FG Yard or on a dispatch plan whose SAP
+  production confirmation is not done (CONF_DATE 00000000). They cannot be billed until it is.
+- The machine History › SAP tab shows FG Yard or Stores, and *Not confirmed in SAP*.
+
 ## 30 October 2026, third update
 
 **Update needs:** backend rebuild only. No database change.

@@ -55,9 +55,13 @@ export default function MachineSapPanel({ serialNumber }: { serialNumber: string
         {data.stock ? (
           <>
             <Badge variant="green" dot>In SAP stock</Badge>
-            <span>SLoc {data.stock.storageLoc || '—'}</span>
+            <span>
+              {data.stock.storageLoc === '1509' ? 'FG Yard' : data.stock.storageLoc === '1501' ? 'Stores' : 'SLoc'} {data.stock.storageLoc || '—'}
+            </span>
             {data.stock.matGroup && <Badge variant={data.stock.matGroup === 'EXPORT' ? 'indigo' : 'gray'}>{data.stock.matGroup === 'EXPORT' ? 'Export' : 'Domestic'}</Badge>}
-            <span>Confirmed {data.stock.confDate ? formatDateShort(data.stock.confDate) : '—'}</span>
+            {data.stock.confDate
+              ? <span>Confirmed {formatDateShort(data.stock.confDate)}</span>
+              : <Badge variant="red">Not confirmed in SAP: cannot be billed</Badge>}
           </>
         ) : (
           <Badge variant="gray">Not in SAP stock</Badge>

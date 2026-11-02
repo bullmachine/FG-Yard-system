@@ -167,7 +167,8 @@ test('SAP check: mismatch groups', async () => {
   const now = new Date(2026, 9, 30, 10);
   const day = (n: number) => new Date(2026, 9, 30 - n);
   const m = (id: string, parkStatus: string, itemCode = 'M1') => ({ id, serialNumber: id, model: 'SS76', itemCode, parkStatus, location: null });
-  const s = (serialNumber: string) => ({ serialNumber, material: 'M1', description: null, storageLoc: '1509', matGroup: 'DOMESTIC', confDate: null });
+  const s = (serialNumber: string, storageLoc = '1509', confDate: Date | null = day(10)) =>
+    ({ serialNumber, material: 'M1', description: null, storageLoc, matGroup: 'DOMESTIC', confDate });
   const d = (serialNumber: string, n: number, cutRow = false) => ({ invoice: `INV-${serialNumber}`, serialNumber, material: 'M1', deliveryDate: day(n), cutRow });
   const g = reconcile({
     machines: [
@@ -179,15 +180,21 @@ test('SAP check: mismatch groups', async () => {
       m('F-GHOST', 'PARKED_VERIFIED'),    // not in SAP stock, no invoice
       m('G-OUT', 'EXITED'),               // main gate out 5 days ago, no invoice
       m('H-OUT-OK', 'EXITED'),            // main gate out with invoice
-      m('I-OUT-OLD', 'EXITED')            // main gate out before the SAP dates covered
+      m('I-OUT-OLD', 'EXITED'),           // main gate out before the SAP dates covered
+      m('J-UNCONF', 'PARKED_VERIFIED'),   // parked, SAP has not confirmed production
+      m('K-UNCONF-PLAN', 'EXITED'),       // out of the FG yard on a plan, not confirmed
+      m('L-STORES', 'PARKED_VERIFIED'),   // parked here, SAP has it in Stores
+      m('N-STORES', 'PLANNED')            // in Stores and still in assembly here
     ],
-    stock: [s('A-PARKED'), s('B-PLANNED'), s('C-READY'), s('Z-UNKNOWN')],
+    stock: [s('A-PARKED'), s('B-PLANNED'), s('C-READY'), s('Z-UNKNOWN'), s('J-UNCONF', '1509', null),
+      s('K-UNCONF-PLAN', '1509', null), s('L-STORES', '1501'), s('N-STORES', '1501'), s('Y-STORES', '1501')],
     deliveries: [d('D-INV', 5), d('E-INV-NEW', 0), d('H-OUT-OK', 6), d('X', 7, true)],
     gateOuts: [
       { machineId: 'G-OUT', mainGateOutAt: day(5) },
       { machineId: 'H-OUT-OK', mainGateOutAt: day(5) },
       { machineId: 'I-OUT-OLD', mainGateOutAt: day(60) }
     ],
+    planned: [{ machineId: 'K-UNCONF-PLAN', planNo: 'DP-1' }],
     coverageFrom: day(30),
     now
   });
@@ -197,7 +204,13 @@ test('SAP check: mismatch groups', async () => {
   assert.deepEqual(serials('stockAwaitingGate'), ['C-READY']);
   assert.deepEqual(serials('invoicedNotClosed'), ['D-INV']);
   assert.equal(g.invoicedNotClosed[0].invoice, 'INV-D-INV');
-  assert.deepEqual(serials('yardNotInStock'), ['F-GHOST']);
+  assert.deepEqual(serials('yardNotInStock'), ['F-GHOST', 'L-STORES']);
   assert.deepEqual(serials('leftNoInvoice'), ['G-OUT']);
   assert.match(g.leftNoInvoice[0].note ?? '', /INV-X/);
+  // Unconfirmed in SAP while in the yard or on a dispatch plan: cannot be billed.
+  assert.deepEqual(serials('notConfirmed'), ['J-UNCONF', 'K-UNCONF-PLAN']);
+  assert.equal(g.notConfirmed[1].note, 'On dispatch plan DP-1');
+  // Stores (1501) is not FG Yard stock.
+  assert.deepEqual(serials('stockInStores'), ['N-STORES', 'Y-STORES']);
+  assert.match(g.yardNotInStock.find((r) => r.serialNumber === 'L-STORES')?.note ?? '', /Stores \(1501\)/);
 });

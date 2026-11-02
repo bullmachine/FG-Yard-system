@@ -194,6 +194,8 @@ const SCREENS: ScreenGuide[] = [
       'SAP is read every 2 hours. Check SAP now reads it immediately. The first check reads invoices from 1 April.',
       'Click a card to see its list. Invoiced, still in FG Yard: SAP has invoiced it but FG Yard still shows it here. Main gate out, no invoice: it left the plant but SAP has no document.',
       'In FG Yard, not in SAP: parked here but not in SAP FG stock. SAP stock, still in assembly: SAP holds it while the plant line still shows a stage open. SAP stock, not in FG Yard: usually stock parked before go-live; load it with Upload Stock List.',
+      'Not confirmed in SAP: in the FG Yard or on a dispatch plan, but SAP production confirmation is not done (CONF_DATE 00000000), so it cannot be billed. Ask Production / PPC to confirm it.',
+      'Only SAP storage location 1509 (FG Yard) is compared with the yard. SAP Stores (1501) is listed apart for reference. A machine parked here that SAP still has in Stores shows under In FG Yard, not in SAP FG Yard.',
       'Waiting for the FG gate is the normal queue and is not counted as a mismatch.',
       'This list or All downloads a CSV file for Excel.',
     ],

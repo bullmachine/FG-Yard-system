@@ -25,6 +25,8 @@ interface SapDeliveryRow {
   DELIVERY_DATE: string;
 }
 
+/** SAP storage location of the FG Yard. Other locations (1501 = Stores) are not FG Yard stock. */
+export const FG_YARD_SLOC = '1509';
 /** SAP cuts MSNO at this length, so the last serial of such a line may be half a serial. */
 export const MSNO_CUT_LENGTH = 132;
 /** Days allowed between invoice and FG gate out, or main gate out and invoice, before a machine is listed. */
@@ -92,13 +94,20 @@ export function splitMsno(value: unknown): { serials: string[]; cut: boolean } {
 export type SapGroupKey =
   | 'invoicedNotClosed'
   | 'leftNoInvoice'
+  | 'notConfirmed'
   | 'yardNotInStock'
   | 'stockInAssembly'
   | 'stockNoRecord'
-  | 'stockAwaitingGate';
+  | 'stockAwaitingGate'
+  | 'stockInStores';
 
-/** Groups that count as a mismatch. stockAwaitingGate is the normal queue to the gate. */
-export const MISMATCH_GROUPS: SapGroupKey[] = ['invoicedNotClosed', 'leftNoInvoice', 'yardNotInStock', 'stockInAssembly', 'stockNoRecord'];
+/**
+ * Groups that count as a mismatch. stockAwaitingGate is the normal queue to the gate and
+ * stockInStores is SAP stock outside the FG Yard; both are shown but not counted.
+ */
+export const MISMATCH_GROUPS: SapGroupKey[] = [
+  'invoicedNotClosed', 'leftNoInvoice', 'notConfirmed', 'yardNotInStock', 'stockInAssembly', 'stockNoRecord'
+];
 
 export interface ReconMachine {
   id: string;
@@ -127,6 +136,11 @@ export interface ReconGateOut {
   machineId: string;
   mainGateOutAt: Date;
 }
+/** A machine on a dispatch plan that has not left through the main gate yet. */
+export interface ReconPlanned {
+  machineId: string;
+  planNo: string;
+}
 export interface ReconRow {
   serialNumber: string;
   model: string | null;
@@ -149,12 +163,15 @@ export function reconcile(input: {
   stock: ReconStock[];
   deliveries: ReconDelivery[];
   gateOuts: ReconGateOut[];
+  planned: ReconPlanned[];
   coverageFrom: Date | null;
   now: Date;
 }): Record<SapGroupKey, ReconRow[]> {
   const groups: Record<SapGroupKey, ReconRow[]> = {
-    invoicedNotClosed: [], leftNoInvoice: [], yardNotInStock: [], stockInAssembly: [], stockNoRecord: [], stockAwaitingGate: []
+    invoicedNotClosed: [], leftNoInvoice: [], notConfirmed: [], yardNotInStock: [],
+    stockInAssembly: [], stockNoRecord: [], stockAwaitingGate: [], stockInStores: []
   };
+  const plannedBy = new Map(input.planned.map((p) => [p.machineId, p.planNo]));
   const graceCutoff = new Date(input.now.getTime() - GRACE_DAYS * DAY);
 
   const machines = new Map(input.machines.map((m) => [serialKey(m.serialNumber), m]));
@@ -193,16 +210,35 @@ export function reconcile(input: {
     };
   };
 
-  // SAP still holds it as FG stock: where is it in FG Yard?
-  for (const key of stock.keys()) {
+  // SAP holds it in the FG Yard location: where is it in FG Yard?
+  for (const [key, s] of stock) {
     const m = machines.get(key);
+    if (s.storageLoc !== FG_YARD_SLOC) {
+      // SAP stock outside the FG Yard (Stores). One that FG Yard has in the yard is
+      // listed under yardNotInStock instead.
+      if (!m || !IN_YARD.has(m.parkStatus)) groups.stockInStores.push(row(key, m));
+      continue;
+    }
     if (!m) groups.stockNoRecord.push(row(key, m));
     else if (m.parkStatus === 'PLANNED') groups.stockInAssembly.push(row(key, m));
     else if (m.parkStatus === 'READY_TO_MOVE') groups.stockAwaitingGate.push(row(key, m));
+    else if (!s.confDate && (IN_YARD.has(m.parkStatus) || plannedBy.has(m.id))) {
+      // No SAP production confirmation (CONF_DATE 00000000): it cannot be billed yet.
+      const plan = plannedBy.get(m.id);
+      groups.notConfirmed.push(row(key, m, { note: plan ? `On dispatch plan ${plan}` : null }));
+    }
   }
 
   for (const [key, m] of machines) {
-    if (stock.has(key)) continue;
+    const s = stock.get(key);
+    if (s) {
+      if (s.storageLoc !== FG_YARD_SLOC && IN_YARD.has(m.parkStatus)) {
+        groups.yardNotInStock.push(row(key, m, {
+          note: `SAP has it in Stores (${s.storageLoc ?? 'no location'})${s.confDate ? '' : ', not confirmed'}`
+        }));
+      }
+      continue;
+    }
     const doc = latestDoc(key);
     if (doc && m.parkStatus !== 'EXITED') {
       // Out of SAP stock and invoiced, but FG Yard still shows it here.
@@ -239,7 +275,7 @@ export function reconcile(input: {
   const byDate = (a: Date | null, b: Date | null) => (b?.getTime() ?? 0) - (a?.getTime() ?? 0);
   groups.invoicedNotClosed.sort((a, b) => byDate(a.deliveryDate, b.deliveryDate));
   groups.leftNoInvoice.sort((a, b) => byDate(a.mainGateOutAt, b.mainGateOutAt));
-  for (const k of ['yardNotInStock', 'stockInAssembly', 'stockNoRecord', 'stockAwaitingGate'] as const) {
+  for (const k of ['notConfirmed', 'yardNotInStock', 'stockInAssembly', 'stockNoRecord', 'stockAwaitingGate', 'stockInStores'] as const) {
     groups[k].sort((a, b) => a.serialNumber.localeCompare(b.serialNumber));
   }
   return groups;
@@ -366,13 +402,15 @@ export async function runSapCheck(trigger: string, now = new Date()): Promise<Sa
 // ---------------------------------------------------------------------------
 
 export async function sapCheckStatus() {
-  const [last, lastOk, coverage, stockCount, deliveryCount, cutInvoices] = await Promise.all([
+  const [last, lastOk, coverage, stockCount, deliveryCount, cutInvoices, bySloc, notConfirmed] = await Promise.all([
     prisma.sapSyncRun.findFirst({ orderBy: { startedAt: 'desc' } }),
     prisma.sapSyncRun.findFirst({ where: { ok: true }, orderBy: { startedAt: 'desc' } }),
     prisma.sapSyncRun.aggregate({ where: { ok: true }, _min: { deliveryFrom: true } }),
     prisma.sapStockItem.count(),
     prisma.sapDelivery.count(),
-    prisma.sapDelivery.groupBy({ by: ['invoice'], where: { cutRow: true } })
+    prisma.sapDelivery.groupBy({ by: ['invoice'], where: { cutRow: true } }),
+    prisma.sapStockItem.groupBy({ by: ['storageLoc'], _count: true }),
+    prisma.sapStockItem.count({ where: { confDate: null } })
   ]);
   return {
     running,
@@ -382,6 +420,9 @@ export async function sapCheckStatus() {
     lastOkAt: lastOk?.finishedAt ?? null,
     coverageFrom: coverage._min.deliveryFrom,
     stockCount,
+    fgYardSloc: FG_YARD_SLOC,
+    stockBySloc: bySloc.map((g) => ({ storageLoc: g.storageLoc, count: g._count })),
+    stockNotConfirmed: notConfirmed,
     deliveryCount,
     cutInvoices: cutInvoices.length
   };
@@ -392,7 +433,7 @@ const slotText = (s: { row: number; col: number; yard: { name: string } } | null
 
 async function loadGroups(now: Date, coverageFrom: Date | null) {
   const slot = { select: { row: true, col: true, yard: { select: { name: true } } } };
-  const [machines, stock, deliveries, gateOuts] = await Promise.all([
+  const [machines, stock, deliveries, gateOuts, planned] = await Promise.all([
     prisma.machine.findMany({
       where: { isDemo: false },
       select: { id: true, serialNumber: true, model: true, itemCode: true, parkStatus: true, currentSlot: slot }
@@ -402,6 +443,10 @@ async function loadGroups(now: Date, coverageFrom: Date | null) {
     prisma.dispatchItem.findMany({
       where: { status: 'MAIN_GATE_OUT', mainGateOutAt: { not: null } },
       select: { machineId: true, mainGateOutAt: true }
+    }),
+    prisma.dispatchItem.findMany({
+      where: { status: { in: ['PLANNED', 'DRIVER_ASSIGNED', 'OUT_OF_YARD'] } },
+      select: { machineId: true, plan: { select: { planNo: true } } }
     })
   ]);
   return reconcile({
@@ -409,6 +454,7 @@ async function loadGroups(now: Date, coverageFrom: Date | null) {
     stock,
     deliveries,
     gateOuts: gateOuts.map((g) => ({ machineId: g.machineId, mainGateOutAt: g.mainGateOutAt as Date })),
+    planned: planned.map((p) => ({ machineId: p.machineId, planNo: p.plan.planNo })),
     coverageFrom,
     now
   });

@@ -13,9 +13,9 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { ParkStatusBadge } from '@/components/ui/StatusBadge';
 import { API_URL, authHeaders } from '@/lib/api';
 import { formatDateShort, formatDateTime } from '@/lib/format';
-import { AlertTriangle, Download, FileWarning, LogOut, PackageSearch, RefreshCw, Search, Truck, Wrench, X } from 'lucide-react';
+import { AlertTriangle, BadgeX, Download, FileWarning, LogOut, PackageSearch, RefreshCw, Search, Truck, Warehouse, Wrench, X } from 'lucide-react';
 
-type GroupKey = 'invoicedNotClosed' | 'leftNoInvoice' | 'yardNotInStock' | 'stockInAssembly' | 'stockNoRecord' | 'stockAwaitingGate';
+type GroupKey = 'invoicedNotClosed' | 'leftNoInvoice' | 'notConfirmed' | 'yardNotInStock' | 'stockInAssembly' | 'stockNoRecord' | 'stockAwaitingGate' | 'stockInStores';
 
 interface SapRow {
   serialNumber: string;
@@ -40,6 +40,9 @@ interface SapStatus {
   lastOkAt: string | null;
   coverageFrom: string | null;
   stockCount: number;
+  fgYardSloc: string;
+  stockBySloc: { storageLoc: string | null; count: number }[];
+  stockNotConfirmed: number;
   deliveryCount: number;
   cutInvoices: number;
 }
@@ -53,10 +56,12 @@ interface SapReport {
 const GROUPS: { key: GroupKey; label: string; hint: string; icon: React.ReactNode; color: 'red' | 'amber' | 'purple' | 'indigo' | 'slate' | 'blue'; mismatch: boolean }[] = [
   { key: 'invoicedNotClosed', label: 'Invoiced, still in FG Yard', hint: 'SAP has invoiced it and it is out of SAP stock, but FG Yard still shows it here. Gate it out, or check the gate records.', icon: <FileWarning />, color: 'red', mismatch: true },
   { key: 'leftNoInvoice', label: 'Main gate out, no invoice', hint: 'Left through the main gate, but SAP has no delivery document for it. Check with Logistics / Accounts.', icon: <LogOut />, color: 'red', mismatch: true },
-  { key: 'yardNotInStock', label: 'In FG Yard, not in SAP', hint: 'Parked or on the way into the yard, but not in SAP FG stock and not invoiced. Check the SAP goods receipt.', icon: <AlertTriangle />, color: 'amber', mismatch: true },
-  { key: 'stockInAssembly', label: 'SAP stock, still in assembly', hint: 'SAP holds it as FG stock, while the plant line still shows a stage open (often stage 18 in inspection).', icon: <Wrench />, color: 'purple', mismatch: true },
-  { key: 'stockNoRecord', label: 'SAP stock, not in FG Yard', hint: 'SAP holds it as FG stock but FG Yard has no record: usually stock parked before go-live. Load it with Upload Stock List.', icon: <PackageSearch />, color: 'indigo', mismatch: true },
-  { key: 'stockAwaitingGate', label: 'Waiting for the FG gate', hint: 'In SAP stock and ready to move. Normal: these come in at the gate next.', icon: <Truck />, color: 'slate', mismatch: false },
+  { key: 'notConfirmed', label: 'Not confirmed in SAP', hint: 'In the FG Yard or on a dispatch plan, but SAP production confirmation is not done (CONF_DATE 00000000), so it cannot be billed. Ask Production / PPC to confirm it in SAP.', icon: <BadgeX />, color: 'red', mismatch: true },
+  { key: 'yardNotInStock', label: 'In FG Yard, not in SAP FG Yard', hint: 'Parked or on the way into the yard, but SAP does not hold it in the FG Yard location (1509): not in SAP stock and not invoiced, or still in Stores. Check the SAP goods receipt / transfer.', icon: <AlertTriangle />, color: 'amber', mismatch: true },
+  { key: 'stockInAssembly', label: 'SAP stock, still in assembly', hint: 'SAP holds it in the FG Yard location, while the plant line still shows a stage open (often stage 18 in inspection).', icon: <Wrench />, color: 'purple', mismatch: true },
+  { key: 'stockNoRecord', label: 'SAP stock, not in FG Yard', hint: 'SAP holds it in the FG Yard location but FG Yard has no record: usually stock parked before go-live. Load it with Upload Stock List.', icon: <PackageSearch />, color: 'indigo', mismatch: true },
+  { key: 'stockAwaitingGate', label: 'Waiting for the FG gate', hint: 'In SAP FG Yard stock and ready to move. Normal: these come in at the gate next.', icon: <Truck />, color: 'slate', mismatch: false },
+  { key: 'stockInStores', label: 'SAP Stores (1501)', hint: 'SAP stock in the Stores location, not the FG Yard. Shown for reference, not counted.', icon: <Warehouse />, color: 'slate', mismatch: false },
 ];
 
 const STATUS_TEXT: Record<string, string> = {
@@ -149,7 +154,8 @@ export default function SapCheck() {
   const shown = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
   const showInvoice = group === 'invoicedNotClosed';
   const showGateOut = group === 'leftNoInvoice';
-  const showSap = group.startsWith('stock');
+  const showSap = group.startsWith('stock') || group === 'notConfirmed' || group === 'yardNotInStock';
+  const showNote = rows.some((r) => r.note);
 
   return (
     <div className="space-y-3">
@@ -169,7 +175,13 @@ export default function SapCheck() {
       {status && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
           <span>Last checked <b className="text-slate-800">{status.lastOkAt ? formatDateTime(status.lastOkAt) : 'never'}</b></span>
-          <span>SAP FG stock <b className="text-slate-800">{status.stockCount}</b></span>
+          <span>
+            SAP stock <b className="text-slate-800">{status.stockCount}</b>
+            {status.stockBySloc.length > 0 && (
+              <> ({status.stockBySloc.map((s) => `${s.storageLoc === status.fgYardSloc ? 'FG Yard' : s.storageLoc === '1501' ? 'Stores' : 'SLoc'} ${s.storageLoc ?? '—'}: ${s.count}`).join(', ')})</>
+            )}
+            {status.stockNotConfirmed > 0 && <>, <b className="text-slate-800">{status.stockNotConfirmed}</b> not confirmed</>}
+          </span>
           <span>Invoices from <b className="text-slate-800">{status.coverageFrom ? formatDateShort(status.coverageFrom) : '—'}</b> ({status.deliveryCount} machine lines)</span>
           <span>{status.cron === '20 */2 * * *' ? 'Checks every 2 hours' : <>Schedule <code>{status.cron}</code></>}</span>
           {status.last && !status.last.ok && status.last.finishedAt && (
@@ -193,7 +205,7 @@ export default function SapCheck() {
         </SectionCard>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {GROUPS.map((g) => (
               <StatCard key={g.key} label={g.label} value={groups[g.key].length} icon={g.icon} color={g.color} hint={g.hint}
                 active={group === g.key} onClick={() => { setGroup(g.key); setPage(1); }} />
@@ -235,7 +247,7 @@ export default function SapCheck() {
                     {showSap && <TableHeaderCell>SAP Stock</TableHeaderCell>}
                     {showInvoice && <TableHeaderCell>Invoice</TableHeaderCell>}
                     {showGateOut && <TableHeaderCell>Main Gate Out</TableHeaderCell>}
-                    {showGateOut && <TableHeaderCell>Note</TableHeaderCell>}
+                    {showNote && <TableHeaderCell>Note</TableHeaderCell>}
                   </TableHeader>
                   <TableBody>
                     {shown.map((r) => (
@@ -251,9 +263,15 @@ export default function SapCheck() {
                         </TableCell>
                         {showSap && (
                           <TableCell>
-                            <span className="text-xs text-slate-700">SLoc {r.storageLoc || '—'}</span>
+                            <span className="text-xs text-slate-700">
+                              {r.storageLoc ? `${r.storageLoc === '1509' ? 'FG Yard' : r.storageLoc === '1501' ? 'Stores' : 'SLoc'} ${r.storageLoc}` : 'Not in SAP stock'}
+                            </span>
                             {r.matGroup && <span className="ml-1.5"><Badge variant={r.matGroup === 'EXPORT' ? 'indigo' : 'gray'}>{r.matGroup === 'EXPORT' ? 'Export' : 'Domestic'}</Badge></span>}
-                            <span className="block text-[11px] text-slate-500">Confirmed {r.confDate ? formatDateShort(r.confDate) : '—'}</span>
+                            {r.storageLoc && (
+                              <span className="block text-[11px] text-slate-500">
+                                {r.confDate ? `Confirmed ${formatDateShort(r.confDate)}` : <span className="font-semibold text-red-700">Not confirmed</span>}
+                              </span>
+                            )}
                           </TableCell>
                         )}
                         {showInvoice && (
@@ -263,7 +281,7 @@ export default function SapCheck() {
                           </TableCell>
                         )}
                         {showGateOut && <TableCell><span className="text-xs text-slate-700">{formatDateTime(r.mainGateOutAt)}</span></TableCell>}
-                        {showGateOut && <TableCell><span className="text-[11px] text-amber-700">{r.note || '—'}</span></TableCell>}
+                        {showNote && <TableCell><span className="text-[11px] text-amber-700">{r.note || '—'}</span></TableCell>}
                       </TableRow>
                     ))}
                   </TableBody>
