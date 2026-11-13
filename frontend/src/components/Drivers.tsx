@@ -25,7 +25,7 @@ import { Barcode as BarcodeSvg, canEncodeCode128 } from '@/lib/barcode';
 const subscribeEmpty = () => () => {};
 
 interface DriverUser { id: string; name: string; email: string; isActive: boolean; }
-interface Driver { id: string; name: string; phone?: string | null; licenseNo?: string | null; employeeCode?: string | null; photoUrl?: string | null; status: string; user?: DriverUser | null; _count?: { machines: number }; }
+interface Driver { id: string; name: string; phone?: string | null; licenseNo?: string | null; employeeCode?: string | null; photoUrl?: string | null; status: string; isActive: boolean; user?: DriverUser | null; _count?: { machines: number }; }
 
 interface DriverForm { name: string; phone: string; licenseNo: string; employeeCode: string; }
 const EMPTY_FORM: DriverForm = { name: '', phone: '', licenseNo: '', employeeCode: '' };
@@ -136,6 +136,18 @@ export default function Drivers() {
     fetchDrivers();
   };
 
+  // Inactive drivers drop out of the Gate Control driver list and are refused at the gate.
+  const handleToggleActive = async (d: Driver) => {
+    if (d.isActive && !confirm(`Make ${d.name} inactive? They will not be listed at Gate Control.`)) return;
+    const r = await fetch(`${API_URL}/api/drivers/${d.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...headers() },
+      body: JSON.stringify({ isActive: !d.isActive })
+    });
+    if (!r.ok) { const body = await r.json().catch(() => ({})); alert((body as { error?: string }).error || 'Could not change the driver status'); return; }
+    fetchDrivers();
+  };
+
   const handleRemovePhoto = async (d: Driver) => {
     if (!confirm(`Remove the photo for ${d.name}?`)) return;
     const r = await fetch(`${API_URL}/api/drivers/${d.id}/photo`, { method: 'DELETE', headers: headers() });
@@ -185,7 +197,7 @@ export default function Drivers() {
     <div className="space-y-3">
       <PageHeader
         title="Drivers"
-        description={`${drivers.length} drivers`}
+        description={`${drivers.length} drivers · ${drivers.filter(d => d.isActive).length} active`}
         actions={isAdmin ? (
           <div className="flex items-center gap-2">
             <Button variant="ghost" icon={<Printer className="w-4 h-4" />} onClick={() => window.print()} disabled={!badgedDrivers.length}>Print Badges</Button>
@@ -215,7 +227,20 @@ export default function Drivers() {
                     <TableCell>
                       {d.employeeCode ? <Badge variant="indigo" dot>{d.employeeCode}</Badge> : <span className="text-xs text-slate-400 italic">No badge</span>}
                     </TableCell>
-                    <TableCell><Badge variant={d.status === 'AVAILABLE' ? 'green' : 'amber'} dot>{d.status}</Badge></TableCell>
+                    <TableCell>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(d)}
+                          title={d.isActive ? 'Click to make inactive' : 'Click to make active'}
+                          className="rounded-full transition-opacity hover:opacity-75"
+                        >
+                          <Badge variant={d.isActive ? 'green' : 'gray'} dot>{d.isActive ? 'Active' : 'Inactive'}</Badge>
+                        </button>
+                      ) : (
+                        <Badge variant={d.isActive ? 'green' : 'gray'} dot>{d.isActive ? 'Active' : 'Inactive'}</Badge>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {d.user
                         ? <Badge variant={d.user.isActive ? 'indigo' : 'gray'} dot>{d.user.email}</Badge>

@@ -371,6 +371,8 @@ model Driver {
   // Stored as a path rather than bytes so the drivers list stays small.
   photoUrl     String?
   status       String   @default("AVAILABLE")
+  // Inactive drivers are hidden from the Gate Control driver list and refused at the gate.
+  isActive     Boolean  @default(true)
   // Optional link to a login. A driver only becomes a notification recipient
   // (and can only confirm parking) once an account is linked here.
   userId       String?  @unique

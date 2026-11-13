@@ -87,7 +87,17 @@ test('gate in: refuses an unknown badge and a machine not ready, admits a ready 
   assert.equal(r.data.result, 'REJECTED');
   assert.match(r.data.reason, /not ready/);
 
-  r = await call('secA', 'POST', '/api/gate/authenticate', { driverBarcode: 'emp-t1', barcode: 'BC-1', direction: 'IN' });
+  // An inactive driver is left out of the Gate Control list and refused at the gate.
+  assert.equal((await call('ym', 'PUT', `/api/drivers/${ids.driver}`, { isActive: false })).status, 200);
+  r = await call('secA', 'GET', '/api/drivers?active=true');
+  assert.equal(r.data.some((d: { id: string }) => d.id === ids.driver), false);
+  r = await call('secA', 'POST', '/api/gate/authenticate', { driverId: ids.driver, barcode: 'BC-1', direction: 'IN' });
+  assert.equal(r.data.result, 'REJECTED');
+  assert.match(r.data.reason, /inactive/);
+  assert.equal((await call('ym', 'PUT', `/api/drivers/${ids.driver}`, { isActive: true })).status, 200);
+
+  // The driver picked from the list (id only) is enough with the machine barcode.
+  r = await call('secA', 'POST', '/api/gate/authenticate', { driverId: ids.driver, barcode: 'BC-1', direction: 'IN' });
   assert.equal(r.data.result, 'AUTHORIZED', JSON.stringify(r.data));
   const m = await machine(ids.m1);
   assert.equal(m.parkStatus, 'IN_TRANSIT');

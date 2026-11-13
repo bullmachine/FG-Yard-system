@@ -88,11 +88,11 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const [logs, setLogs] = useState<GateLog[]>([]);
   const [direction, setDirection] = useState<'IN' | 'OUT'>('IN');
   const [barrierConfig, setBarrierConfig] = useState<BarrierConfig>(EMPTY_BARRIER);
-  const [driverBarcodeInput, setDriverBarcodeInput] = useState('');
-  const [driverScan, setDriverScan] = useState<{ state: 'none' | 'ok' | 'missing'; driver?: Driver }>({ state: 'none' });
+  // The driver is picked from the roster; the server checks the id it is sent.
+  const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedMachine, setSelectedMachine] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
-  const [scannerTarget, setScannerTarget] = useState<'driver' | 'machine' | null>(null);
+  const [scannerTarget, setScannerTarget] = useState<'machine' | null>(null);
   const [showManualPicker, setShowManualPicker] = useState(false);
   // Slot override for IN: available slots across yards plus the one the server would
   // auto-pick for this machine. null until the options for the detected machine load.
@@ -110,7 +110,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const mounted = useSyncExternalStore(subscribeEmpty, () => true, () => false);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const detectSeq = useRef(0);
-  const driverSeq = useRef(0);
+  const pickedDriver = drivers.find(d => d.id === selectedDriver);
   const barrierTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };
@@ -132,7 +132,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
 
   const fetchData = async () => {
     try {
-      const [dRes, mRes] = await Promise.all([fetch(`${API_URL}/api/drivers`, { headers: headers() }), fetch(`${API_URL}/api/machines`, { headers: headers() })]);
+      const [dRes, mRes] = await Promise.all([fetch(`${API_URL}/api/drivers?active=true`, { headers: headers() }), fetch(`${API_URL}/api/machines`, { headers: headers() })]);
       setDrivers(await dRes.json());
       const all = await mRes.json();
       setMachines(all.filter((m: Machine) => m.assemblyStage >= 18 && m.barcode && m.barcode.trim() !== ''));
@@ -222,33 +222,13 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barcodeInput, direction]);
 
-  // Driver badge detection: same pattern as the machine barcode above, but the
-  // roster is already in memory (the gate screen loads it once), so the lookup is
-  // local and exact - a badge must match the whole code, not just contain it.
-  useEffect(() => {
-    const code = driverBarcodeInput.trim();
-    const seq = ++driverSeq.current;
-
-    const timer = setTimeout(() => {
-      if (driverSeq.current !== seq) return;
-      if (!code) {
-        setDriverScan({ state: 'none' });
-        return;
-      }
-      const match = drivers.find(d => d.employeeCode && d.employeeCode.trim().toLowerCase() === code.toLowerCase());
-      setDriverScan(match ? { state: 'ok', driver: match } : { state: 'missing' });
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [driverBarcodeInput, drivers]);
-
   const handleAuthenticate = async () => {
-    if (driverScan.state !== 'ok' || (!selectedMachine && !barcodeInput)) return;
+    if (!pickedDriver || (!selectedMachine && !barcodeInput)) return;
     setAuthenticating(true);
     setAuthResult(null);
     clearBarrierTimer();
     try {
-      const payload: { driverBarcode: string; machineId: string; barcode: string; direction: 'IN' | 'OUT'; slotId?: string } = { driverBarcode: driverBarcodeInput, machineId: selectedMachine, barcode: barcodeInput, direction };
+      const payload: { driverId: string; machineId: string; barcode: string; direction: 'IN' | 'OUT'; slotId?: string } = { driverId: pickedDriver.id, machineId: selectedMachine, barcode: barcodeInput, direction };
       // Only a slot the operator actually changed is sent, so the server records the
       // automatic pick as automatic and can fall back if it was taken meanwhile.
       if (direction === 'IN' && selectedGateSlot && selectedGateSlot !== gateSuggestion) payload.slotId = selectedGateSlot;
@@ -296,8 +276,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
 
   const handleReset = () => {
     clearBarrierTimer();
-    setDriverBarcodeInput('');
-    setDriverScan({ state: 'none' });
+    setSelectedDriver('');
     setSelectedMachine('');
     setBarcodeInput('');
     setScannerTarget(null);
@@ -323,7 +302,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
 
   // Trailing camera button: fills the field from a live barcode scan, exactly as
   // a hardware scanner would, so all the existing detection/validation still runs.
-  const cameraSuffix = (target: 'driver' | 'machine', label: string) => (
+  const cameraSuffix = (target: 'machine', label: string) => (
     <button
       type="button"
       onClick={() => setScannerTarget(target)}
@@ -414,12 +393,12 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
         <div className="lg:col-span-2">
           <SectionCard
             title={direction === 'IN' ? 'Gate Entry Authentication' : 'Gate Exit Authentication'}
-            description={direction === 'IN' ? 'Scan the driver and the machine barcode to authenticate' : 'Scan the driver badge and the released machine barcode'}
+            description={direction === 'IN' ? 'Select the driver and scan the machine barcode to authenticate' : 'Select the driver and scan the released machine barcode'}
           >
             {/* Three numbered steps; the line between two steps turns green once the first is done. */}
             {(() => {
               const steps = [
-                { n: 1, label: 'Scan driver', done: driverScan.state === 'ok', bad: false },
+                { n: 1, label: 'Select driver', done: !!pickedDriver, bad: false },
                 { n: 2, label: 'Scan machine', done: !!pickedLabel, bad: false },
                 { n: 3, label: barrierOpen ? 'Gate open' : authResult && !authorized ? 'Refused' : 'Open gate', done: barrierOpen, bad: !!authResult && !authorized },
               ];
@@ -441,41 +420,33 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             })()}
 
             <div className="mb-3">
-              <Input
-                label={
-                  <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                    <span>Scan Driver Badge (Employee Code)</span>
-                    <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Dress code is checked by eye at the gate; it is not recorded">
-                      <Shirt className="h-3 w-3" /> Red / green T-shirt only
-                    </span>
-                  </span>
-                }
-                value={driverBarcodeInput}
-                onChange={e => setDriverBarcodeInput(e.target.value)}
-                placeholder="Scan or type the driver's employee code..."
-                className="h-11! text-base! sm:text-sm!"
-                icon={<UserRound className="w-4 h-4" />}
-                suffix={cameraSuffix('driver', 'employee code')}
-                autoFocus
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <span className="text-xs font-medium text-slate-700">Driver</span>
+                <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Dress code is checked by eye at the gate; it is not recorded">
+                  <Shirt className="h-3 w-3" /> Red / green T-shirt only
+                </span>
+              </div>
+              <Select
+                value={selectedDriver}
+                onChange={e => setSelectedDriver(e.target.value)}
+                placeholder="Select driver..."
+                className="[&>select]:h-11"
+                options={[...drivers]
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(d => ({ value: d.id, label: d.employeeCode ? `${d.name} (${d.employeeCode})` : `${d.name} (no badge)` }))}
               />
-              {driverScan.state === 'ok' && driverScan.driver && (
+              {pickedDriver && (
                 <div className="mt-2 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                  {driverScan.driver.photoUrl
-                    ? <img src={`${API_URL}${driverScan.driver.photoUrl}`} alt={driverScan.driver.name} className="w-14 h-14 rounded-lg object-cover border border-emerald-200 shrink-0" />
+                  {pickedDriver.photoUrl
+                    ? <img src={`${API_URL}${pickedDriver.photoUrl}`} alt={pickedDriver.name} className="w-14 h-14 rounded-lg object-cover border border-emerald-200 shrink-0" />
                     : <div className="w-14 h-14 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><UserRound className="w-6 h-6" /></div>}
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-emerald-800">Driver found</p>
-                    <p className="text-sm font-medium text-slate-800 truncate">{driverScan.driver.name}</p>
-                    {driverScan.driver.employeeCode && (
-                      <p className="text-xs text-emerald-600">{driverScan.driver.employeeCode}</p>
+                    <p className="text-xs font-semibold text-emerald-800">Driver selected</p>
+                    <p className="text-sm font-medium text-slate-800 truncate">{pickedDriver.name}</p>
+                    {pickedDriver.employeeCode && (
+                      <p className="text-xs text-emerald-600">{pickedDriver.employeeCode}</p>
                     )}
                   </div>
-                </div>
-              )}
-              {driverScan.state === 'missing' && (
-                <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                  <UserRound className="w-4 h-4 text-amber-600 shrink-0" />
-                  <p className="text-xs text-amber-800">No driver matches this badge.</p>
                 </div>
               )}
             </div>
@@ -605,7 +576,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             </div>
 
             <div className="flex flex-wrap gap-2 mt-3">
-<Button onClick={handleAuthenticate} loading={authenticating} disabled={driverScan.state !== 'ok' || (!selectedMachine && !barcodeInput) || barrierOpen} size="lg" className="flex-1 h-11!" icon={<Shield className="w-4 h-4" />}>
+<Button onClick={handleAuthenticate} loading={authenticating} disabled={!pickedDriver || (!selectedMachine && !barcodeInput) || barrierOpen} size="lg" className="flex-1 h-11!" icon={<Shield className="w-4 h-4" />}>
                   {direction === 'IN' ? 'Authenticate & Open Barrier' : 'Authorize Exit & Open Barrier'}
                 </Button>
               {authResult && (
@@ -823,14 +794,12 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
         open={scannerTarget !== null}
         onClose={() => setScannerTarget(null)}
         onScan={(code) => {
-          if (scannerTarget === 'driver') {
-            setDriverBarcodeInput(code);
-          } else if (scannerTarget === 'machine') {
+          if (scannerTarget === 'machine') {
             setSelectedMachine('');
             setBarcodeInput(code);
           }
         }}
-        title={scannerTarget === 'driver' ? 'Scan Driver Badge' : 'Scan Machine Barcode'}
+        title="Scan Machine Barcode"
         subtitle="Point the camera at the barcode. It is filled in automatically."
       />
     </div>

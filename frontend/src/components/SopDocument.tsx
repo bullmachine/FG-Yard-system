@@ -80,7 +80,7 @@ const roleGuides: RoleGuide[] = [
         heading: 'Inward (machine coming in)',
         items: [
           'Gate Control: select Inward.',
-          'Scan the driver badge (employee code).',
+          'Select the driver from the Driver list; check the photo on screen matches the driver.',
           'Check by eye: the driver is an authorised Quality operator wearing the red or green T-shirt.',
           'Scan the barcode label on the machine. Check the serial number on screen matches the machine.',
           'Check the slot shown on screen and tell the driver the yard and slot.',
@@ -92,7 +92,7 @@ const roleGuides: RoleGuide[] = [
         heading: 'Outward (machine going out)',
         items: [
           'Gate Control: select Outward.',
-          'Scan the driver badge and check the red or green T-shirt.',
+          'Select the driver from the Driver list, check the photo and the red or green T-shirt.',
           'Scan the machine barcode. The system lets out only machines on a dispatch plan or released for exit (approved exit request or yard manager release).',
           'Press Authorize Exit & Open Barrier. Let the machine out only on green.',
         ],

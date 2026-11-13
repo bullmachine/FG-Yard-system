@@ -49,7 +49,9 @@ function isEmployeeCodeConflict(target: string[]): boolean {
 
 export const getAllDrivers = async (req: Request, res: Response) => {
   try {
+    // ?active=true: only drivers who may come through the gate (Gate Control list).
     const drivers = await prisma.driver.findMany({
+      where: req.query.active === 'true' ? { isActive: true } : undefined,
       include: {
         _count: { select: { machines: true } },
         user: { select: { id: true, name: true, email: true, isActive: true } }
@@ -118,7 +120,10 @@ export const createDriver = async (req: Request, res: Response) => {
 export const updateDriver = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    const { name, phone, licenseNo, employeeCode, status } = req.body;
+    const { name, phone, licenseNo, employeeCode, status, isActive } = req.body;
+    if (isActive !== undefined && typeof isActive !== 'boolean') {
+      return res.status(400).json({ error: 'isActive must be true or false' });
+    }
 
     const existing = await prisma.driver.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Driver not found' });
@@ -135,7 +140,8 @@ export const updateDriver = async (req: Request, res: Response) => {
         ...(phone !== undefined ? { phone: normalizeText(phone) ?? null } : {}),
         ...(licenseNo !== undefined ? { licenseNo: normalizeText(licenseNo) ?? null } : {}),
         ...(employeeCode !== undefined ? { employeeCode: code ?? null } : {}),
-        ...(status !== undefined ? { status } : {})
+        ...(status !== undefined ? { status } : {}),
+        ...(isActive !== undefined ? { isActive } : {})
       }
     });
     res.json(driver);

@@ -3,6 +3,20 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 13 November 2026
+
+**Update needs:** `npx prisma db push` (one new column, Driver.isActive, default active; nothing
+removed), backend and frontend rebuild. No new packages. Take a database backup first.
+
+### Gate Control and Drivers
+- **Gate Control:** the driver is picked from a **Driver** list (name and employee code) with the
+  photo shown; the badge text box and driver camera scan are removed. The machine barcode is still
+  scanned.
+- **Drivers:** the Status column shows **Active / Inactive**; click it to switch. Only active
+  drivers are listed at Gate Control, and the gate refuses an inactive driver.
+- SOP gate steps now say *select the driver and check the photo* (SOP is still a draft for
+  Quality review).
+
 ## 2 November 2026
 
 **Update needs:** backend and frontend rebuild. No database change.

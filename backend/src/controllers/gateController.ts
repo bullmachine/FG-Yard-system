@@ -53,6 +53,9 @@ export const authenticateGate = async (req: Request, res: Response) => {
     if (!driver) {
       return res.json(await rejectGate('Unknown driver badge', { barcode }));
     }
+    if (!driver.isActive) {
+      return res.json(await rejectGate(`Driver ${driver.name} is inactive`, { driverId: driver.id, barcode }));
+    }
 
     // Same reasoning as the machine/barcode agreement check below: a badge must not
     // be accepted on the strength of some other driver already being selected.
