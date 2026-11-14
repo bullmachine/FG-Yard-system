@@ -641,7 +641,9 @@ export default function YardManagement() {
                   <span />
                   {Array.from({ length: selectedYard.cols }, (_, i) => <span key={i} className="text-center text-[10px] font-bold text-slate-500">{i + 1}</span>)}
                 </div>
-                {Array.from({ length: selectedYard.rows }, (_, ri) => (
+                {/* Row A is drawn at the bottom and the rows count upwards, as the yard is
+                    laid out on the ground. Only the drawing order changes; slot names do not. */}
+                {Array.from({ length: selectedYard.rows }, (_, i) => selectedYard.rows - 1 - i).map(ri => (
                   <div key={ri} className="grid gap-1.5" style={{ gridTemplateColumns: gridTemplate }}>
                     <div className="aspect-square flex items-center justify-center text-[10px] font-bold text-slate-500 bg-slate-200 rounded">{String.fromCharCode(64 + ri + 1)}</div>
                     {/* Every row emits exactly `cols` cells. The old code mapped over the

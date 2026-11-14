@@ -265,7 +265,8 @@ const SCREENS: ScreenGuide[] = [
     steps: [
       'Set each API URL, sync window (days), schedule (cron) and timeout.',
       'Press Test Connection before saving to confirm the server can reach the system.',
-      'Gate Boom Barrier: set the Open and Close URLs and the auto-close time. Optionally enable the Manual Open button for the gate.',
+      'Gate Boom Barrier: set the Open and Close URLs and the auto-close time. Optionally enable the Manual Open button for the gate. If the controller asks for a login, put it in the URL: http://user:password@address/...',
+      'On the gate device, allow pop-ups for this site once: the barrier is opened through a small window that closes itself after about 1.5 seconds.',
       'E-mail (SMTP): enter the sender mailbox and its app password, then press Send Test.',
       'Parking & Security Check: choose whether Security must verify each parked machine, whether the two-person rule applies (the person who parked it cannot approve it), and the minutes after gate in before an alert is raised for parking that is not confirmed.',
       'Initial stock load: switch on only while entering the machines already parked in the yard before go-live (Machine Tracking > Allocate or Upload Stock List), then switch it off. When off, machines enter only through Gate Control.',
@@ -293,7 +294,7 @@ const SCREENS: ScreenGuide[] = [
     ],
     tips: [
       'Camera scanning needs the site opened over https (or on the same computer) and permission to use the camera. Tap Allow when the browser asks.',
-      'If a barcode will not scan, use "or select machine manually".',
+      'If a barcode will not scan, type the machine serial number in the same field.',
       'Outward only lists machines whose exit request was approved, or that are planned for dispatch. A planned machine needs no exit request; its slot is freed when it is scanned out.',
       'Inward refuses a machine that is already parked in the yard or released for exit. A machine still in transit keeps its slot if it is scanned again.',
       'A machine that comes back after dispatch is put on hold until a manager clears it in Yard Stock. Managers are notified.',

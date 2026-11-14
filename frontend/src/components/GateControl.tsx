@@ -20,7 +20,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { slotLabel, formatDateTime } from '@/lib/format';
 import { Barcode as BarcodeSvg, canEncodeCode128 } from '@/lib/barcode';
 import { renderGateLabel } from '@/lib/gateLabel';
-import { Shield, CheckCircle2, XCircle, ScanLine, UserRound, DoorOpen, DoorClosed, MapPin, RotateCcw, ArrowRight, ChevronDown, ChevronUp, Printer, Download, Camera, Shirt } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, ScanLine, UserRound, DoorOpen, DoorClosed, MapPin, RotateCcw, ArrowRight, Printer, Download, Camera, Shirt } from 'lucide-react';
 
 interface Driver { id: string; name: string; employeeCode?: string | null; photoUrl?: string | null; }
 interface SlotRef { row: number; col: number; status?: string; yard?: { name: string } | null; }
@@ -80,6 +80,32 @@ interface BarrierConfig {
   manualOpenEnabled: boolean;
 }
 
+// How long the barrier window stays open. The controller acts on the request, so the
+// window only has to live until the request has gone out.
+const BARRIER_WINDOW_MS = 1500;
+
+// Seconds left until the automatic barrier close; ticks on its own so the whole
+// Gate Control screen does not re-render every second.
+// Mounted afresh (new key) for every open, so it starts counting when it appears.
+function AutoCloseCountdown({ seconds, onStop }: { seconds: number; onStop: () => void }) {
+  const [start] = useState(() => Date.now());
+  const [now, setNow] = useState(start);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, []);
+  const left = Math.max(0, Math.ceil(seconds - (now - start) / 1000));
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 py-0.5 pl-2 pr-0.5 text-[11px] font-semibold text-amber-800 tabular-nums">
+      Auto-close in {left} s
+      <button type="button" onClick={onStop} title="Stop the automatic close; the barrier stays open until Close Barrier"
+        className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-amber-900 hover:bg-white">
+        Stop
+      </button>
+    </span>
+  );
+}
+
 const EMPTY_BARRIER: BarrierConfig = { openUrl: '', closeUrl: '', autoCloseSeconds: 0, manualOpenEnabled: false };
 
 export default function GateControl({ onNavigate }: { onNavigate?: (tab: string) => void }) {
@@ -93,7 +119,6 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const [selectedMachine, setSelectedMachine] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
   const [scannerTarget, setScannerTarget] = useState<'machine' | null>(null);
-  const [showManualPicker, setShowManualPicker] = useState(false);
   // Slot override for IN: available slots across yards plus the one the server would
   // auto-pick for this machine. null until the options for the detected machine load.
   const [gateSlots, setGateSlots] = useState<Array<{ id: string; yardId: string; row: number; col: number; yardName: string }> | null>(null);
@@ -112,31 +137,31 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const detectSeq = useRef(0);
   const pickedDriver = drivers.find(d => d.id === selectedDriver);
   const barrierTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The pending automatic close, for the countdown; id changes on every open. null = none.
+  const [autoClose, setAutoClose] = useState<{ id: number; seconds: number } | null>(null);
+  const autoCloseSeq = useRef(0);
+  // The barrier was raised with Manual Open (no gate log), so its Close sits by that button.
+  const [manualOpen, setManualOpen] = useState(false);
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };
 
-  // The boom barrier controller lives on this screen's Wi-Fi, so the tab fires the
-  // configured URL as a plain GET. An Image() ping needs no CORS headers from the
-  // controller and works even for a bare relay that returns nothing.
-  const fireBarrier = (url: string) => {
-    if (!url || !url.trim()) return;
-    new Image().src = url;
-  };
+  // The boom barrier controller is on the gate's own network and only reachable from
+  // the gate device, on plain HTTP. From this HTTPS page a background request to it
+  // is blocked as mixed content (and tablets cannot allow that in site settings),
+  // but opening the URL as a page is a navigation, which the browser allows. So the
+  // URL is opened in a small window that closes itself once the request is sent.
+  // Tried at the gate on 14 Nov 2026: the window works, the Image() ping did not.
+  const openBarrierWindow = () => window.open('about:blank', 'fgYardBarrier', 'width=320,height=200');
 
-  // TRIAL (14 Nov 2026): a browser blocks the Image() ping from this HTTPS page to the
-  // controller's plain-HTTP address (mixed content), and on a tablet that cannot be
-  // allowed in site settings. Opening the URL as a page in a small window is a
-  // navigation, which the browser allows. Tried side by side with Manual Open; keep
-  // whichever works at the gate and remove the other.
-  const fireBarrierInWindow = (url: string) => {
-    if (!url || !url.trim()) return;
-    const w = window.open(url, 'fgYardBarrier', 'width=320,height=200');
+  const fireBarrier = (url: string, preOpened?: Window | null) => {
+    if (!url || !url.trim()) { preOpened?.close(); return; }
+    const w = preOpened && !preOpened.closed ? preOpened : openBarrierWindow();
     if (!w) {
-      alert('The browser blocked the pop-up. Allow pop-ups for this site and try again.');
+      alert('The browser blocked the pop-up, so the barrier did not move. Allow pop-ups for this site and try again.');
       return;
     }
-    // Long enough for the controller to answer; then return to this screen.
-    setTimeout(() => { try { w.close(); } catch { } }, 4000);
+    w.location.href = url;
+    setTimeout(() => { try { w.close(); } catch { } }, BARRIER_WINDOW_MS);
   };
 
   const clearBarrierTimer = () => {
@@ -144,6 +169,14 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
       clearTimeout(barrierTimer.current);
       barrierTimer.current = null;
     }
+    setAutoClose(null);
+  };
+
+  const scheduleAutoClose = () => {
+    if (barrierConfig.autoCloseSeconds <= 0) return;
+    barrierTimer.current = setTimeout(() => { handleCloseBarrier(); }, barrierConfig.autoCloseSeconds * 1000);
+    autoCloseSeq.current += 1;
+    setAutoClose({ id: autoCloseSeq.current, seconds: barrierConfig.autoCloseSeconds });
   };
 
   const fetchData = async () => {
@@ -158,8 +191,8 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   };
   useEffect(() => { fetchData(); return () => clearBarrierTimer(); }, []);
 
-  // Live detection: debounce the scan, look the machine up by barcode, and
-  // auto-select it so Authenticate sends a matching machineId + barcode.
+  // Live detection: debounce the input, look the machine up by barcode or serial
+  // number, and auto-select it so Authenticate sends a matching machineId + barcode.
   useEffect(() => {
     const code = barcodeInput.trim();
     const seq = ++detectSeq.current;
@@ -182,7 +215,12 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
           return;
         }
         const list: Machine[] = await r.json();
-        const match = (Array.isArray(list) ? list : []).find(m => m.barcode && m.barcode.trim().toLowerCase() === code.toLowerCase());
+        // Exact match only (the search itself is a "contains"): the scanned barcode
+        // first, then the serial number typed off the machine tag.
+        const want = code.toLowerCase();
+        const rows = Array.isArray(list) ? list : [];
+        const match = rows.find(m => m.barcode && m.barcode.trim().toLowerCase() === want)
+          ?? rows.find(m => m.serialNumber && m.serialNumber.trim().toLowerCase() === want);
         if (detectSeq.current !== seq) return;
         if (!match) {
           setDetection({ state: 'missing' });
@@ -243,8 +281,17 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     setAuthenticating(true);
     setAuthResult(null);
     clearBarrierTimer();
+    // Open the barrier window now, while the click still counts as a user action;
+    // after the server answers, the pop-up blocker would refuse a new window.
+    let barrierWin = barrierConfig.openUrl ? openBarrierWindow() : null;
     try {
-      const payload: { driverId: string; machineId: string; barcode: string; direction: 'IN' | 'OUT'; slotId?: string } = { driverId: pickedDriver.id, machineId: selectedMachine, barcode: barcodeInput, direction };
+      const payload: { driverId: string; machineId: string; barcode: string; direction: 'IN' | 'OUT'; slotId?: string } = {
+        driverId: pickedDriver.id,
+        machineId: selectedMachine,
+        // A typed serial number is not a barcode: send the detected machine's own barcode.
+        barcode: detection.state === 'ok' && detection.machine?.barcode ? detection.machine.barcode : barcodeInput,
+        direction,
+      };
       // Only a slot the operator actually changed is sent, so the server records the
       // automatic pick as automatic and can fall back if it was taken meanwhile.
       if (direction === 'IN' && selectedGateSlot && selectedGateSlot !== gateSuggestion) payload.slotId = selectedGateSlot;
@@ -257,13 +304,17 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
       if (data.result === 'AUTHORIZED' && data.barrier === 'OPEN') {
         // Open the physical barrier from the tab, then schedule the auto-close
         // so a busy operator never leaves the gate standing open.
-        fireBarrier(barrierConfig.openUrl);
-        if (barrierConfig.autoCloseSeconds > 0) {
-          barrierTimer.current = setTimeout(() => { handleCloseBarrier(); }, barrierConfig.autoCloseSeconds * 1000);
-        }
+        fireBarrier(barrierConfig.openUrl, barrierWin);
+        barrierWin = null;
+        setManualOpen(false);
+        scheduleAutoClose();
       }
       fetchData();
-    } catch { setAuthResult({ result: 'REJECTED', reason: 'Connection error - check the network and try again' }); } finally { setAuthenticating(false); }
+    } catch { setAuthResult({ result: 'REJECTED', reason: 'Connection error - check the network and try again' }); } finally {
+      // Refused or failed: the pre-opened window is not needed.
+      barrierWin?.close();
+      setAuthenticating(false);
+    }
   };
 
   const handleManualOpen = () => {
@@ -271,15 +322,15 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     fireBarrier(barrierConfig.openUrl);
     // A manual open is a physical-only override: no driver log is created, but the
     // same auto-close applies so the gate does not stand open when unused.
-    if (barrierConfig.autoCloseSeconds > 0) {
-      barrierTimer.current = setTimeout(() => { handleCloseBarrier(); }, barrierConfig.autoCloseSeconds * 1000);
-    }
+    setManualOpen(true);
+    scheduleAutoClose();
   };
 
   const handleCloseBarrier = async () => {
     clearBarrierTimer();
     // Lower the physical barrier from the tab regardless of the server's state.
     fireBarrier(barrierConfig.closeUrl);
+    setManualOpen(false);
     if (!authResult?.gateLogId) return;
     setClosing(true);
     try {
@@ -292,11 +343,11 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
 
   const handleReset = () => {
     clearBarrierTimer();
+    setManualOpen(false);
     setSelectedDriver('');
     setSelectedMachine('');
     setBarcodeInput('');
     setScannerTarget(null);
-    setShowManualPicker(false);
     setDetection({ state: 'none' });
     setAuthResult(null);
     setIssuedAt('');
@@ -469,11 +520,11 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
 
             {/* Barcode Scan - primary machine identification */}
             <Input
-              label={direction === 'IN' ? 'Scan Machine Barcode' : 'Scan Machine Barcode (released machine)'}
+              label={direction === 'IN' ? 'Machine Barcode or Serial No.' : 'Machine Barcode or Serial No. (released machine)'}
               className="h-11! text-base! sm:text-sm!"
               value={barcodeInput}
               onChange={e => setBarcodeInput(e.target.value)}
-              placeholder="Scan or type the machine barcode..."
+              placeholder="Scan the barcode or type the serial number..."
               icon={<ScanLine className="w-4 h-4" />}
               suffix={cameraSuffix('machine', 'machine barcode')}
               autoFocus
@@ -565,31 +616,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             {detection.state === 'missing' && (
               <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                 <ScanLine className="w-4 h-4 text-amber-600 shrink-0" />
-                <p className="text-xs text-amber-800">No machine matches this barcode.</p>
+                <p className="text-xs text-amber-800">No machine matches this barcode or serial number.</p>
               </div>
             )}
-
-            {/* Manual picker fallback */}
-            <div className="mt-3">
-              <button
-                type="button"
-                onClick={() => setShowManualPicker(v => !v)}
-                className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800"
-              >
-                {showManualPicker ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                or select machine manually
-              </button>
-              {showManualPicker && (
-                <Select
-                  className="mt-2"
-                  label="Machine"
-                  value={selectedMachine}
-                  onChange={e => { setSelectedMachine(e.target.value); setBarcodeInput(''); setDetection({ state: 'none' }); }}
-                  placeholder="Select machine..."
-                  options={screenMachines.map(m => ({ value: m.id, label: `${m.serialNumber} (Stage ${m.assemblyStage})${m.parkStatus === 'EXITED' ? ' · Return' : ''}` }))}
-                />
-              )}
-            </div>
 
             <div className="flex flex-wrap gap-2 mt-3">
 <Button onClick={handleAuthenticate} loading={authenticating} disabled={!pickedDriver || (!selectedMachine && !barcodeInput) || barrierOpen} size="lg" className="flex-1 h-11!" icon={<Shield className="w-4 h-4" />}>
@@ -609,20 +638,15 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                 Manual Open Barrier
               </Button>
             )}
-
-            {/* TRIAL: same open / close through a pop-up window (see fireBarrierInWindow).
-                Physical only, like Manual Open: no gate log is written. */}
-            {barrierConfig.manualOpenEnabled && barrierConfig.openUrl && (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <Button variant="secondary" onClick={() => fireBarrierInWindow(barrierConfig.openUrl)} icon={<DoorOpen className="w-4 h-4" />}>
-                  Test Open (window)
-                </Button>
-                <Button variant="secondary" onClick={() => fireBarrierInWindow(barrierConfig.closeUrl)} disabled={!barrierConfig.closeUrl}>
-                  Test Close (window)
+            {manualOpen && !barrierOpen && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                <span className="text-xs font-medium text-amber-900">Barrier opened manually</span>
+                {autoClose && <AutoCloseCountdown key={autoClose.id} seconds={autoClose.seconds} onStop={clearBarrierTimer} />}
+                <Button onClick={handleCloseBarrier} size="sm" variant="secondary" className="ml-auto" icon={<DoorClosed className="w-4 h-4" />}>
+                  Close Barrier
                 </Button>
               </div>
             )}
-
             {/* Auth Result */}
             {authResult && (
               <div className={`animate-pop mt-3 p-3.5 rounded-xl border-2 ${authorized ? 'bg-emerald-50 border-emerald-300' : 'bg-red-50 border-red-300'}`}>
@@ -632,6 +656,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                   {authorized && (
                     <Badge variant={barrierOpen ? 'green' : 'gray'}>{barrierOpen ? 'Barrier OPEN' : 'Barrier CLOSED'}</Badge>
                   )}
+                  {authorized && barrierOpen && autoClose && <AutoCloseCountdown key={autoClose.id} seconds={autoClose.seconds} onStop={clearBarrierTimer} />}
                 </div>
                 {authResult.reason && <p className="text-sm font-medium text-red-700 mt-1 ml-8">{authResult.reason}</p>}
 

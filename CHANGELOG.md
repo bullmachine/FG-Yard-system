@@ -3,6 +3,30 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 14 November 2026
+
+**Update needs:** frontend rebuild only. No database change.
+
+### Gate barrier
+- The barrier did not open from the app on the gate tablet: the browser blocks a background
+  call from the HTTPS app to the barrier's plain-HTTP address. The app now opens the barrier URL
+  in a small window that closes itself after about 1.5 seconds. Tested at the gate.
+- **On each gate device, allow pop-ups for the FG Yard site once** (the browser asks the first
+  time). If pop-ups are blocked, the app says so and the barrier does not move.
+- When an auto-close time is set, Gate Control shows **Auto-close in N s** while the barrier is
+  open; **Stop** on it cancels the automatic close (the barrier then stays open until Close
+  Barrier). After **Manual Open** a Close Barrier button now appears next to it.
+- If the barrier controller asks for a login, put it in the Open and Close URLs in Settings:
+  `http://user:password@address/...`. Use a gate-only account on the controller, not its admin.
+
+### Gate Control machine field
+- The machine field takes the **barcode or the serial number**. The *or select machine
+  manually* list is removed.
+
+### FG Yard grid
+- Row **A** is now drawn at the bottom and the rows go upwards (B above A, and so on). Slot names
+  such as A1 and B2 are unchanged.
+
 ## 13 November 2026
 
 **Update needs:** `npx prisma db push` (one new column, Driver.isActive, default active; nothing
