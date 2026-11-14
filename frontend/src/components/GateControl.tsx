@@ -123,6 +123,22 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     new Image().src = url;
   };
 
+  // TRIAL (14 Nov 2026): a browser blocks the Image() ping from this HTTPS page to the
+  // controller's plain-HTTP address (mixed content), and on a tablet that cannot be
+  // allowed in site settings. Opening the URL as a page in a small window is a
+  // navigation, which the browser allows. Tried side by side with Manual Open; keep
+  // whichever works at the gate and remove the other.
+  const fireBarrierInWindow = (url: string) => {
+    if (!url || !url.trim()) return;
+    const w = window.open(url, 'fgYardBarrier', 'width=320,height=200');
+    if (!w) {
+      alert('The browser blocked the pop-up. Allow pop-ups for this site and try again.');
+      return;
+    }
+    // Long enough for the controller to answer; then return to this screen.
+    setTimeout(() => { try { w.close(); } catch { } }, 4000);
+  };
+
   const clearBarrierTimer = () => {
     if (barrierTimer.current) {
       clearTimeout(barrierTimer.current);
@@ -592,6 +608,19 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
               <Button variant="secondary" onClick={handleManualOpen} className="mt-2 w-full" icon={<DoorOpen className="w-4 h-4" />}>
                 Manual Open Barrier
               </Button>
+            )}
+
+            {/* TRIAL: same open / close through a pop-up window (see fireBarrierInWindow).
+                Physical only, like Manual Open: no gate log is written. */}
+            {barrierConfig.manualOpenEnabled && barrierConfig.openUrl && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Button variant="secondary" onClick={() => fireBarrierInWindow(barrierConfig.openUrl)} icon={<DoorOpen className="w-4 h-4" />}>
+                  Test Open (window)
+                </Button>
+                <Button variant="secondary" onClick={() => fireBarrierInWindow(barrierConfig.closeUrl)} disabled={!barrierConfig.closeUrl}>
+                  Test Close (window)
+                </Button>
+              </div>
             )}
 
             {/* Auth Result */}
