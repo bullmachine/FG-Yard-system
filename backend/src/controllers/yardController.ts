@@ -71,6 +71,39 @@ function normalizeCoordinate(
   return { value: raw };
 }
 
+/**
+ * Parse the per-row slot counts: rowSlots[0] is row A, rowSlots[1] row B, and so on.
+ * Rows of a real yard are not all the same length (row A can be shorter where the yard
+ * narrows), so a yard is no longer a full rows x cols rectangle. Each row holds slots
+ * 1..rowSlots[i]; `cols` stays as the longest row so the grid keeps its width.
+ * `undefined` means the field was not sent.
+ */
+function parseRowSlots(value: unknown): { value: number[] } | { error: string } | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value) || value.length === 0) return { error: 'Slots per row must be a list with one number per row' };
+  if (value.length > MAX_YARD_DIMENSION) return { error: `Rows cannot exceed ${MAX_YARD_DIMENSION}` };
+  const out: number[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const label = `Row ${String.fromCharCode(65 + i)} slots`;
+    const parsed = parseDimension(value[i], label);
+    if (!parsed) return { error: `${label} is required` };
+    if ('error' in parsed) return { error: parsed.error };
+    out.push(parsed.value);
+  }
+  return { value: out };
+}
+
+/** Longest slot number in each row, from the slots that exist. Row i+1 at index i. */
+function rowLengths(rows: number, slots: Array<{ row: number; col: number }>): number[] {
+  const out = Array.from({ length: rows }, () => 0);
+  for (const s of slots) if (s.row >= 1 && s.row <= rows) out[s.row - 1] = Math.max(out[s.row - 1], s.col);
+  return out;
+}
+
+function slotName(row: number, col: number): string {
+  return `${String.fromCharCode(64 + row)}${col}`;
+}
+
 function normalizeAddress(value: unknown): { value: string | null } | undefined {
   if (value === undefined) return undefined;
   if (value === null) return { value: null };
@@ -88,7 +121,7 @@ export const getAllYards = async (req: Request, res: Response) => {
         // Full status breakdown happens on the client; _count above is kept for
         // callers that only ever cared about the total.
         slots: {
-          select: { status: true }
+          select: { status: true, row: true, col: true }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -100,7 +133,7 @@ export const getAllYards = async (req: Request, res: Response) => {
           acc[slot.status] = (acc[slot.status] ?? 0) + 1;
           return acc;
         }, {});
-        return { ...yard, totalSlots: _count.slots, slotCounts: counts };
+        return { ...yard, totalSlots: _count.slots, slotCounts: counts, rowSlots: rowLengths(yard.rows, slots) };
       })
     );
   } catch (error) {
@@ -187,21 +220,29 @@ export const getYardById = async (req: Request, res: Response) => {
 
 export const createYard = async (req: Request, res: Response) => {
   try {
-    const { name, description, rows, cols, latitude, longitude, address } = req.body;
+    const { name, description, rows, cols, rowSlots, latitude, longitude, address } = req.body;
 
     if (typeof name !== 'string' || name.trim() === '') {
       return res.status(400).json({ error: 'Yard name is required' });
     }
+
+    const parsedRowSlots = parseRowSlots(rowSlots);
+    if (parsedRowSlots && 'error' in parsedRowSlots) return res.status(400).json({ error: parsedRowSlots.error });
 
     const parsedRows = parseDimension(rows, 'Rows');
     if (parsedRows && 'error' in parsedRows) return res.status(400).json({ error: parsedRows.error });
     const parsedCols = parseDimension(cols, 'Columns');
     if (parsedCols && 'error' in parsedCols) return res.status(400).json({ error: parsedCols.error });
 
-    const rowCount = parsedRows && 'value' in parsedRows ? parsedRows.value : DEFAULT_YARD_DIMENSION;
-    const colCount = parsedCols && 'value' in parsedCols ? parsedCols.value : DEFAULT_YARD_DIMENSION;
+    // Per-row counts win when sent; otherwise every row gets the same number of columns.
+    const evenRows = parsedRows && 'value' in parsedRows ? parsedRows.value : DEFAULT_YARD_DIMENSION;
+    const evenCols = parsedCols && 'value' in parsedCols ? parsedCols.value : DEFAULT_YARD_DIMENSION;
+    const perRow = parsedRowSlots ? parsedRowSlots.value : Array.from({ length: evenRows }, () => evenCols);
+    const rowCount = perRow.length;
+    const colCount = Math.max(...perRow);
+    const totalSlots = perRow.reduce((a, b) => a + b, 0);
 
-    if (rowCount * colCount > MAX_YARD_SLOTS) {
+    if (totalSlots > MAX_YARD_SLOTS) {
       return res.status(400).json({ error: `A yard cannot have more than ${MAX_YARD_SLOTS} slots` });
     }
 
@@ -227,8 +268,8 @@ export const createYard = async (req: Request, res: Response) => {
       });
 
       const slots = [];
-      for (let row = 1; row <= created.rows; row++) {
-        for (let col = 1; col <= created.cols; col++) {
+      for (let row = 1; row <= rowCount; row++) {
+        for (let col = 1; col <= perRow[row - 1]; col++) {
           slots.push({ yardId: created.id, row, col, status: 'AVAILABLE' as const });
         }
       }
@@ -237,7 +278,7 @@ export const createYard = async (req: Request, res: Response) => {
       return created;
     });
 
-    res.status(201).json(yard);
+    res.status(201).json({ ...yard, totalSlots, rowSlots: perRow });
   } catch (error) {
     if (prismaCode(error) === 'P2002') {
       return res.status(400).json({ error: 'A yard with that name already exists' });
@@ -247,9 +288,15 @@ export const createYard = async (req: Request, res: Response) => {
 };
 
 /**
- * Resize an existing yard. GROW ONLY.
+ * Resize an existing yard.
  *
- * Growing adds the missing cells; reducing is refused outright. A slot is not a plain
+ * With `rowSlots` (one count per row; the Yard form always sends it) each row is set to
+ * its own length: missing slots are added, and slots past the new end of a row, or in
+ * rows that are dropped, are deleted - but only when they were never used: no machine,
+ * no reservation, no movement and no security check. A used slot makes the whole save
+ * fail with its name, so the operator can block it instead.
+ *
+ * Without `rowSlots` (older clients) the yard can only grow. A slot is not a plain
  * row: it can hold a machine (CurrentSlot), a live reservation (PlannedSlot), movement
  * history and security verifications, and every one of those FKs is nullable with no
  * onDelete, so deleting a slot to shrink a grid would silently un-park a machine or
@@ -264,15 +311,78 @@ export const updateYard = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const yardId = Array.isArray(id) ? id[0] : id;
-    const { name, description, rows, cols, latitude, longitude, address } = req.body;
+    const { name, description, rows, cols, rowSlots, latitude, longitude, address } = req.body;
 
     const existing = await prisma.yard.findUnique({ where: { id: yardId } });
     if (!existing) return res.status(404).json({ error: 'Yard not found' });
+
+    const parsedRowSlots = parseRowSlots(rowSlots);
+    if (parsedRowSlots && 'error' in parsedRowSlots) return res.status(400).json({ error: parsedRowSlots.error });
 
     const parsedRows = parseDimension(rows, 'Rows');
     if (parsedRows && 'error' in parsedRows) return res.status(400).json({ error: parsedRows.error });
     const parsedCols = parseDimension(cols, 'Columns');
     if (parsedCols && 'error' in parsedCols) return res.status(400).json({ error: parsedCols.error });
+
+    const parsedLat = normalizeCoordinate(latitude, 'Latitude', 90);
+    if (parsedLat && 'error' in parsedLat) return res.status(400).json({ error: parsedLat.error });
+    const parsedLng = normalizeCoordinate(longitude, 'Longitude', 180);
+    if (parsedLng && 'error' in parsedLng) return res.status(400).json({ error: parsedLng.error });
+    const parsedAddress = normalizeAddress(address);
+
+    const metadata = {
+      ...(name !== undefined ? { name: typeof name === 'string' && name.trim() !== '' ? name.trim() : existing.name } : {}),
+      ...(description !== undefined ? { description: typeof description === 'string' && description.trim() !== '' ? description.trim() : null } : {}),
+      ...(parsedLat && 'value' in parsedLat ? { latitude: parsedLat.value } : {}),
+      ...(parsedLng && 'value' in parsedLng ? { longitude: parsedLng.value } : {}),
+      ...(parsedAddress ? { address: parsedAddress.value } : {})
+    };
+
+    if (parsedRowSlots) {
+      const perRow = parsedRowSlots.value;
+      const totalSlots = perRow.reduce((a, b) => a + b, 0);
+      if (totalSlots > MAX_YARD_SLOTS) {
+        return res.status(400).json({ error: `A yard cannot have more than ${MAX_YARD_SLOTS} slots` });
+      }
+      const current = await prisma.slot.findMany({
+        where: { yardId },
+        select: {
+          id: true, row: true, col: true,
+          machine: { select: { id: true } },
+          plannedFor: { select: { id: true } },
+          _count: { select: { movementsFrom: true, movementsTo: true, securityVerifications: true } }
+        }
+      });
+      const outside = current.filter((s) => s.row > perRow.length || s.col > perRow[s.row - 1]);
+      const used = outside
+        .filter((s) => s.machine || s.plannedFor ||
+          s._count.movementsFrom + s._count.movementsTo + s._count.securityVerifications > 0)
+        .sort((a, b) => a.row - b.row || a.col - b.col);
+      if (used.length > 0) {
+        const names = used.slice(0, 5).map((s) => slotName(s.row, s.col)).join(', ');
+        const more = used.length > 5 ? ` and ${used.length - 5} more` : '';
+        return res.status(400).json({
+          error: `${names}${more} ${used.length === 1 ? 'has' : 'have'} a machine, a reservation or history ` +
+            'and cannot be removed. Keep the row that long and block those slots instead.'
+        });
+      }
+      const taken = new Set(current.map((s) => `${s.row}:${s.col}`));
+      const missing: Array<{ yardId: string; row: number; col: number; status: 'AVAILABLE' }> = [];
+      for (let row = 1; row <= perRow.length; row++) {
+        for (let col = 1; col <= perRow[row - 1]; col++) {
+          if (!taken.has(`${row}:${col}`)) missing.push({ yardId, row, col, status: 'AVAILABLE' as const });
+        }
+      }
+      const updated = await prisma.$transaction(async (tx) => {
+        if (outside.length > 0) await tx.slot.deleteMany({ where: { id: { in: outside.map((s) => s.id) } } });
+        if (missing.length > 0) await tx.slot.createMany({ data: missing, skipDuplicates: true });
+        return tx.yard.update({
+          where: { id: yardId },
+          data: { ...metadata, rows: perRow.length, cols: Math.max(...perRow) }
+        });
+      });
+      return res.json({ ...updated, rowSlots: perRow, totalSlots, slotsCreated: missing.length, slotsRemoved: outside.length });
+    }
 
     const rowCount = parsedRows && 'value' in parsedRows ? parsedRows.value : existing.rows;
     const colCount = parsedCols && 'value' in parsedCols ? parsedCols.value : existing.cols;
@@ -288,12 +398,6 @@ export const updateYard = async (req: Request, res: Response) => {
       return res.status(400).json({ error: `A yard cannot have more than ${MAX_YARD_SLOTS} slots` });
     }
 
-    const parsedLat = normalizeCoordinate(latitude, 'Latitude', 90);
-    if (parsedLat && 'error' in parsedLat) return res.status(400).json({ error: parsedLat.error });
-    const parsedLng = normalizeCoordinate(longitude, 'Longitude', 180);
-    if (parsedLng && 'error' in parsedLng) return res.status(400).json({ error: parsedLng.error });
-    const parsedAddress = normalizeAddress(address);
-
     // Only the rectangle cells with no slot yet. Reading the existing pairs rather than
     // trusting rows*cols also self-heals a yard whose metadata and slots disagree.
     const existingSlots = await prisma.slot.findMany({
@@ -302,8 +406,11 @@ export const updateYard = async (req: Request, res: Response) => {
     });
     const taken = new Set(existingSlots.map((s) => `${s.row}:${s.col}`));
 
+    // A save that keeps the size only changes the details: refilling the rectangle here
+    // would bring back the slots a shorter row was made without.
+    const resized = rowCount !== existing.rows || colCount !== existing.cols;
     const missing: Array<{ yardId: string; row: number; col: number; status: 'AVAILABLE' }> = [];
-    for (let row = 1; row <= rowCount; row++) {
+    for (let row = 1; resized && row <= rowCount; row++) {
       for (let col = 1; col <= colCount; col++) {
         if (!taken.has(`${row}:${col}`)) missing.push({ yardId, row, col, status: 'AVAILABLE' as const });
       }
@@ -315,15 +422,7 @@ export const updateYard = async (req: Request, res: Response) => {
 
       return tx.yard.update({
         where: { id: yardId },
-        data: {
-          ...(name !== undefined ? { name: typeof name === 'string' && name.trim() !== '' ? name.trim() : existing.name } : {}),
-          ...(description !== undefined ? { description: typeof description === 'string' && description.trim() !== '' ? description.trim() : null } : {}),
-          rows: rowCount,
-          cols: colCount,
-          ...(parsedLat && 'value' in parsedLat ? { latitude: parsedLat.value } : {}),
-          ...(parsedLng && 'value' in parsedLng ? { longitude: parsedLng.value } : {}),
-          ...(parsedAddress ? { address: parsedAddress.value } : {})
-        }
+        data: { ...metadata, rows: rowCount, cols: colCount }
       });
     });
 

@@ -18,7 +18,7 @@ import { MANUAL_EXIT_REASON_OPTIONS, exitReasonLabel } from '@/lib/exitReasons';
 import { asset } from '@/lib/basePath';
 import { Search, Plus, MapPin, Grid3X3, ExternalLink, Pencil } from 'lucide-react';
 
-interface Yard { id: string; name: string; description?: string; rows: number; cols: number; latitude?: number; longitude?: number; address?: string; slotCounts?: Record<string, number>; totalSlots?: number; }
+interface Yard { id: string; name: string; description?: string; rows: number; cols: number; latitude?: number; longitude?: number; address?: string; slotCounts?: Record<string, number>; totalSlots?: number; rowSlots?: number[]; }
 interface Slot { id: string; row: number; col: number; status: string; machine?: any; plannedFor?: any; reservedAt?: string | null; blockReason?: string | null; blockedAt?: string | null; blockedBy?: { name: string } | null; _count?: { movementsFrom: number; movementsTo: number; securityVerifications: number }; movementsTo?: { timestamp: string; reason: string; user?: { name: string } }[]; }
 
 interface DispatchMachine { id: string; serialNumber: string; model?: string | null; }
@@ -82,6 +82,20 @@ const MAX_DIMENSION = 100;
  * An empty or cleared box returns the fallback instead of the old `parseInt(x) || 10`,
  * which made clearing the field silently jump the yard to 10x10.
  */
+const rowLetter = (i: number) => String.fromCharCode(65 + i);
+
+/**
+ * Fit the per-row slot list to a new row count and default. A row that still holds the
+ * old default follows the new one; a row the user changed keeps its own number.
+ */
+function fitRowSlots(prev: string[], rows: number, oldDefault: string, newDefault: string): string[] {
+  return Array.from({ length: rows }, (_, i) => {
+    const v = prev[i];
+    if (v === undefined || v === oldDefault) return newDefault;
+    return v;
+  });
+}
+
 function parseDimensionInput(raw: string, fallback: number): number {
   const trimmed = raw.trim();
   if (trimmed === '') return fallback;
@@ -175,7 +189,8 @@ export default function YardManagement() {
   const [moveError, setMoveError] = useState<string | null>(null);
   // Rows/cols/lat/lng are held as strings so a cleared box stays empty instead of
   // snapping back to a default the moment the field loses focus.
-  const [yardForm, setYardForm] = useState({ name: '', description: '', rows: '10', cols: '10', latitude: '', longitude: '', address: '' });
+  // cols is the default slots per row; rowSlots holds each row's own count (row A first).
+  const [yardForm, setYardForm] = useState({ name: '', description: '', rows: '10', cols: '10', rowSlots: Array.from({ length: 10 }, () => '10'), latitude: '', longitude: '', address: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedSlot, setHighlightedSlot] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -378,7 +393,7 @@ export default function YardManagement() {
 
   const openCreateYard = () => {
     setEditing(null);
-    setYardForm({ name: '', description: '', rows: '10', cols: '10', latitude: '', longitude: '', address: '' });
+    setYardForm({ name: '', description: '', rows: '10', cols: '10', rowSlots: Array.from({ length: 10 }, () => '10'), latitude: '', longitude: '', address: '' });
     setYardFormError(null);
     setShowCreateModal(true);
   };
@@ -390,6 +405,7 @@ export default function YardManagement() {
       description: yard.description || '',
       rows: String(yard.rows),
       cols: String(yard.cols),
+      rowSlots: (yard.rowSlots && yard.rowSlots.length === yard.rows ? yard.rowSlots : Array.from({ length: yard.rows }, () => yard.cols)).map(String),
       latitude: yard.latitude != null ? String(yard.latitude) : '',
       longitude: yard.longitude != null ? String(yard.longitude) : '',
       address: yard.address || ''
@@ -404,18 +420,25 @@ export default function YardManagement() {
 
     const rows = parseDimensionInput(yardForm.rows, editing ? editing.rows : 10);
     const cols = parseDimensionInput(yardForm.cols, editing ? editing.cols : 10);
+    const rowSlots = fitRowSlots(yardForm.rowSlots, rows, String(cols), String(cols)).map(v => parseDimensionInput(v, cols));
+    const totalSlots = rowSlots.reduce((a, b) => a + b, 0);
 
     if (!yardForm.name.trim()) {
       setYardFormError('Yard name is required');
       setSubmitting(false);
       return;
     }
-    // Growing only. Caught here so the user gets a clear message instead of a 400 that
-    // mentions removal, which is a different screen.
-    if (editing && (rows < editing.rows || cols < editing.cols)) {
-      setYardFormError(`${editing.name} is ${editing.rows} x ${editing.cols} and cannot be made smaller. Remove individual slots from the yard view instead.`);
-      setSubmitting(false);
-      return;
+    // Shortening a row deletes its last slots. The server refuses if any of them was
+    // ever used; an unused one is removed, so say which before saving.
+    if (editing) {
+      const before = editing.rowSlots && editing.rowSlots.length === editing.rows ? editing.rowSlots : Array.from({ length: editing.rows }, () => editing.cols);
+      const cut = before
+        .map((n, i) => (i >= rows ? `${rowLetter(i)}1-${rowLetter(i)}${n}` : rowSlots[i] < n ? `${rowLetter(i)}${rowSlots[i] + 1}-${rowLetter(i)}${n}` : ''))
+        .filter(Boolean);
+      if (cut.length > 0 && !confirm(`These slots will be removed: ${cut.join(', ')}.\n\nOnly slots never used are removed; if one has a machine or history, nothing is saved. Continue?`)) {
+        setSubmitting(false);
+        return;
+      }
     }
 
     const coord = (raw: string, field: string, limit: number): string | null => {
@@ -442,7 +465,8 @@ export default function YardManagement() {
       name: yardForm.name.trim(),
       description: yardForm.description.trim() || null,
       rows,
-      cols,
+      cols: Math.max(...rowSlots),
+      rowSlots,
       latitude,
       longitude,
       address: yardForm.address.trim() || null
@@ -463,10 +487,15 @@ export default function YardManagement() {
       }
 
       const created = body?.slotsCreated ?? 0;
+      const removed = body?.slotsRemoved ?? 0;
+      const changes = [
+        created > 0 ? `${created} slot${created === 1 ? '' : 's'} added` : '',
+        removed > 0 ? `${removed} slot${removed === 1 ? '' : 's'} removed` : '',
+      ].filter(Boolean).join(', ');
       setYardNotice(
         editing
-          ? `${editing.name} updated${created > 0 ? ` - ${created} slot${created === 1 ? '' : 's'} added` : ' - no new slots needed'}.`
-          : `${payload.name} created with ${rows * cols} slot${rows * cols === 1 ? '' : 's'}.`
+          ? `${editing.name} updated${changes ? ` - ${changes}` : ' - slots unchanged'}.`
+          : `${payload.name} created with ${totalSlots} slot${totalSlots === 1 ? '' : 's'}.`
       );
       setShowCreateModal(false);
       setEditing(null);
@@ -491,6 +520,10 @@ export default function YardManagement() {
   // Position -> slot, so the grid can render a fixed rows x cols matrix and place an
   // explicit empty cell where a slot has been removed.
   const slotIndex = new Map(selectedYardSlots.map(s => [`${s.row}:${s.col}`, s]));
+  // Rows can be of different lengths (row A shorter, for example): past a row's last
+  // slot the grid shows nothing, not a removed slot.
+  const rowLength = new Map<number, number>();
+  for (const s of selectedYardSlots) rowLength.set(s.row, Math.max(rowLength.get(s.row) ?? 0, s.col));
   // Header and rows share one template so the column numbers stay aligned. Cells
   // keep a 36px floor (plus the 6px gap); a wide yard scrolls sideways on a phone
   // rather than shrinking slots until the labels are unreadable.
@@ -571,7 +604,7 @@ export default function YardManagement() {
               </div>
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-500">
-                <span className="flex items-center gap-1"><Grid3X3 className="w-3.5 h-3.5" /> {yard.rows} × {yard.cols}</span>
+                <span className="flex items-center gap-1"><Grid3X3 className="w-3.5 h-3.5" /> {yard.rowSlots && new Set(yard.rowSlots).size > 1 ? `${yard.rows} rows, up to ${yard.cols}` : `${yard.rows} × ${yard.cols}`}</span>
                 {/* Real slot count, not rows*cols. Removed slots leave a hole while the
                     grid keeps its dimensions, so rows*cols would overstate capacity. */}
                 <span className="tabular-nums">{yard.totalSlots ?? yard.rows * yard.cols} total slots</span>
@@ -651,6 +684,9 @@ export default function YardManagement() {
                         leftwards and the header stopped lining up with the grid. */}
                     {Array.from({ length: selectedYard.cols }, (_, ci) => {
                       const slot = slotIndex.get(`${ri + 1}:${ci + 1}`);
+                      if (!slot && ci + 1 > (rowLength.get(ri + 1) ?? 0)) {
+                        return <div key={`none-${ri + 1}-${ci + 1}`} aria-hidden="true" className="aspect-square" />;
+                      }
                       if (!slot) {
                         return (
                           <div key={`empty-${ri + 1}-${ci + 1}`} title={`${slotLabel(ri + 1, ci + 1)} - removed`}
@@ -942,8 +978,38 @@ export default function YardManagement() {
           <div className="grid grid-cols-2 gap-3">
             {/* min/max mirror the server. parseInt(...) || 10 in the old input made
                 clearing the box silently reset the yard to 10 on every keystroke. */}
-            <Input label="Rows" type="number" min={1} max={MAX_DIMENSION} value={yardForm.rows} onChange={e => setYardForm({ ...yardForm, rows: e.target.value })} hint={editing ? `currently ${editing.rows}` : undefined} />
-            <Input label="Columns" type="number" min={1} max={MAX_DIMENSION} value={yardForm.cols} onChange={e => setYardForm({ ...yardForm, cols: e.target.value })} hint={editing ? `currently ${editing.cols}` : undefined} />
+            <Input label="Rows" type="number" min={1} max={MAX_DIMENSION} value={yardForm.rows}
+              onChange={e => {
+                const rows = parseDimensionInput(e.target.value, yardForm.rowSlots.length || 1);
+                setYardForm({ ...yardForm, rows: e.target.value, rowSlots: fitRowSlots(yardForm.rowSlots, rows, yardForm.cols, yardForm.cols) });
+              }}
+              hint={editing ? `currently ${editing.rows}` : undefined} />
+            <Input label="Slots per row" type="number" min={1} max={MAX_DIMENSION} value={yardForm.cols}
+              onChange={e => setYardForm({ ...yardForm, cols: e.target.value, rowSlots: fitRowSlots(yardForm.rowSlots, yardForm.rowSlots.length, yardForm.cols, e.target.value) })}
+              hint="Default for every row" />
+          </div>
+          {/* Each row's own slot count, for a yard whose rows are not all the same length. */}
+          <div>
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <p className="text-xs font-medium text-slate-700">Slots in each row</p>
+              <p className="text-[11px] text-slate-500 tabular-nums">
+                Total {yardForm.rowSlots.reduce((a, v) => a + parseDimensionInput(v, parseDimensionInput(yardForm.cols, 10)), 0)} slots
+              </p>
+            </div>
+            <div className="grid max-h-44 grid-cols-3 gap-1.5 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2 sm:grid-cols-4">
+              {yardForm.rowSlots.map((v, i) => (
+                <label key={i} className="flex items-center gap-1.5">
+                  <span className="w-5 text-center text-[11px] font-bold text-slate-500">{rowLetter(i)}</span>
+                  <input type="number" min={1} max={MAX_DIMENSION} value={v} aria-label={`Row ${rowLetter(i)} slots`}
+                    onChange={e => setYardForm({ ...yardForm, rowSlots: yardForm.rowSlots.map((x, j) => (j === i ? e.target.value : x)) })}
+                    className={`h-8 w-full rounded border px-1.5 text-[13px] tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 ${v !== yardForm.cols ? 'border-amber-400 bg-amber-50' : 'border-slate-300 bg-white'}`} />
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Change a row only when it is shorter or longer than the rest, for example row A with 37.
+              {editing ? ' A shorter row removes its last slots, only if they were never used.' : ''}
+            </p>
           </div>
           <div className="border-t border-slate-200 pt-3.5">
             <div className="flex items-center justify-between mb-2.5">

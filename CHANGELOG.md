@@ -3,6 +3,19 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 18 November 2026
+
+**Update needs:** backend and frontend rebuild. No database change.
+
+### Yards: a slot count for each row
+- **Create Yard / Edit Yard** now has *Slots per row* (the default) and **Slots in each row**:
+  change only the rows that differ, for example row A with 37 and rows B to D with 47. Only those
+  slots are created; the grid shows nothing past the end of a shorter row.
+- A row can be made longer, and rows can be added, at any time. A row can be made shorter only
+  where its last slots were never used (no machine, reservation, movement or security check);
+  otherwise the save is refused with the slot names, and those slots can be blocked instead.
+- Saving a yard without changing its size no longer recreates removed slots.
+
 ## 14 November 2026
 
 **Update needs:** frontend rebuild only. No database change.

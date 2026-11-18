@@ -78,6 +78,43 @@ test('yard: the yard manager creates a yard with its slots', async () => {
   assert.equal(await prisma.slot.count({ where: { yardId: ids.yard } }), 6);
 });
 
+test('yard: rows can have their own slot count, grow and shrink unused slots', async () => {
+  let r = await call('ym', 'POST', '/api/yards', { name: 'Uneven Yard', rowSlots: [3, 5, 5] });
+  assert.equal(r.status, 201, JSON.stringify(r.data));
+  const yardId = r.data.id;
+  assert.equal(r.data.cols, 5);
+  assert.equal(await prisma.slot.count({ where: { yardId } }), 13);
+  assert.equal(await prisma.slot.count({ where: { yardId, row: 1, col: { gt: 3 } } }), 0, 'row A stops at 3');
+
+  r = await call('ym', 'GET', '/api/yards');
+  assert.deepEqual(r.data.find((y: { id: string }) => y.id === yardId).rowSlots, [3, 5, 5]);
+
+  // A save without a size change must not refill the short row.
+  r = await call('ym', 'PUT', `/api/yards/${yardId}`, { name: 'Uneven Yard', rows: 3, cols: 5 });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(await prisma.slot.count({ where: { yardId } }), 13);
+
+  // Grow row A, add row D, shorten row C.
+  r = await call('ym', 'PUT', `/api/yards/${yardId}`, { rowSlots: [4, 5, 2, 6] });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.slotsCreated, 1 + 6);
+  assert.equal(r.data.slotsRemoved, 3);
+  assert.equal(await prisma.slot.count({ where: { yardId } }), 17);
+
+  // A used slot cannot be removed.
+  const c2 = await prisma.slot.findFirstOrThrow({ where: { yardId, row: 3, col: 2 } });
+  const holder = await prisma.machine.create({
+    data: { model: 'TEST', modelType: 'MT-A', productionDate: new Date(2026, 8, 1), assemblyStage: 18, serialNumber: 'SN-UNEVEN', plannedSlotId: c2.id }
+  });
+  r = await call('ym', 'PUT', `/api/yards/${yardId}`, { rowSlots: [4, 5, 1, 6] });
+  assert.equal(r.status, 400);
+  assert.match(r.data.error, /C2/);
+  assert.equal(await prisma.slot.count({ where: { yardId } }), 17, 'nothing changed');
+  await prisma.machine.delete({ where: { id: holder.id } });
+  await prisma.slot.deleteMany({ where: { yardId } });
+  await prisma.yard.delete({ where: { id: yardId } });
+});
+
 test('gate in: refuses an unknown badge and a machine not ready, admits a ready one', async () => {
   let r = await call('secA', 'POST', '/api/gate/authenticate', { driverBarcode: 'NOPE', barcode: 'BC-1', direction: 'IN' });
   assert.equal(r.data.result, 'REJECTED');
