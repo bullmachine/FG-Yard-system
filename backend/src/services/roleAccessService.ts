@@ -58,6 +58,7 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'assembly.advance', group: 'Assembly Line', label: 'Advance stage', defaults: ['OPERATOR'] },
   { key: 'assembly.assign', group: 'Assembly Line', label: 'Assign location / driver', defaults: [YM] },
   { key: 'assembly.sync', group: 'Assembly Line', label: 'Sync with plant', defaults: [] },
+  { key: 'assembly.refresh', group: 'Assembly Line', label: 'Update one machine from plant (Update button)', defaults: [YM, 'OPERATOR'] },
 
   { key: 'page.fert', group: 'FERT Categories', label: 'Open page', defaults: [YM] },
   { key: 'fert.manage', group: 'FERT Categories', label: 'Add / edit / delete', defaults: [] },

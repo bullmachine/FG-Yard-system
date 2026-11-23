@@ -332,3 +332,68 @@ test('settings: e-mail addresses with the letter s are accepted', async () => {
   r = await call('admin', 'PUT', '/api/settings', { smtpFrom: 'a@bullmachinecom' });
   assert.equal(r.status, 400, 'needs a dot in the domain');
 });
+
+test('plant refresh: by barcode at the gate, by order number from the lists', async () => {
+  assert.equal((await call('pdi', 'POST', '/api/assembly/refresh-from-plant', { orderNo: 'X' })).status, 403);
+  assert.equal((await call('ym', 'POST', '/api/assembly/refresh-from-plant', {})).status, 400, 'one of the two is needed');
+  assert.equal((await call('ym', 'POST', '/api/assembly/refresh-from-plant', { orderNo: 'A', barcode: 'B' })).status, 400, 'not both');
+
+  // Stand in for the plant API: only its URLs are answered here.
+  const realFetch = globalThis.fetch;
+  const asked: string[] = [];
+  const done = (seq: string) => ({ operation_seq_no: seq, start_dt_time: '2026-11-20 08:00:00', end_dt_time: '2026-11-20 09:00:00', work_center_cd: 'WC', operation_completed_qty: '1.00', end_state_cd: 'INSPECTION-COMPLETED' });
+  const plantOrder = { order_no: '000098000001', item_serial_no: 'SN-PLANT-1', item_cd: [], item_dsc: 'SS76-BHL', plan_operation_group_cd: [], barcode_val: '98000001', production_order_id: '9', group_dsc: [], production_order_trxs: { production_order_trx: [{ ...done('170'), production_order_inspections: { production_order_inspection: { operation_seq_no: '170', inspection_dt_time: '2026-11-20 09:30:00', inspection_action_cd: 'RE-WORK' } } }, done('180')] } };
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (!url.includes('hsMode=')) return realFetch(input, init);
+    asked.push(url);
+    const body = url.includes('hxBarcode=98000001') || url.includes('hsOrderNo=000098000001') ? [plantOrder] : { status: 'ERROR', message: 'Not Available' };
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }) as typeof fetch;
+  try {
+    let r = await call('secA', 'POST', '/api/assembly/refresh-from-plant', { barcode: '98000001' });
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.equal(r.data.found, true);
+    assert.equal(r.data.created, true);
+    assert.ok(asked.some((u) => u.includes('hxBarcode=98000001') && !u.includes('hxTrxDt')), 'barcode only, no date');
+    const m = await prisma.machine.findFirstOrThrow({ where: { serialNumber: 'SN-PLANT-1' } });
+    assert.equal(m.barcode, '98000001');
+    assert.equal(m.assemblyStage, 18);
+    assert.equal(m.parkStatus, 'READY_TO_MOVE', 'can come in at the gate now');
+
+    r = await call('ym', 'POST', '/api/assembly/refresh-from-plant', { orderNo: '000098000001' });
+    assert.equal(r.status, 200);
+    assert.equal(r.data.created, false);
+    assert.ok(asked.some((u) => u.includes('hsOrderNo=000098000001') && !u.includes('hxTrxDt')));
+
+    const before = asked.length;
+    r = await call('ym', 'POST', '/api/assembly/refresh-from-plant', { barcode: 'HH4797' });
+    assert.equal(r.data.found, false);
+    assert.equal(asked.length, before, 'a non-numeric value never reaches the plant');
+
+    r = await call('ym', 'POST', '/api/assembly/refresh-from-plant', { barcode: '98999999' });
+    assert.equal(r.status, 200);
+    assert.equal(r.data.found, false);
+
+    // Quality result per stage: an open rework is kept and flagged in the lists.
+    const hist = await call('ym', 'GET', `/api/machines/${m.id}/history`);
+    const s17 = hist.data.stages.find((x: { stage: number }) => x.stage === 17);
+    assert.equal(s17.inspectionStatus, 'RE-WORK');
+    assert.ok(s17.inspectedAt);
+    assert.deepEqual(hist.data.summary.reworkOpenStages, [17]);
+    const listed = (await call('ym', 'GET', '/api/machines?search=SN-PLANT-1')).data.find((x: { serialNumber: string }) => x.serialNumber === 'SN-PLANT-1');
+    assert.deepEqual(listed.reworkOpenStages, [17]);
+
+    // Completion date for the Completed list.
+    r = await call('ym', 'GET', '/api/machines?withAssemblyCompletion=true&search=SN-PLANT-1');
+    const row = r.data.find((x: { serialNumber: string }) => x.serialNumber === 'SN-PLANT-1');
+    assert.equal(row.assemblyCompleted, true);
+    assert.ok(row.assemblyCompletedAt, 'stage 18 end time is sent');
+
+    await prisma.machineStageHistory.deleteMany({ where: { machineId: m.id } });
+    await prisma.notification.deleteMany({}).catch(() => null);
+    await prisma.machine.delete({ where: { id: m.id } });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

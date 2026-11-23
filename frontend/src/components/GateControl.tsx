@@ -28,6 +28,8 @@ interface Machine {
   id: string;
   serialNumber: string;
   barcode?: string;
+  orderNo?: string | null;
+  isDemo?: boolean;
   assemblyStage: number;
   parkStatus: string;
   status?: string;
@@ -71,7 +73,10 @@ const INWARD_BLOCKED: Record<string, string> = {
 };
 const canComeIn = (m: Machine) => m.assemblyStage >= 18 && !INWARD_BLOCKED[m.parkStatus];
 
-type DetectionState = 'none' | 'detecting' | 'ok' | 'notready' | 'missing';
+type DetectionState = 'none' | 'detecting' | 'plant' | 'ok' | 'notready' | 'missing';
+
+// A code shorter than this is still being typed; do not ask the plant system for it.
+const MIN_PLANT_LOOKUP = 6;
 
 interface BarrierConfig {
   openUrl: string;
@@ -135,6 +140,8 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   const mounted = useSyncExternalStore(subscribeEmpty, () => true, () => false);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const detectSeq = useRef(0);
+  // Codes already asked of the plant system on this screen, so a typo is not re-asked.
+  const plantChecked = useRef(new Set<string>());
   const pickedDriver = drivers.find(d => d.id === selectedDriver);
   const barrierTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The pending automatic close, for the countdown; id changes on every open. null = none.
@@ -209,19 +216,60 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
     setDetection({ state: 'detecting' });
     const timer = setTimeout(async () => {
       try {
-        const r = await fetch(`${API_URL}/api/machines?search=${encodeURIComponent(code)}`, { headers: headers() });
-        if (!r.ok) {
-          if (detectSeq.current === seq) setDetection({ state: 'missing' });
-          return;
-        }
-        const list: Machine[] = await r.json();
         // Exact match only (the search itself is a "contains"): the scanned barcode
         // first, then the serial number typed off the machine tag.
         const want = code.toLowerCase();
-        const rows = Array.isArray(list) ? list : [];
-        const match = rows.find(m => m.barcode && m.barcode.trim().toLowerCase() === want)
-          ?? rows.find(m => m.serialNumber && m.serialNumber.trim().toLowerCase() === want);
+        const findHere = async (): Promise<Machine | undefined | null> => {
+          const r = await fetch(`${API_URL}/api/machines?search=${encodeURIComponent(code)}`, { headers: headers() });
+          if (!r.ok) return null;
+          const list: Machine[] = await r.json();
+          const rows = Array.isArray(list) ? list : [];
+          return rows.find(m => m.barcode && m.barcode.trim().toLowerCase() === want)
+            ?? rows.find(m => m.serialNumber && m.serialNumber.trim().toLowerCase() === want);
+        };
+        let match = await findHere();
+        if (match === null) {
+          if (detectSeq.current === seq) setDetection({ state: 'missing' });
+          return;
+        }
         if (detectSeq.current !== seq) return;
+        // Not known here: Quality may have added the barcode after stage 18 and after the
+        // last sync, so ask the plant system for this barcode once, then look again.
+        if (!match && code.length >= MIN_PLANT_LOOKUP && /^[0-9]+$/.test(code) && !plantChecked.current.has(want)) {
+          plantChecked.current.add(want);
+          setDetection({ state: 'plant' });
+          try {
+            const pr = await fetch(`${API_URL}/api/assembly/refresh-from-plant`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...headers() },
+              body: JSON.stringify({ barcode: code })
+            });
+            const pd = pr.ok ? await pr.json() : null;
+            if (pd?.found) match = (await findHere()) ?? undefined;
+            if (!pr.ok) plantChecked.current.delete(want); // unreachable: try again on the next scan
+          } catch { plantChecked.current.delete(want); }
+          if (detectSeq.current !== seq) return;
+        }
+        // Found by serial number but still without a barcode: Quality may have added it
+        // in the plant since the last sync, so refresh this one order once. A machine
+        // that already has a barcode never calls the plant.
+        if (match && !match.barcode?.trim() && match.orderNo && !match.isDemo
+            && !plantChecked.current.has(`order:${match.orderNo}`)) {
+          const orderKey = `order:${match.orderNo}`;
+          plantChecked.current.add(orderKey);
+          setDetection({ state: 'plant' });
+          try {
+            const pr = await fetch(`${API_URL}/api/assembly/refresh-from-plant`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...headers() },
+              body: JSON.stringify({ orderNo: match.orderNo })
+            });
+            const pd = pr.ok ? await pr.json() : null;
+            if (pd?.found) match = (await findHere()) ?? match;
+            if (!pr.ok) plantChecked.current.delete(orderKey);
+          } catch { plantChecked.current.delete(orderKey); }
+          if (detectSeq.current !== seq) return;
+        }
         if (!match) {
           setDetection({ state: 'missing' });
           return;
@@ -534,6 +582,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             {detection.state === 'detecting' && (
               <p className="mt-2 text-xs text-slate-500">Detecting machine…</p>
             )}
+            {detection.state === 'plant' && (
+              <p className="mt-2 text-xs text-slate-500">No barcode here yet. Checking the plant system…</p>
+            )}
             {detection.state === 'ok' && detection.machine && (() => {
               if (direction === 'OUT') {
                 return (
@@ -616,7 +667,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             {detection.state === 'missing' && (
               <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                 <ScanLine className="w-4 h-4 text-amber-600 shrink-0" />
-                <p className="text-xs text-amber-800">No machine matches this barcode or serial number.</p>
+                <p className="text-xs text-amber-800">No machine matches this barcode or serial number, here or in the plant system.</p>
               </div>
             )}
 

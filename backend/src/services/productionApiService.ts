@@ -14,6 +14,12 @@ export interface ProductionOrderTrx {
    * "RUN". Older responses did not carry it, so it is optional.
    */
   end_state_cd?: PlantText;
+  /**
+   * Quality inspections of the operation, oldest first. A single inspection arrives as
+   * a bare object and none as an empty array. inspection_action_cd is "ACCEPTED" or
+   * "RE-WORK"; a rework is followed by a later "ACCEPTED" inspection once it is fixed.
+   */
+  production_order_inspections?: unknown;
 }
 
 /**
@@ -242,6 +248,55 @@ export async function fetchProductionOrderByNumber(
     console.error(`Error fetching production order ${orderNo} for ${date}:`, error);
     throw error;
   }
+}
+
+/**
+ * Fetch one order by its barcode or its order number alone, without a date.
+ *
+ * The plant accepts either `hxBarcode` or `hsOrderNo` on its own (one of the two must
+ * be sent). Used when a barcode scanned at the gate is not yet known here because
+ * Quality updated it after the last sync, and by the per-machine Update button.
+ * The response is matched on the value asked for, so a permissive response cannot
+ * refresh the wrong machine. Returns null when the plant has no such order.
+ */
+export async function fetchProductionOrderBy(
+  key: { barcode: string } | { orderNo: string }
+): Promise<ProductionOrder | null> {
+  // Barcodes and order numbers are all digits. The plant ignores a non-numeric value
+  // and returns every order (about 1.7 MB, 30 s, verified 2026-11-23), so such a value
+  // is answered "not found" here without calling the plant.
+  const raw = ('barcode' in key ? key.barcode : key.orderNo).trim();
+  if (!/^\d+$/.test(raw)) return null;
+  const { apiBaseUrl, timeoutMs } = await getConfig();
+  const param = 'barcode' in key
+    ? `hxBarcode=${encodeURIComponent(key.barcode)}`
+    : `hsOrderNo=${encodeURIComponent(key.orderNo)}`;
+  const response = await fetch(`${apiBaseUrl}?hsMode=GET-PRODUCTION-ORDER-TRX&${param}`, {
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+  if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+
+  // An unknown barcode comes back as an empty body (verified on the plant API), so an
+  // empty response means "not found", not a failure.
+  const text = (await response.text()).trim();
+  if (!text) return null;
+  let data: unknown;
+  try { data = JSON.parse(text); } catch { throw new Error('Invalid API response: not JSON'); }
+  // The plant sends a one-row result as a bare object in some endpoints.
+  const orders: ProductionOrder[] = Array.isArray(data)
+    ? data
+    : data && typeof data === 'object' && 'order_no' in data
+      ? [data as ProductionOrder]
+      : [];
+  if (orders.length === 0) {
+    if (data && typeof data === 'object' && (data as { status?: string }).status === 'ERROR') return null;
+    if (Array.isArray(data)) return null;
+    throw new Error('Invalid API response: expected an order list');
+  }
+
+  const want = ('barcode' in key ? key.barcode : key.orderNo).trim().toLowerCase();
+  const field = (o: ProductionOrder) => toNullableString('barcode' in key ? o.barcode_val : o.order_no)?.toLowerCase();
+  return orders.find((o) => field(o) === want) ?? null;
 }
 
 /**

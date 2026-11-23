@@ -15,6 +15,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { PageSpinner } from '@/components/ui/Spinner';
 import MachineHistoryModal, { HistoryTab, Movement } from '@/components/MachineHistoryModal';
 import StockUploadModal from '@/components/StockUploadModal';
+import PlantUpdateButton from '@/components/PlantUpdateButton';
 import { slotLabel } from '@/lib/format';
 import { Search, Plus, MapPin, Clock, Truck, FileSpreadsheet } from 'lucide-react';
 
@@ -23,6 +24,9 @@ interface Machine {
   status: 'AVAILABLE' | 'SOLD' | 'RESERVED' | 'UNDER_INSPECTION' | 'IN_REPAIR' | 'DISPATCHED';
   assemblyStage: number; parkStatus: string;
   barcode?: string | null;
+  orderNo?: string | null;
+  isDemo?: boolean;
+  reworkOpenStages?: number[];
   plannedSlotId?: string | null;
   currentSlot?: { id: string; row: number; col: number; yard: { name: string } };
   // getAllMachines already returns this, so the history modal reads it from page
@@ -81,6 +85,9 @@ export default function MachineTracking() {
   // A machine not yet in a slot enters the yard only through Gate Control. Placing one
   // by hand is for the stock parked before go-live, while an Admin has Initial stock load on.
   const canStockLoad = initialStockLoad && can('machines.allocate');
+  const canRefresh = isAuthenticated && can('assembly.refresh');
+  // Result of the last per-machine Update from the plant.
+  const [plantNotice, setPlantNotice] = useState<{ ok: boolean; message: string } | null>(null);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; if (token) h['Authorization'] = `Bearer ${token}`; return h; };
@@ -194,6 +201,12 @@ export default function MachineTracking() {
           </div>
         ) : undefined}
       />
+      {plantNotice && (
+        <div role="status" className={`flex items-start justify-between gap-2 rounded-lg border px-3 py-2 text-xs ${plantNotice.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+          <span>{plantNotice.message}</span>
+          <button type="button" onClick={() => setPlantNotice(null)} className="font-semibold opacity-70 hover:opacity-100">Dismiss</button>
+        </div>
+      )}
       <StockUploadModal open={showUpload} onClose={() => setShowUpload(false)} onDone={() => { void fetchMachines(); }} />
 
       {initialStockLoad && (
@@ -240,7 +253,14 @@ export default function MachineTracking() {
                         <div className="w-7 h-7 bg-blue-100 rounded-md flex items-center justify-center shrink-0">
                           <Truck className="w-3.5 h-3.5 text-blue-600" />
                         </div>
-                        <span className="font-medium text-slate-900">{m.serialNumber}</span>
+                        <div>
+                          <span className="font-medium text-slate-900">{m.serialNumber}</span>
+                          {m.reworkOpenStages && m.reworkOpenStages.length > 0 && (
+                            <span title="Quality inspection is RE-WORK at these stages" className="ml-1.5 inline-block rounded bg-red-100 px-1 py-px text-[10px] font-bold uppercase tracking-wide text-red-700">
+                              Rework S{m.reworkOpenStages.join(', S')}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{m.model || 'N/A'}</TableCell>
@@ -278,7 +298,12 @@ export default function MachineTracking() {
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      <Button variant="ghost" size="sm" onClick={() => openHistory(m, 'movements')} icon={<Clock className="w-3.5 h-3.5" />}>History</Button>
+                      <div className="inline-flex items-center gap-1.5">
+                        {canRefresh && m.orderNo && !m.isDemo && (
+                          <PlantUpdateButton orderNo={m.orderNo} onDone={(r) => { setPlantNotice(r); if (r.ok) void fetchMachines(); }} />
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => openHistory(m, 'movements')} icon={<Clock className="w-3.5 h-3.5" />}>History</Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -12,11 +12,12 @@ import { plantStateMeta } from '@/lib/plantState';
 import Badge from '@/components/ui/Badge';
 import { PageSpinner } from '@/components/ui/Spinner';
 import StageHistoryModal from '@/components/StageHistoryModal';
-import { formatDateTime, slotLabel } from '@/lib/format';
+import PlantUpdateButton from '@/components/PlantUpdateButton';
+import { formatDateShort, formatDateTime, slotLabel } from '@/lib/format';
 import { RefreshCw, Factory, Clock, Zap, Activity, Calendar, AlertCircle, CheckCircle2, Search, X, MapPin } from 'lucide-react';
 
 interface SlotRef { row: number; col: number; yard?: { name: string } }
-interface Machine { id: string; serialNumber: string; barcode?: string; model: string; machineType?: string; modelType?: string; assemblyStage: number; orderNo?: string; itemCode?: string; itemDescription?: string; parkStatus: string; lastSyncAt?: string; isDemo?: boolean; assemblyCompleted?: boolean; plantStatus?: { stage: number; state: string | null } | null; currentSlot?: SlotRef | null; plannedSlot?: SlotRef | null; }
+interface Machine { id: string; serialNumber: string; barcode?: string; model: string; machineType?: string; modelType?: string; assemblyStage: number; orderNo?: string; itemCode?: string; itemDescription?: string; parkStatus: string; lastSyncAt?: string; isDemo?: boolean; assemblyCompleted?: boolean; assemblyCompletedAt?: string | null; reworkOpenStages?: number[]; plantStatus?: { stage: number; state: string | null } | null; currentSlot?: SlotRef | null; plannedSlot?: SlotRef | null; }
 
 // Where a machine that has finished stage 18 is now. Parking states are grouped
 // because the yard cares that it is in a slot, not which security step it is at.
@@ -69,6 +70,9 @@ export default function AssemblyLine() {
   const [selectedStage, setSelectedStage] = useState<number | 'completed' | null>(null);
   const [completedFilter, setCompletedFilter] = useState<CompletedFilter>('ALL');
   const [search, setSearch] = useState('');
+  // Completed list: stage 18 finished between these days (YYYY-MM-DD, either may be empty).
+  const [doneFrom, setDoneFrom] = useState('');
+  const [doneTo, setDoneTo] = useState('');
   const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
   // Demo rows are shown by default so the seeded stage history is visible, but
   // can be hidden to see only real plant machines.
@@ -81,6 +85,7 @@ export default function AssemblyLine() {
   const { isAuthenticated, can } = useAuth();
   // The sync endpoint is ADMIN-only on the server, so the button follows it.
   const canSync = isAuthenticated && can('assembly.sync');
+  const canRefresh = isAuthenticated && can('assembly.refresh');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const headers = () => { const h: Record<string, string> = {}; const t = localStorage.getItem('token'); if (t) h['Authorization'] = `Bearer ${t}`; return h; };
@@ -208,9 +213,28 @@ export default function AssemblyLine() {
   const showingCompleted = selectedStage === 'completed';
   const completedMatch = COMPLETED_FILTERS.find(f => f.value === completedFilter)!.match;
 
+  // Local calendar day of the stage 18 finish, to compare with the date boxes.
+  const doneDay = (m: Machine) => {
+    if (!m.assemblyCompletedAt) return '';
+    const d = new Date(m.assemblyCompletedAt);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const inDoneRange = (m: Machine) => {
+    if (!doneFrom && !doneTo) return true;
+    const day = doneDay(m);
+    if (!day) return false;
+    return (!doneFrom || day >= doneFrom) && (!doneTo || day <= doneTo);
+  };
+
+  // A search under "All" looks through every machine, completed ones included, so a
+  // serial can be found without knowing where it is.
   const filtered = showingCompleted
-    ? searched.filter(m => m.assemblyCompleted && completedMatch(m.parkStatus))
-    : searched.filter(m => !m.assemblyCompleted && (selectedStage === null || m.assemblyStage === selectedStage));
+    ? searched
+        .filter(m => m.assemblyCompleted && completedMatch(m.parkStatus) && inDoneRange(m))
+        .sort((a, b) => (b.assemblyCompletedAt ?? '').localeCompare(a.assemblyCompletedAt ?? ''))
+    : selectedStage === null && term
+      ? searched
+      : searched.filter(m => !m.assemblyCompleted && (selectedStage === null || m.assemblyStage === selectedStage));
   // Only meaningful while demo rows are visible; the banner text falls back to
   // the availability flag when they are hidden.
   const demoCount = machines.filter(m => m.isDemo).length;
@@ -311,7 +335,10 @@ export default function AssemblyLine() {
       {/* Stage Filter Pipeline */}
       <SectionCard title="Assembly Pipeline">
         <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => setSelectedStage(null)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedStage === null ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+          <button onClick={() => setSelectedStage(null)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${selectedStage === null ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            All
+            <span className={`text-[10px] px-1 py-0 rounded-full tabular-nums ${selectedStage === null ? 'bg-white/20' : 'bg-slate-200 text-slate-700'}`}>{inAssembly.length}</span>
+          </button>
           {Array.from({ length: 18 }, (_, i) => i + 1).map(s => {
             const count = inAssembly.filter(m => m.assemblyStage === s).length;
             return (
@@ -333,10 +360,28 @@ export default function AssemblyLine() {
 
         {showingCompleted && (
           <div className="mt-3 pt-3 border-t border-slate-100">
+            <div className="mb-3 flex flex-wrap items-end gap-2">
+              <label className="text-[11px] font-medium text-slate-600">
+                Completed from
+                <input type="date" value={doneFrom} max={doneTo || undefined} onChange={e => setDoneFrom(e.target.value)}
+                  className="mt-0.5 block h-8 rounded-md border border-slate-300 px-2 text-[13px]" />
+              </label>
+              <label className="text-[11px] font-medium text-slate-600">
+                to
+                <input type="date" value={doneTo} min={doneFrom || undefined} onChange={e => setDoneTo(e.target.value)}
+                  className="mt-0.5 block h-8 rounded-md border border-slate-300 px-2 text-[13px]" />
+              </label>
+              {(doneFrom || doneTo) && (
+                <button type="button" onClick={() => { setDoneFrom(''); setDoneTo(''); }}
+                  className="inline-flex h-8 items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-slate-800">
+                  <X className="h-3 w-3" /> Clear dates
+                </button>
+              )}
+            </div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Completed — where they are now</p>
             <div className="flex flex-wrap gap-1.5">
               {COMPLETED_FILTERS.map(f => {
-                const count = completed.filter(m => f.match(m.parkStatus)).length;
+                const count = completed.filter(m => f.match(m.parkStatus) && inDoneRange(m)).length;
                 const active = completedFilter === f.value;
                 return (
                   <button
@@ -359,8 +404,8 @@ export default function AssemblyLine() {
         title={`Machines (${filtered.length})`}
         description={
           showingCompleted
-            ? `Completed${completedFilter === 'ALL' ? '' : ` · ${COMPLETED_FILTERS.find(f => f.value === completedFilter)!.label}`}`
-            : selectedStage ? `Filtered to Stage ${selectedStage}` : 'All machines still in assembly'
+            ? `Completed${completedFilter === 'ALL' ? '' : ` · ${COMPLETED_FILTERS.find(f => f.value === completedFilter)!.label}`}${doneFrom || doneTo ? ` · ${doneFrom ? formatDateShort(doneFrom) : '…'} to ${doneTo ? formatDateShort(doneTo) : '…'}` : ''}`
+            : selectedStage ? `Filtered to Stage ${selectedStage}` : term ? 'Search covers every machine, completed ones too' : 'All machines still in assembly'
         }
         action={
           <div className="w-full sm:w-72">
@@ -379,7 +424,7 @@ export default function AssemblyLine() {
           <div className="mb-3 flex items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2">
             <span className="text-[11px] text-slate-600">
               {filtered.length} match{filtered.length === 1 ? '' : 'es'} for <span className="font-mono font-medium text-slate-900">{search.trim()}</span>
-              {showingCompleted ? ' in Completed' : selectedStage ? ` at stage ${selectedStage}` : ' in assembly'}
+              {showingCompleted ? ' in Completed' : selectedStage ? ` at stage ${selectedStage}` : ' in all machines'}
             </span>
             <button
               onClick={() => setSearch('')}
@@ -403,9 +448,11 @@ export default function AssemblyLine() {
               <TableHeaderCell>Order No</TableHeaderCell>
               <TableHeaderCell>Stage</TableHeaderCell>
               <TableHeaderCell>Park Status</TableHeaderCell>
+              {showingCompleted && <TableHeaderCell>Completed On</TableHeaderCell>}
               {showingCompleted && <TableHeaderCell>Location</TableHeaderCell>}
               <TableHeaderCell>Model-Type</TableHeaderCell>
               <TableHeaderCell>Last Sync</TableHeaderCell>
+              {canRefresh && <TableHeaderCell align="right">Plant</TableHeaderCell>}
             </TableHeader>
             <TableBody>
               {filtered.map(m => (
@@ -417,6 +464,11 @@ export default function AssemblyLine() {
                     <div>
                       <span className="font-medium text-slate-900">{m.serialNumber}</span>
                       {m.barcode && <span className="block text-[10px] text-slate-400">BC: {m.barcode}</span>}
+                      {m.reworkOpenStages && m.reworkOpenStages.length > 0 && (
+                        <span title="Quality inspection is RE-WORK at these stages" className="mt-0.5 inline-block rounded bg-red-100 px-1 py-px text-[10px] font-bold uppercase tracking-wide text-red-700">
+                          Rework S{m.reworkOpenStages.join(', S')}
+                        </span>
+                      )}
                       {m.isDemo && (
                         <span className="mt-0.5 inline-block rounded bg-purple-100 px-1 py-px text-[10px] font-bold uppercase tracking-wide text-purple-700">
                           Demo
@@ -437,6 +489,9 @@ export default function AssemblyLine() {
                   </TableCell>
                   <TableCell><ParkStatusBadge status={m.parkStatus} /></TableCell>
                   {showingCompleted && (
+                    <TableCell><span className="text-xs text-slate-600">{m.assemblyCompletedAt ? formatDateTime(m.assemblyCompletedAt) : '—'}</span></TableCell>
+                  )}
+                  {showingCompleted && (
                     <TableCell>
                       {locationLabel(m) ? (
                         <span className="inline-flex items-center gap-1 text-[13px]">
@@ -456,6 +511,19 @@ export default function AssemblyLine() {
                     )}
                   </TableCell>
                   <TableCell><span className="text-xs text-slate-400">{formatDateTime(m.lastSyncAt)}</span></TableCell>
+                  {canRefresh && (
+                    <TableCell align="right">
+                      {m.orderNo && !m.isDemo ? (
+                        <PlantUpdateButton
+                          orderNo={m.orderNo}
+                          onDone={({ ok, message }) => {
+                            setNotice({ type: ok ? 'success' : 'error', message });
+                            if (ok) { fetchMachines(); fetchStageStats(); }
+                          }}
+                        />
+                      ) : <span className="text-xs text-slate-400">—</span>}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

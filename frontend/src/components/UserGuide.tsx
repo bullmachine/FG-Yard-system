@@ -159,9 +159,10 @@ const SCREENS: ScreenGuide[] = [
     purpose: 'Track machines through assembly stages 1–18, and follow machines that have completed assembly.',
     steps: [
       'Click a stage button (1–18) to list machines currently at that stage. "All" lists every machine still in assembly.',
-      'Click Completed (after 18) to see machines that finished stage 18. Use the chips to filter: No Barcode, Ready to Move, In Transit, At Gate, Parked, Exited.',
-      'Search by serial, order number or barcode. The search works inside the stage or Completed view you have selected.',
-      'Click any machine row to open its full stage history: work centre, start and end time, duration.',
+      'Click Completed (after 18) to see machines that finished stage 18, newest first, with the date and time stage 18 was completed. Set Completed from / to for a date range, and use the chips to filter: No Barcode, Ready to Move, In Transit, At Gate, Parked, Exited.',
+      'Search by serial, order number or barcode. With All selected the search covers every machine, completed ones too; inside a stage or Completed it searches only that view. The All button shows how many machines are in assembly.',
+      'Update (on each row, and in Machine Tracking) reads that one order from the plant system now, by order number: stage, stage history and barcode. Use it when the plant has moved on and you cannot wait for the next sync.',
+      'Click any machine row to open its full stage history: work centre, start and end time, duration, and the Quality result with its inspection time (Accepted, Rework open, Rework accepted). A red "Rework S13" tag on a row means the Quality inspection at that stage is still RE-WORK.',
       'Administrators can press "Sync last N days" to read the latest production orders from the plant now. The Last Sync and Schedule cards are also Administrator-only.',
     ],
     tips: ['"No Barcode" machines cannot be released to the yard. The barcode must be added in the plant system; the next sync picks it up.', 'The plant sync runs automatically every morning (schedule set in Settings).'],
@@ -295,6 +296,7 @@ const SCREENS: ScreenGuide[] = [
     tips: [
       'Camera scanning needs the site opened over https (or on the same computer) and permission to use the camera. Tap Allow when the browser asks.',
       'If a barcode will not scan, type the machine serial number in the same field.',
+      'A barcode that is not yet in FG Yard (Quality added it after the last sync) is looked up in the plant system automatically. The same happens when a serial number is typed for a machine that has no barcode yet. A machine that already has a barcode here never calls the plant; the screen says "Checking the plant system" and then shows the machine if it is ready.',
       'Outward only lists machines whose exit request was approved, or that are planned for dispatch. A planned machine needs no exit request; its slot is freed when it is scanned out.',
       'Inward refuses a machine that is already parked in the yard or released for exit. A machine still in transit keeps its slot if it is scanned again.',
       'A machine that comes back after dispatch is put on hold until a manager clears it in Yard Stock. Managers are notified.',

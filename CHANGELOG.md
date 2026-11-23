@@ -3,6 +3,49 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 21 November 2026
+
+**Update needs:** backend and frontend rebuild, and `npx prisma db push` (two new columns on
+the stage history table, no new table). No new packages. One new
+permission, **Assembly Line › Update one machine from plant** (Yard Manager and Operator by
+default; see Role Access).
+
+### Gate Control: barcode looked up in the plant system
+- A scanned barcode that FG Yard does not know yet (Quality added it after stage 18 and after
+  the last sync) is now asked of the plant system straight away, by barcode (`hxBarcode`, no
+  date). If the plant has it, the machine is updated (stage, barcode) and shown at the gate as
+  ready. Each barcode is asked once per screen; a plant that cannot be reached is asked again on
+  the next scan.
+- A serial number typed for a machine that has no barcode yet refreshes that machine by its
+  order number. A machine that already has a barcode never calls the plant.
+- Only digit-only values are sent to the plant: it ignores any other value and returns every
+  order (about 1.7 MB, 30 seconds).
+
+### Stage history: Quality inspection status and time
+- Each stage now keeps the plant's inspection result: **ACCEPTED**, **RE-WORK** (rework still
+  open) or **REWORK-ACCEPTED** (reworked, then accepted), with the time of the latest
+  inspection. Filled by the daily sync, the Update button and the gate lookup. The plant sends
+  no rework reason, so none is stored.
+- **Stage History** shows a **Quality** column with this result and the inspection time, and a
+  red "Rework open at stage N" note. Assembly Line and Machine Tracking show a red
+  **Rework S13** tag on machines whose rework is still open.
+
+### Daily production sync: first run of the day covers 30 days
+- The first scheduled production sync each day reads the last **30 days** instead of the
+  Settings window, so late plant changes (a barcode added by Quality, a late stage) are picked
+  up. Later runs that day and **Sync Now** keep the Settings window as before. Measured on the
+  plant LAN: about 2.5 minutes for 30 days.
+
+### Assembly Line and Machine Tracking: Update button
+- **Update** on each machine row reads that one order from the plant system now, by order
+  number (`hsOrderNo`, no date), through the same path as the daily sync.
+
+### Assembly Line
+- The **All** button shows the number of machines in assembly.
+- With **All** selected, the search covers every machine, completed ones included.
+- **Completed** shows a **Completed On** column (when stage 18 finished), newest first, and a
+  **Completed from / to** date filter; the chip counts follow the dates.
+
 ## 18 November 2026
 
 **Update needs:** backend and frontend rebuild. No database change.

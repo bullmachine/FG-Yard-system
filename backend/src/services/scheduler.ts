@@ -46,6 +46,21 @@ let materialTask: cron.ScheduledTask | null = null;
 let activeProductionCron = '';
 let activeMaterialCron = '';
 
+/**
+ * The first scheduled production sync of each day looks back this many days, so an
+ * order the plant changed late (a barcode added by Quality, a late stage) is picked up
+ * even after it has left the normal window. Later runs that day and manual syncs keep
+ * the usual "Production sync days" window from Settings.
+ */
+const DAILY_LONG_SYNC_DAYS = 30;
+// Local calendar day of the last 30-day run. Kept in memory: after a restart the next
+// scheduled run repeats the 30-day pass once, which is harmless.
+let lastLongSyncDay = '';
+
+function localDay(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 async function runProductionSync(trigger: string): Promise<void> {
   if (isSyncing) {
     console.log('Sync already in progress, skipping...');
@@ -53,10 +68,14 @@ async function runProductionSync(trigger: string): Promise<void> {
   }
 
   isSyncing = true;
-  console.log(`[${new Date().toISOString()}] Starting ${trigger} sync...`);
+  const today = localDay();
+  const longRun = trigger === 'scheduled' && lastLongSyncDay !== today;
+  console.log(`[${new Date().toISOString()}] Starting ${trigger} sync${longRun ? ` (first of the day: last ${DAILY_LONG_SYNC_DAYS} days)` : ''}...`);
 
   try {
-    lastSyncResult = await syncProductionOrderWindow();
+    lastSyncResult = await syncProductionOrderWindow(longRun ? DAILY_LONG_SYNC_DAYS : undefined);
+    // Marked only after the run finishes, so a run that throws is retried in full next time.
+    if (longRun) lastLongSyncDay = today;
     console.log(`[${new Date().toISOString()}] Sync completed:`, lastSyncResult);
     await alertIfSyncFailed('Production order', lastSyncResult);
   } catch (error) {

@@ -301,6 +301,11 @@ model MachineStageHistory {
   // Plant end_state_cd: INSPECTION-COMPLETED, IN-INSPECTION or RUN.
   endState       String?
   isCompleted    Boolean            @default(false)
+  // Quality result for this stage from the plant's inspection list: ACCEPTED, RE-WORK
+  // (rework still open) or REWORK-ACCEPTED (reworked, then accepted), and the time of
+  // the latest inspection. Null when the plant has no inspection for the stage.
+  inspectionStatus String?
+  inspectedAt      DateTime?
   source         StageHistorySource @default(PLANT_SYNC)
   syncedAt       DateTime           @default(now())
   createdAt      DateTime           @default(now())

@@ -4,7 +4,7 @@ import { getSettings } from '../services/settingsService';
 import { blocksOwnApproval, parkedBy } from '../services/parkingRules';
 import { assignSlotToMachine } from '../services/locationAssignmentService';
 import { triggerManualSync, getSchedulerStatus } from '../services/scheduler';
-import { getSyncStatus, getStageStats } from '../services/syncService';
+import { getSyncStatus, getStageStats, refreshMachineFromPlant } from '../services/syncService';
 import { notifyEvent, notifyDriverParking, pushSecurityQueueChanged, alertIfMissingBarcode } from '../services/notificationService';
 
 /**
@@ -352,5 +352,25 @@ export const getStageStatsEndpoint = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('getStageStatsEndpoint error:', error);
     res.status(500).json({ error: 'Failed to fetch stage statistics' });
+  }
+};
+
+/**
+ * Refresh one machine from the plant by `barcode` or `orderNo` (one of the two).
+ * A plant that cannot be reached is a 502 so the screen can say so.
+ */
+export const refreshFromPlant = async (req: Request, res: Response) => {
+  const barcode = typeof req.body?.barcode === 'string' ? req.body.barcode.trim() : '';
+  const orderNo = typeof req.body?.orderNo === 'string' ? req.body.orderNo.trim() : '';
+  if (!barcode === !orderNo) {
+    return res.status(400).json({ error: 'Send either a barcode or an order number' });
+  }
+  if ((barcode || orderNo).length > 64) return res.status(400).json({ error: 'Value is too long' });
+  try {
+    const result = await refreshMachineFromPlant(barcode ? { barcode } : { orderNo });
+    res.json(result);
+  } catch (error) {
+    console.error('Plant refresh failed:', error);
+    res.status(502).json({ error: 'Could not reach the plant system. Try again, or wait for the next sync.' });
   }
 };

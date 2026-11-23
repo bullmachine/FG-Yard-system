@@ -5,7 +5,8 @@ import {
   assignDriver,
   triggerSync,
   getSyncStatusEndpoint,
-  getStageStatsEndpoint
+  getStageStatsEndpoint,
+  refreshFromPlant
 } from '../controllers/assemblyController';
 import { auth } from '../middleware/auth';
 import { requirePermission } from '../services/roleAccessService';
@@ -23,6 +24,9 @@ router.post('/:id/assign-driver', auth, requirePermission('assembly.assign'), as
 // Sync management
 router.post('/sync', auth, requirePermission('assembly.sync'), triggerSync);
 router.get('/sync/status', auth, requirePermission('assembly.sync'), getSyncStatusEndpoint);
+// One machine from the plant, by order number (Update button) or by barcode (the gate,
+// for a barcode Quality added after the last sync).
+router.post('/refresh-from-plant', auth, requirePermission('assembly.refresh', 'page.gate'), refreshFromPlant);
 
 // Stage counts are shown on the assembly page, which every role can open, so
 // this needs authentication but not an admin role.

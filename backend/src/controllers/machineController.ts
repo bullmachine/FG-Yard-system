@@ -125,6 +125,21 @@ export const getAllMachines = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
+    // Stages whose Quality inspection is still RE-WORK (rework open), per machine, so
+    // the lists can flag them. One small query: only open-rework rows are read.
+    const reworkRows = await prisma.machineStageHistory.findMany({
+      where: { machineId: { in: machines.map((m) => m.id) }, source: 'PLANT_SYNC', inspectionStatus: 'RE-WORK' },
+      select: { machineId: true, stage: true },
+      orderBy: { stage: 'asc' }
+    });
+    const reworkByMachine = new Map<string, number[]>();
+    for (const row of reworkRows) {
+      const list = reworkByMachine.get(row.machineId) ?? [];
+      list.push(row.stage);
+      reworkByMachine.set(row.machineId, list);
+    }
+    const withRework = <T extends { id: string }>(m: T) => ({ ...m, reworkOpenStages: reworkByMachine.get(m.id) ?? [] });
+
     // Opt-in for the Assembly Line page, which lists a machine under stage 18 only
     // while that stage is still being worked on and moves it to Completed once it
     // is done. Other callers skip the extra query.
@@ -132,8 +147,15 @@ export const getAllMachines = async (req: Request, res: Response) => {
       const atFinalStage = machines.filter((m) => m.assemblyStage >= 18);
       const finalRows = await prisma.machineStageHistory.findMany({
         where: { machineId: { in: atFinalStage.map((m) => m.id) }, stage: 18 },
-        select: { machineId: true, isCompleted: true }
+        select: { machineId: true, isCompleted: true, endedAt: true }
       });
+      // When stage 18 finished: the latest end time of its operations.
+      const finishedAt = new Map<string, Date>();
+      for (const row of finalRows) {
+        if (!row.endedAt) continue;
+        const seen = finishedAt.get(row.machineId);
+        if (!seen || row.endedAt > seen) finishedAt.set(row.machineId, row.endedAt);
+      }
       // Stage 18 can have several operations, so it is done only when every
       // recorded operation is. A machine that has left PLANNED is past assembly
       // whatever the history says.
@@ -160,11 +182,16 @@ export const getAllMachines = async (req: Request, res: Response) => {
         const assemblyCompleted = m.assemblyStage >= 18 && (
           m.parkStatus !== 'PLANNED' || (rows.length > 0 && rows.every(Boolean))
         );
-        return { ...m, assemblyCompleted, plantStatus: latestByMachine.get(m.id) ?? null };
+        return {
+          ...withRework(m),
+          assemblyCompleted,
+          assemblyCompletedAt: assemblyCompleted ? finishedAt.get(m.id) ?? null : null,
+          plantStatus: latestByMachine.get(m.id) ?? null
+        };
       }));
     }
 
-    res.json(machines);
+    res.json(machines.map(withRework));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch machines' });
   }
@@ -759,6 +786,8 @@ export const getMachineStageHistory = async (req: Request, res: Response) => {
         endedAt: row?.endedAt ?? null,
         completedQty: row?.completedQty ?? null,
         endState: row?.endState ?? null,
+        inspectionStatus: row?.inspectionStatus ?? null,
+        inspectedAt: row?.inspectedAt ?? null,
         source: row?.source ?? null,
         syncedAt: row?.syncedAt ?? null,
         durationMinutes:
@@ -781,6 +810,7 @@ export const getMachineStageHistory = async (req: Request, res: Response) => {
         currentStage: machine.assemblyStage,
         inProgressStage: inProgress ? inProgress.stage : null,
         inInspectionStages: stages.filter((s) => s.status === 'IN_INSPECTION').map((s) => s.stage),
+        reworkOpenStages: stages.filter((s) => s.inspectionStatus === 'RE-WORK').map((s) => s.stage),
         hasHistory: recordedCount > 0,
         lastRecordedAt: rows.reduce<Date | null>(
           (latest, row) => (!latest || row.syncedAt > latest ? row.syncedAt : latest),

@@ -2,6 +2,7 @@ import prisma from '../lib/prisma';
 import {
   fetchProductionOrders,
   fetchProductionOrderByNumber,
+  fetchProductionOrderBy,
   getHighestCompletedStage,
   extractModelFromDescription,
   getProductionDateWindow,
@@ -320,6 +321,30 @@ export async function syncProductionOrders(date: string): Promise<SyncResult> {
 }
 
 /**
+ * Quality result of one operation from its inspection list: the latest action, with a
+ * rework that was later accepted kept visible as REWORK-ACCEPTED, and the latest
+ * inspection time. Both null when the plant sent no inspection.
+ */
+export function trxInspection(trx: ProductionOrderTrx): { inspectionStatus: string | null; inspectedAt: Date | null } {
+  const box = trx.production_order_inspections as { production_order_inspection?: unknown } | undefined;
+  const raw = box && typeof box === 'object' && !Array.isArray(box) ? box.production_order_inspection : undefined;
+  const list = (Array.isArray(raw) ? raw : raw ? [raw] : []) as Array<{ inspection_action_cd?: unknown; inspection_dt_time?: unknown }>;
+  const rows = list
+    .map((i) => ({
+      action: toNullableString(i.inspection_action_cd)?.toUpperCase() ?? null,
+      at: parsePlantDateTime(toNullableString(i.inspection_dt_time))
+    }))
+    .filter((r) => r.action);
+  if (rows.length === 0) return { inspectionStatus: null, inspectedAt: null };
+  // Order by time, so the plant's own order does not matter.
+  rows.sort((a, b) => (a.at?.getTime() ?? 0) - (b.at?.getTime() ?? 0));
+  const last = rows[rows.length - 1];
+  const hadRework = rows.some((r) => r.action === 'RE-WORK');
+  const inspectionStatus = last.action === 'ACCEPTED' && hadRework ? 'REWORK-ACCEPTED' : last.action;
+  return { inspectionStatus, inspectedAt: last.at };
+}
+
+/**
  * Persist the plant's per-operation list for a machine.
  *
  * The production API returns the full operation history on every sync, so this
@@ -351,6 +376,7 @@ async function persistStageHistory(
         completedQty: toNullableString(trx.operation_completed_qty),
         endState: trxEndState(trx),
         isCompleted: isTrxCompleted(trx),
+        ...trxInspection(trx),
         source: 'PLANT_SYNC' as const,
         syncedAt
       };
@@ -378,6 +404,8 @@ async function persistStageHistory(
           completedQty: row.completedQty,
           endState: row.endState,
           isCompleted: row.isCompleted,
+          inspectionStatus: row.inspectionStatus,
+          inspectedAt: row.inspectedAt,
           syncedAt: row.syncedAt
         }
       })
@@ -533,6 +561,52 @@ async function processOrder(order: ProductionOrder): Promise<void> {
  */
 export async function syncStuckOrderByNumber(order: ProductionOrder): Promise<void> {
   await processOrder(order);
+}
+
+export interface PlantRefreshResult {
+  found: boolean;
+  /** The machine after the refresh, or null when the plant had no such order. */
+  machine: { id: string; serialNumber: string; barcode: string | null; orderNo: string | null; assemblyStage: number; parkStatus: string } | null;
+  stageBefore: number | null;
+  created: boolean;
+  message: string;
+}
+
+/**
+ * Refresh one machine straight from the plant, by barcode or by order number, through
+ * the same path as the daily sync (stage, history, barcode, ready-to-move).
+ *
+ * The gate calls it with a scanned barcode that is not known here yet: Quality often
+ * adds the barcode after stage 18 is cleared and before the next sync. The Assembly
+ * Line and Machine Tracking Update button calls it with the order number.
+ */
+export async function refreshMachineFromPlant(key: { barcode: string } | { orderNo: string }): Promise<PlantRefreshResult> {
+  const order = await fetchProductionOrderBy(key);
+  const asked = 'barcode' in key ? `barcode ${key.barcode}` : `order ${key.orderNo}`;
+  if (!order) {
+    return { found: false, machine: null, stageBefore: null, created: false, message: `The plant system has no ${asked}` };
+  }
+  const serialNumber = toNullableString(order.item_serial_no);
+  const orderNo = toNullableString(order.order_no);
+  const where = { OR: [...(serialNumber ? [{ serialNumber }] : []), ...(orderNo ? [{ orderNo }] : [])] };
+  const before = where.OR.length > 0 ? await prisma.machine.findFirst({ where, select: { assemblyStage: true } }) : null;
+
+  await processOrder(order);
+
+  const machine = await prisma.machine.findFirst({
+    where,
+    select: { id: true, serialNumber: true, barcode: true, orderNo: true, assemblyStage: true, parkStatus: true }
+  });
+  const stageText = machine ? `stage ${machine.assemblyStage}${machine.barcode ? `, barcode ${machine.barcode}` : ', no barcode yet'}` : '';
+  return {
+    found: true,
+    machine,
+    stageBefore: before?.assemblyStage ?? null,
+    created: !before,
+    message: machine
+      ? `${machine.serialNumber} ${before ? 'updated' : 'added'} from the plant system: ${stageText}`
+      : `Read ${asked} from the plant system`
+  };
 }
 
 /**
