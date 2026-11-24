@@ -251,7 +251,7 @@ export async function alertIfMissingBarcode(machine: {
     severity: 'CRITICAL',
     title: `Missing barcode - ${machine.serialNumber}`,
     message: `${machine.serialNumber} (${machine.model || 'unknown model'}) is at stage ${machine.assemblyStage} but has no barcode. Set it from Machine Tracking or the plant so the machine can be identified at the gate.`,
-    link: 'assembly',
+    link: 'machines',
   });
 }
 

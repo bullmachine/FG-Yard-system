@@ -61,7 +61,7 @@ const machineFlow: FlowStep[] = [
   {
     title: 'Production data sync',
     actor: 'Scheduler / Admin',
-    description: 'Machine records are pulled from the material master on a schedule or on demand from the Assembly Line screen.',
+    description: 'Machine records are pulled from the material master on a schedule or on demand from the Machine Tracking screen.',
     outcome: 'Records appear on the assembly board',
   },
   {
@@ -289,7 +289,7 @@ const notificationRows: NotificationRow[] = [
     severity: 'CRITICAL',
     trigger: 'A production or material master sync returns a real error, on the schedule or run manually',
     audience: 'Administrator',
-    opens: 'Assembly Line / Material Master',
+    opens: 'Machine Tracking / Material Master',
   },
   {
     event: 'Gate rejected',
@@ -303,7 +303,7 @@ const notificationRows: NotificationRow[] = [
     severity: 'CRITICAL',
     trigger: 'A machine reaches stage 18 or later with an empty barcode, so it cannot be released to the yard',
     audience: 'Yard Manager, Administrator',
-    opens: 'Assembly Line',
+    opens: 'Machine Tracking',
   },
   {
     event: 'New registration',
@@ -317,7 +317,7 @@ const notificationRows: NotificationRow[] = [
     severity: 'INFO',
     trigger: 'A sync sees a machine at stage 18 or later that is still Planned and has a barcode, and flags it ready. Fires once per machine',
     audience: 'Yard Manager',
-    opens: 'Assembly Line',
+    opens: 'Machine Tracking',
   },
   {
     event: 'Security review needed',

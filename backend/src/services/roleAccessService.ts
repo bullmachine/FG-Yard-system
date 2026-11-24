@@ -54,11 +54,10 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'machines.allocate', group: 'Machine Tracking', label: 'Place machine during initial stock load', defaults: [YM] },
   { key: 'machines.delete', group: 'Machine Tracking', label: 'Delete machine', defaults: [] },
 
-  { key: 'page.assembly', group: 'Assembly Line', label: 'Open page', defaults: [YM, 'OPERATOR'] },
-  { key: 'assembly.advance', group: 'Assembly Line', label: 'Advance stage', defaults: ['OPERATOR'] },
-  { key: 'assembly.assign', group: 'Assembly Line', label: 'Assign location / driver', defaults: [YM] },
-  { key: 'assembly.sync', group: 'Assembly Line', label: 'Sync with plant', defaults: [] },
-  { key: 'assembly.refresh', group: 'Assembly Line', label: 'Update one machine from plant (Update button)', defaults: [YM, 'OPERATOR'] },
+  { key: 'assembly.advance', group: 'Machine Tracking', label: 'Advance assembly stage', defaults: ['OPERATOR'] },
+  { key: 'assembly.assign', group: 'Machine Tracking', label: 'Assign location / driver', defaults: [YM] },
+  { key: 'assembly.sync', group: 'Machine Tracking', label: 'Sync with plant (Sync button)', defaults: [] },
+  { key: 'assembly.refresh', group: 'Machine Tracking', label: 'Update one machine from plant (Update button)', defaults: [YM, 'OPERATOR'] },
 
   { key: 'page.fert', group: 'FERT Categories', label: 'Open page', defaults: [YM] },
   { key: 'fert.manage', group: 'FERT Categories', label: 'Add / edit / delete', defaults: [] },

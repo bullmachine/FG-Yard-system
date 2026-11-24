@@ -8,7 +8,7 @@ import { CheckCircle2, CircleDashed, CircleDot, ClipboardCheck, Loader2, Info, W
 /**
  * Presentational stage timeline, shared by every screen that shows assembly stage
  * history. It renders no data fetching of its own: the caller supplies the summary
- * and the stage rows, which keeps the Assembly Line page and the Machine Tracking
+ * and the stage rows, which keeps the Machine Tracking page and the history modal
  * page showing the same timeline instead of two copies that can drift apart.
  */
 

@@ -10,7 +10,7 @@ import { checkOverdueDispatch } from './dispatchAlertService';
 import { checkStuckInTransit } from './inTransitAlertService';
 
 const SYNC_LINKS: Record<string, string> = {
-  'Production order': 'assembly',
+  'Production order': 'machines',
   'Material master': 'materials'
 };
 

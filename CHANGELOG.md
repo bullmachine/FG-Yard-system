@@ -3,6 +3,48 @@
 Changes that matter to users, IT and Quality. Newest first. For how to apply an update to a
 running server, see [INSTALL.md › Updating an existing server](./INSTALL.md#13-updating-an-existing-server).
 
+## 23 November 2026
+
+**Update needs:** frontend and backend rebuild. No database change beyond the 21 November entry.
+
+### Machine Tracking and Assembly Line are one page
+- **Assembly Line** is gone from the menu. Everything it had is now on **Machine Tracking**:
+  the stage buttons 1–18, **Completed** with its date range and park chips, the stage cards,
+  **Sync last N days**, demo data toggle, Order No and Last Sync columns, and the Update button.
+- **All** lists every machine: in assembly, completed, in the yard and dispatched. A stage
+  button lists machines still at that stage.
+- Search (serial, order no, barcode, model), **Status** and **Park status** filters work in
+  every view, with 15 rows a page.
+- Add Machine, Upload Stock List, Allocate and the movement History stay as they were. A row
+  click opens the stage history.
+- Page access follows the Machine Tracking permission (Yard Manager, Operator, Service
+  Technician, View Only by default). The **Assembly Line › Open page** permission is removed;
+  Sync, Update, Advance stage and Assign stay as permissions, now listed under Machine Tracking
+  in Role Access. Sync-failure alerts link to Machine Tracking.
+
+### Machine Tracking layout, to save space
+- The five count cards at the top are removed. **Last synced** time is shown under the Sync
+  button; hover it for the automatic schedule.
+- The stage buttons sit inside the **Machines** card, above the table, instead of a separate
+  card. On a laptop or desktop, All and stages 1–18 fit on one line; **Completed** is on the
+  line below, next to today's activity.
+- The **Machines by Stage** section is removed. An amber dot on a stage button marks activity
+  today; hover the button for operations started today and active. One line under the buttons
+  gives machines started today, in progress, and the window the last sync read.
+- The **Initial stock load is ON** notice is one line; hover it for the full text.
+- Search, Status, Park status and the date range sit on one line above the stage buttons on a
+  laptop or desktop (they wrap on a tablet or phone). The date range
+  works in every view. **Completed** matches the day stage 18 was completed; **All** and a stage
+  match the day assembly started, now shown under the Order No. **Clear** also clears the dates.
+
+### Gate Control: no pop-up for a machine the gate will refuse
+- **Authenticate & Open Barrier** (and **Authorize Exit**) is enabled only when the scanned or
+  typed machine is found and eligible. Before, any text in the box enabled it; the server then
+  refused the machine, but the blank barrier pop-up still opened and closed. The barrier itself
+  was not sent the open command.
+- Coming in, a machine without a barcode is now shown as not eligible, with the message to ask
+  Quality for the barcode label, instead of being offered for check-in.
+
 ## 21 November 2026
 
 **Update needs:** backend and frontend rebuild, and `npx prisma db push` (two new columns on

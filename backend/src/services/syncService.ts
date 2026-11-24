@@ -508,7 +508,7 @@ async function processOrder(order: ProductionOrder): Promise<void> {
         severity: 'INFO',
         title: 'Machine ready to move',
         message: `${existingMachine.serialNumber} (${existingMachine.model}) completed stage 18 inspection and is ready for driver assignment.`,
-        link: 'assembly'
+        link: 'machines'
       });
     } else if (existingMachine.parkStatus === 'READY_TO_MOVE' && (!hasBarcode || highestStage < 18)) {
       // Also covers stage 18 going back to "IN-INSPECTION": the machine must not

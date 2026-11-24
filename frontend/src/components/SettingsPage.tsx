@@ -306,7 +306,7 @@ export default function SettingsPage() {
 
       <SectionCard
         title="Production Order Upstream"
-        description="Source of assembly stage data for the Assembly Line page"
+        description="Source of assembly stage data for the Machine Tracking page"
         action={
           <Button
             size="sm"

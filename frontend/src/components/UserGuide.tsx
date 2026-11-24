@@ -60,7 +60,7 @@ const QUICK_START = [
 
 const JOURNEY = [
   { step: 'Assembly', status: 'Stages 1–18', text: 'Production orders are read from the plant every morning. Each machine moves through 18 assembly stages.' },
-  { step: 'Completed', status: 'Stage 18 done', text: 'When the plant marks stage 18 Inspection completed, the machine appears under Assembly Line → Completed. Until then it shows S18 In inspection and cannot come in at the gate. It needs a barcode before it can leave the plant.' },
+  { step: 'Completed', status: 'Stage 18 done', text: 'When the plant marks stage 18 Inspection completed, the machine appears under Machine Tracking → Completed. Until then it shows S18 In inspection and cannot come in at the gate. It needs a barcode before it can leave the plant.' },
   { step: 'Ready to Move', status: 'READY TO MOVE', text: 'With a barcode, the machine is released and waits for a driver.' },
   { step: 'Gate In', status: 'IN TRANSIT', text: 'At the gate the driver is selected from the list and the machine barcode is scanned. If authorized, the barrier opens and the driver is told which yard slot to go to.' },
   { step: 'Parked', status: 'PARKED PENDING', text: 'The driver (or the yard office) confirms the machine is in its slot.' },
@@ -72,7 +72,7 @@ const JOURNEY = [
 const SCREENS: ScreenGuide[] = [
   {
     tab: 'dashboard', title: 'Dashboard', roles: 'Everyone',
-    purpose: 'A live summary of the FG yard: stock, inward, dispatch and slots. Assembly is not shown here; use Assembly Line for that.',
+    purpose: 'A live summary of the FG yard: stock, inward, dispatch and slots. Assembly is not shown here; use Machine Tracking for that.',
     steps: [
       'Read the top cards: machines in the FG yard, free stock, planned for dispatch, awaiting main gate, free slots, and today’s gate in, gate out and main gate out.',
       'Check the "Needs attention" row first: dispatch overdue at the main gate, PDI hold, parking not confirmed in time, parking rejected, machines returned after dispatch (on hold), yards full and pending exit requests. Click a chip for its list; the arrow opens the screen that fixes it. "All clear" means nothing is waiting.',
@@ -145,27 +145,20 @@ const SCREENS: ScreenGuide[] = [
   },
   {
     tab: 'machines', title: 'Machine Tracking', roles: 'Administrator, Yard Manager, Operator, Service Technician, View Only',
-    purpose: 'The full machine inventory with status, park status and location.',
+    purpose: 'Every machine in one list: assembly stages 1–18, completed machines, the yard and dispatch. It replaces the old Assembly Line page.',
     steps: [
-      'Search by serial number or model, and filter by status or park status.',
-      'Click "Stage X/18" to see the assembly stage history, or History for slot movements.',
+      '"All" lists every machine, in assembly, completed, in the yard and dispatched. A stage button (1–18) lists machines still at that stage. The numbers on the buttons are the machine counts.',
+      'Click Completed to see machines that finished stage 18, newest first, with the date and time stage 18 was completed. The date range next to the search box works in every view: under Completed it matches the day stage 18 was completed; under All or a stage it matches the day assembly started (shown under the Order No). Use the chips to filter: No Barcode, Ready to Move, In Transit, At Gate, Parked, Exited.',
+      'Search by serial, order number, barcode or model, and filter by Status and Park status. These filters work in every view (All, a stage, Completed). The list shows 15 rows a page; change it at the bottom.',
+      'Click any machine row to open its stage history: work centre, start and end time, duration, and the Quality result with its inspection time (Accepted, Rework open, Rework accepted). History on the row shows its yard movements.',
+      'A red "Rework S13" tag means the Quality inspection at that stage is still RE-WORK. "No barcode" means stage 18 is done but Quality has not added the barcode yet.',
+      'Update reads that one order from the plant system now, by order number: stage, stage history, Quality result and barcode. Use it when the plant has moved on and you cannot wait for the next sync.',
+      'Administrators can press "Sync last N days" to read the latest production orders from the plant now. The time of the last sync is shown under the button.',
       'Machines enter the yard only through Gate Control. Allocate (place a machine straight into a slot) appears only while an Administrator has Initial stock load switched on in Settings, for machines already parked before go-live. It needs stage 18, a barcode and a remark, and the machine still goes to Security.',
       'Many machines at once (initial stock load only): press Upload Stock List, download the Template, fill one row per machine (Serial Number, Yard, Slot such as B7, optional Inward Date and Remark) in Excel, and choose the file. Every row is checked and shown; press Place to put in the rows marked Ready. Fix the other rows and upload them again.',
       'Administrators, Yard Managers and Operators can add a machine manually with Add Machine.',
     ],
-  },
-  {
-    tab: 'assembly', title: 'Assembly Line', roles: 'Administrator, Yard Manager, Operator',
-    purpose: 'Track machines through assembly stages 1–18, and follow machines that have completed assembly.',
-    steps: [
-      'Click a stage button (1–18) to list machines currently at that stage. "All" lists every machine still in assembly.',
-      'Click Completed (after 18) to see machines that finished stage 18, newest first, with the date and time stage 18 was completed. Set Completed from / to for a date range, and use the chips to filter: No Barcode, Ready to Move, In Transit, At Gate, Parked, Exited.',
-      'Search by serial, order number or barcode. With All selected the search covers every machine, completed ones too; inside a stage or Completed it searches only that view. The All button shows how many machines are in assembly.',
-      'Update (on each row, and in Machine Tracking) reads that one order from the plant system now, by order number: stage, stage history and barcode. Use it when the plant has moved on and you cannot wait for the next sync.',
-      'Click any machine row to open its full stage history: work centre, start and end time, duration, and the Quality result with its inspection time (Accepted, Rework open, Rework accepted). A red "Rework S13" tag on a row means the Quality inspection at that stage is still RE-WORK.',
-      'Administrators can press "Sync last N days" to read the latest production orders from the plant now. The Last Sync and Schedule cards are also Administrator-only.',
-    ],
-    tips: ['"No Barcode" machines cannot be released to the yard. The barcode must be added in the plant system; the next sync picks it up.', 'The plant sync runs automatically every morning (schedule set in Settings).'],
+    tips: ['"No Barcode" machines cannot be released to the yard. The barcode must be added in the plant system; the next sync, Update, or a scan at the gate picks it up.', 'The plant sync runs automatically every morning (schedule set in Settings); the first run of the day reads the last 30 days.'],
   },
   {
     tab: 'fert', title: 'FERT Categories', roles: 'Administrator, Yard Manager',

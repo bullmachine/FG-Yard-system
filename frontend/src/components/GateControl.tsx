@@ -71,7 +71,8 @@ const INWARD_BLOCKED: Record<string, string> = {
   PARKED_VERIFIED: 'is already parked and verified in the yard. It cannot come in again.',
   AT_GATE: 'is released for exit. Use Outward, not Inward.'
 };
-const canComeIn = (m: Machine) => m.assemblyStage >= 18 && !INWARD_BLOCKED[m.parkStatus];
+// The gate refuses a machine without a barcode, so it is not offered for check-in either.
+const canComeIn = (m: Machine) => m.assemblyStage >= 18 && !!m.barcode?.trim() && !INWARD_BLOCKED[m.parkStatus];
 
 type DetectionState = 'none' | 'detecting' | 'plant' | 'ok' | 'notready' | 'missing';
 
@@ -325,7 +326,9 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
   }, [barcodeInput, direction]);
 
   const handleAuthenticate = async () => {
-    if (!pickedDriver || (!selectedMachine && !barcodeInput)) return;
+    // Only a detected, eligible machine can be sent: a missing, not-ready or no-barcode
+    // machine would be refused anyway, and the barrier pop-up must not open for it.
+    if (!pickedDriver || detection.state !== 'ok' || !selectedMachine) return;
     setAuthenticating(true);
     setAuthResult(null);
     clearBarrierTimer();
@@ -657,6 +660,10 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
                   <p className="text-xs text-red-800">
                     <span className="font-semibold">{detection.machine.serialNumber}</span> {INWARD_BLOCKED[detection.machine.parkStatus]}
                   </p>
+                ) : detection.machine.assemblyStage >= 18 && !detection.machine.barcode?.trim() ? (
+                  <p className="text-xs text-red-800">
+                    <span className="font-semibold">{detection.machine.serialNumber}</span> has no barcode yet, and the plant system has none either. Ask Quality to add the barcode label, then scan again.
+                  </p>
                 ) : (
                   <p className="text-xs text-red-800">
                     <span className="font-semibold">{detection.machine.serialNumber}</span> is at stage {detection.machine.assemblyStage} — not ready to move. The gate will reject it.
@@ -672,7 +679,7 @@ export default function GateControl({ onNavigate }: { onNavigate?: (tab: string)
             )}
 
             <div className="flex flex-wrap gap-2 mt-3">
-<Button onClick={handleAuthenticate} loading={authenticating} disabled={!pickedDriver || (!selectedMachine && !barcodeInput) || barrierOpen} size="lg" className="flex-1 h-11!" icon={<Shield className="w-4 h-4" />}>
+<Button onClick={handleAuthenticate} loading={authenticating} disabled={!pickedDriver || detection.state !== 'ok' || !selectedMachine || barrierOpen} size="lg" className="flex-1 h-11!" icon={<Shield className="w-4 h-4" />}>
                   {direction === 'IN' ? 'Authenticate & Open Barrier' : 'Authorize Exit & Open Barrier'}
                 </Button>
               {authResult && (

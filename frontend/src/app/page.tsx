@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, MapPin, Truck, Users, Shield,
-  Clock, LogOut, Menu, X, Factory, Package, Fence, Database, Layers,
+  Clock, LogOut, Menu, X, Package, Fence, Database, Layers,
   PanelLeftClose, PanelLeftOpen, BookOpen, Bell, Settings, ParkingCircle, Send,
   RotateCcw, LayoutGrid, LifeBuoy, Boxes, ClipboardList, PackageCheck, FileText, KeyRound, MessageSquareText, History, Scale
 } from 'lucide-react';
@@ -16,7 +16,6 @@ import YardStock from '@/components/YardStock';
 import DispatchPlanning from '@/components/DispatchPlanning';
 import DispatchList from '@/components/DispatchList';
 import MachineTracking from '@/components/MachineTracking';
-import AssemblyLine from '@/components/AssemblyLine';
 import FertCategories from '@/components/FertCategories';
 import VehicleModelMasters from '@/components/VehicleModelMasters';
 import MaterialMasters from '@/components/MaterialMasters';
@@ -39,7 +38,7 @@ import SettingsPage from '@/components/SettingsPage';
 import UserGuide from '@/components/UserGuide';
 import { asset } from '@/lib/basePath';
 
-type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'assembly' | 'fert' | 'models' | 'materials' | 'sap' | 'drivers' | 'users' | 'settings' | 'access' | 'feedback' | 'logins' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
+type Tab = 'dashboard' | 'dashboard2' | 'yards' | 'stock' | 'dispatch' | 'pdi' | 'machines' | 'fert' | 'models' | 'materials' | 'sap' | 'drivers' | 'users' | 'settings' | 'access' | 'feedback' | 'logins' | 'gate' | 'security' | 'parked' | 'history' | 'requests' | 'returns' | 'docs' | 'sop' | 'notifications' | 'help';
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
@@ -49,7 +48,6 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   dispatch: <ClipboardList className="w-5 h-5" />,
   pdi: <PackageCheck className="w-5 h-5" />,
   machines: <Truck className="w-5 h-5" />,
-  assembly: <Factory className="w-5 h-5" />,
   fert: <Package className="w-5 h-5" />,
   models: <Layers className="w-5 h-5" />,
   materials: <Database className="w-5 h-5" />,
@@ -80,7 +78,6 @@ const TAB_LABELS: Record<Tab, string> = {
   dispatch: 'Dispatch Planning',
   pdi: 'Dispatch Machine List',
   machines: 'Machine Tracking',
-  assembly: 'Assembly Line',
   fert: 'FERT Categories',
   models: 'Vehicle Models',
   materials: 'Material Master',
@@ -105,7 +102,7 @@ const TAB_LABELS: Record<Tab, string> = {
 
 const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
   { label: 'OVERVIEW', tabs: ['dashboard', 'dashboard2'] },
-  { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'sap', 'drivers'] },
+  { label: 'OPERATIONS', tabs: ['yards', 'stock', 'dispatch', 'pdi', 'machines', 'fert', 'models', 'materials', 'sap', 'drivers'] },
   { label: 'ADMINISTRATION', tabs: ['users', 'settings', 'access', 'feedback', 'logins'] },
   { label: 'CONTROL', tabs: ['gate', 'parked', 'security', 'returns', 'requests', 'history'] },
   { label: 'DOCUMENTATION', tabs: ['help', 'docs', 'sop', 'notifications'] },
@@ -113,7 +110,7 @@ const TAB_SECTIONS: { label: string; tabs: Tab[] }[] = [
 
 // Pages whose access is set per role on the Role Access page (permission page.<tab>).
 // The Admin-only pages are fixed in code; Help, Docs, SOP and Notifications are open.
-const PERMISSION_TABS: Tab[] = ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'assembly', 'fert', 'models', 'materials', 'sap', 'drivers', 'gate', 'parked', 'security', 'returns', 'requests', 'history'];
+const PERMISSION_TABS: Tab[] = ['dashboard', 'yards', 'stock', 'dispatch', 'pdi', 'machines', 'fert', 'models', 'materials', 'sap', 'drivers', 'gate', 'parked', 'security', 'returns', 'requests', 'history'];
 const ADMIN_ONLY_TABS: Tab[] = ['users', 'settings', 'access', 'feedback', 'logins'];
 
 const ROLE_COLORS: Record<string, string> = {
@@ -310,7 +307,6 @@ export default function Home() {
       case 'dispatch': return <DispatchPlanning />;
       case 'pdi': return <DispatchList />;
       case 'machines': return <MachineTracking />;
-      case 'assembly': return <AssemblyLine />;
       case 'fert': return <FertCategories />;
       case 'models': return <VehicleModelMasters />;
       case 'materials': return <MaterialMasters />;
